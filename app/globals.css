@@ -23,4 +23,68 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  scrollbar-gutter: stable;
+}
+/* globals.css */
+#nprogress .peg {
+  box-shadow: 0 0 15px #ea580c, 0 0 8px #ea580c !important;
+  opacity: 1;
+  display: block;
+  position: absolute;
+  right: 0px;
+  width: 100px;
+  height: 100%;
+  transform: rotate(3deg) translate(0px, -4px);
+}
+
+/* Makes every link feel more responsive to the touch */
+a {
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+/* Optional: Slight hover lift to signal "Clickability" */
+a:hover {
+  filter: brightness(1.1);
+  transition: filter 0.1s ease-in;
+}
+/* --- SEAMLESS CUSTOM SCROLLBAR --- */
+
+/* 1. Firefox Support (Clean & Thin) */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(234, 88, 12, 0.4) transparent; /* Orange-600 with opacity */
+}
+
+/* 2. WebKit Support (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 10px; /* Overall width of the scrollbar */
+  height: 10px; /* Height for horizontal scrollbars */
+}
+
+/* Make the track (background) completely transparent */
+::-webkit-scrollbar-track {
+  background: transparent; 
+}
+
+/* 3. The Scrollbar "Thumb" (The draggable part) */
+::-webkit-scrollbar-thumb {
+  background-color: rgba(234, 88, 12, 0.3); /* Light, semi-transparent orange */
+  border-radius: 20px;
+  
+  /* 🌟 THE MAGIC TRICK: 
+     This transparent border pushes the background color inward, 
+     creating a "floating" pill effect that doesn't touch the edges of the screen. */
+  border: 3px solid transparent; 
+  background-clip: content-box; 
+}
+
+/* 4. Hover State (Shows seamlessly when needed) */
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(234, 88, 12, 0.8); /* Solid orange when interacting */
+}
+
+/* 5. Active/Dragging State */
+::-webkit-scrollbar-thumb:active {
+  background-color: rgba(194, 65, 12, 1); /* Darker orange (orange-700) when dragging */
 }

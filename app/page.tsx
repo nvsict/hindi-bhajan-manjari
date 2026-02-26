@@ -1,65 +1,101 @@
-import Image from "next/image";
+import { Metadata } from 'next';
+import { Suspense } from 'react';
+import { supabase } from '../utils/supabase';
+import Hero from '../components/Hero'; // Adjust paths to '@/components/...' if needed
+import Sidebar from '../components/Sidebar';
+import DeityBrowse from '../components/DeityBrowse';
+import BhajanList from '../components/BhajanList'; 
+import { BhajanGridSkeleton } from '../components/Skeletons';
+
+import PopularCategories from '../components/home/PopularCategories';
+import TrendingArtists from '../components/home/TrendingArtists';
+
+// 🌟 THE HOMEPAGE CANONICAL FIX
+// This tells Google this is the ONLY official homepage URL, fixing the GSC warning!
+export const metadata: Metadata = {
+  alternates: {
+    canonical: 'https://www.hindibhajanmanjari.com/',
+  },
+};
+
+export const revalidate = 300; 
+
+async function LatestBhajansSection() {
+  const { data: rawBhajans, error } = await supabase
+    .from('bhajans')
+    .select(`
+      title_hinglish, 
+      title_hindi, 
+      slug, 
+      lyrics_hindi,
+      deities ( name_hinglish ), 
+      categories ( name_hinglish )
+    `)
+    .order('created_at', { ascending: false })
+    .range(0, 5); 
+
+  if (error) {
+    console.error("Error fetching initial bhajans:", error);
+    return (
+      <div className="p-8 text-center bg-red-50 rounded-xl border border-red-100">
+        <p className="text-red-600 font-medium">Unable to load Bhajans at the moment.</p>
+      </div>
+    );
+  }
+
+  // Flatten the arrays into single objects so they match your interface
+  const initialBhajans = (rawBhajans || []).map(bhajan => ({
+    ...bhajan,
+    deities: Array.isArray(bhajan.deities) ? bhajan.deities[0] : bhajan.deities,
+    categories: Array.isArray(bhajan.categories) ? bhajan.categories[0] : bhajan.categories,
+  }));
+
+  return <BhajanList initialBhajans={initialBhajans} />;
+}
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="min-h-screen">
+      {/* 1. Hero Section (Loads instantly with priority AVIF image) */}
+      <Hero />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex flex-col lg:flex-row gap-8 items-start">
+        
+        {/* Main Content Area */}
+        <main className="flex-1 w-full min-w-0">
+          
+          {/* 2. Visual Deity Cards */}
+          <DeityBrowse /> 
+
+          {/* 3. Popular Categories Section */}
+          <div className="mt-8 rounded-3xl overflow-hidden border border-orange-100 shadow-sm">
+            <PopularCategories />
+          </div>
+
+          {/* 4. Trending Artists Section */}
+          <div className="mt-8 rounded-3xl overflow-hidden border border-orange-100 shadow-sm">
+            <TrendingArtists />
+          </div>
+
+          {/* 5. Latest Added Bhajans Header */}
+          <div className="flex items-center justify-between border-b border-orange-100 pb-3 mb-8 mt-12">
+            <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 flex items-center gap-3">
+              <span className="w-2 h-8 bg-orange-600 rounded-full"></span>
+              Latest Added Bhajans
+            </h2>
+          </div>
+          
+          {/* 6. The Dynamic List Section */}
+          <Suspense fallback={<BhajanGridSkeleton />}>
+            <LatestBhajansSection />
+          </Suspense>
+
+        </main>
+
+        {/* 7. Sidebar */}
+        <Sidebar />
+
+      </div>
     </div>
   );
 }
