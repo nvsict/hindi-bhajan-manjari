@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Hind } from "next/font/google";
 import "./globals.css";
 import ConditionalHeader from "../components/ConditionalHeader";
 import ConditionalFooter from "../components/ConditionalFooter";
@@ -14,6 +14,14 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// 🌟 THE UPGRADE: A highly modern, sleek Hindi font
+const hindFont = Hind({
+  weight: ['400', '500', '600', '700'],
+  subsets: ['devanagari', 'latin'],
+  variable: "--font-hind",
+  display: 'swap',
 });
 
 // 🌟 THE NEW DOMAIN
@@ -72,8 +80,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="hi">
+      {/* 🌟 Added mukta.variable to the body classes */}
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-orange-50/30 flex flex-col min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} ${hindFont.variable} antialiased bg-orange-50/30 flex flex-col min-h-screen`}
       >
         {/* Top Loading Bar */}
         <NextTopLoader 

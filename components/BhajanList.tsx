@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
 import Link from 'next/link';
-import { FaArrowRight, FaArrowLeft } from 'react-icons/fa'; // 🌟 Added FaArrowLeft
+import { FaArrowRight, FaArrowLeft, FaExclamationTriangle } from 'react-icons/fa';
 
 interface Bhajan {
   title_hinglish: string;
@@ -17,7 +17,6 @@ interface Bhajan {
 interface Props {
   initialBhajans: Bhajan[];
   categoryId?: string;
-  // 🌟 NEW PROPS FOR SEO PAGINATION
   categorySlug?: string;
   currentPage?: number;
   totalItems?: number;
@@ -35,14 +34,21 @@ export default function BhajanList({
   const [bhajans, setBhajans] = useState<Bhajan[]>(initialBhajans);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  
+  // 🌟 FIX 1: Strict Page Tracking
+  const [loadMorePage, setLoadMorePage] = useState(1);
+  
+  // 🌟 FIX 2: Network Error State for Supabase DNS issues
+  const [networkError, setNetworkError] = useState<string | null>(null);
 
-  // 🌟 SYNC STATE: If the URL changes (e.g., user clicks Next Page), 
-  // update the list with the fresh server data.
+  // Sync state if URL changes
   useEffect(() => {
     setBhajans(initialBhajans);
+    setLoadMorePage(1); 
+    setHasMore(true);
+    setNetworkError(null);
   }, [initialBhajans]);
 
-  // 🌟 PAGINATION MATH
   const isSeoPaginated = !!(categorySlug && currentPage && totalItems);
   const totalPages = isSeoPaginated ? Math.ceil(totalItems! / itemsPerPage) : 0;
   const hasNextPage = isSeoPaginated ? currentPage! < totalPages : false;
@@ -50,67 +56,74 @@ export default function BhajanList({
 
   const loadMoreBhajans = async () => {
     setLoading(true);
-    const nextOffset = bhajans.length;
+    setNetworkError(null); 
 
-    let fetchedData = null;
-    let fetchError = null;
+    const from = loadMorePage * itemsPerPage;
+    const to = from + itemsPerPage - 1;
 
-    if (categoryId) {
-      // CATEGORY PAGE LOGIC (Fallback if not using SEO links)
-      const { data, error } = await supabase
-        .from('bhajan_category_map')
-        .select(`
-          bhajans (
+    try {
+      let fetchedData = null;
+
+      if (categoryId) {
+        const { data, error } = await supabase
+          .from('bhajan_category_map')
+          .select(`
+            bhajans (
+              title_hinglish, title_hindi, slug, lyrics_hindi,
+              deities ( name_hinglish )
+            )
+          `)
+          .eq('category_id', categoryId)
+          .order('id', { ascending: false }) 
+          .range(from, to);
+
+        if (error) throw error;
+
+        fetchedData = data?.map((item: any) => ({
+          ...item.bhajans,
+          categories: initialBhajans[0]?.categories || null 
+        }));
+
+      } else {
+        const { data, error } = await supabase
+          .from('bhajans')
+          .select(`
             title_hinglish, title_hindi, slug, lyrics_hindi,
-            deities ( name_hinglish )
-          )
-        `)
-        .eq('category_id', categoryId)
-        .order('id', { ascending: false }) 
-        .range(nextOffset, nextOffset + itemsPerPage - 1);
-
-      fetchedData = data?.map((item: any) => ({
-        ...item.bhajans,
-        categories: initialBhajans[0]?.categories || null 
-      }));
-      fetchError = error;
-
-    } else {
-      // HOMEPAGE LOGIC
-      const { data, error } = await supabase
-        .from('bhajans')
-        .select(`
-          title_hinglish, title_hindi, slug, lyrics_hindi,
-          deities ( name_hinglish ), categories ( name_hinglish )
-        `)
-        .order('created_at', { ascending: false }) 
-        .range(nextOffset, nextOffset + itemsPerPage - 1);
-        
-      fetchedData = data;
-      fetchError = error;
-    }
-
-    if (fetchError) {
-      console.error("Error loading more:", fetchError);
-    } else if (fetchedData) {
-      if (fetchedData.length < itemsPerPage) {
-        setHasMore(false);
+            deities ( name_hinglish ), categories ( name_hinglish )
+          `)
+          .order('created_at', { ascending: false }) 
+          .range(from, to);
+          
+        if (error) throw error;
+        fetchedData = data;
       }
 
-      const flattenedData: Bhajan[] = fetchedData.map((item: any) => ({
-        ...item,
-        deities: Array.isArray(item.deities) ? item.deities[0] : item.deities,
-        categories: Array.isArray(item.categories) ? item.categories[0] : item.categories,
-      }));
+      if (fetchedData) {
+        if (fetchedData.length < itemsPerPage) {
+          setHasMore(false);
+        }
 
-      setBhajans((prev) => {
-        const uniqueNewBhajans = flattenedData.filter(
-          (newBhajan) => !prev.some((existingBhajan) => existingBhajan.slug === newBhajan.slug)
-        );
-        return [...prev, ...uniqueNewBhajans];
-      });
+        const flattenedData: Bhajan[] = fetchedData.map((item: any) => ({
+          ...item,
+          deities: Array.isArray(item.deities) ? item.deities[0] : item.deities,
+          categories: Array.isArray(item.categories) ? item.categories[0] : item.categories,
+        }));
+
+        setBhajans((prev) => {
+          const uniqueNewBhajans = flattenedData.filter(
+            (newBhajan) => !prev.some((existingBhajan) => existingBhajan.slug === newBhajan.slug)
+          );
+          return [...prev, ...uniqueNewBhajans];
+        });
+
+        setLoadMorePage((prev) => prev + 1); 
+      }
+    } catch (err: any) {
+      console.error("Supabase Fetch Error:", err);
+      setNetworkError(`Supabase says: ${err.message || err.details || 'DNS Connection Timeout'}`);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -120,55 +133,52 @@ export default function BhajanList({
       <div className="flex flex-col gap-4">
         {bhajans.map((bhajan) => (
           <Link href={`/bhajan/${bhajan.slug}`} key={bhajan.slug}>
-            <div className="group bg-white p-5 md:p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-orange-200 transition-all flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden">
+            <div className="group bg-white p-5 md:p-6 rounded-3xl border border-gray-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-orange-200 transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden hover:-translate-y-0.5">
               
-              {/* Left Side: Typography */}
               <div className="flex-1">
-                <div className="flex flex-col-reverse md:flex-col gap-1 mb-3">
-                  <h3 className="text-xl md:text-2xl font-black text-gray-900 group-hover:text-orange-600 transition-colors">
+                <div className="flex flex-col-reverse md:flex-col gap-1.5 mb-3.5">
+                  {/* 🌟 FIX: Added font-hindi and leading-tight */}
+                  <h3 className="text-xl md:text-2xl font-black font-hindi text-gray-900 group-hover:text-orange-600 transition-colors leading-tight">
                     {bhajan.title_hindi}
                   </h3>
-                  <p className="text-sm font-medium text-gray-400">
+                  {/* 🌟 FIX: Made subtitle uppercase, bold, and high contrast */}
+                  <p className="text-[11px] md:text-xs font-bold uppercase tracking-widest text-gray-500">
                     {bhajan.title_hinglish}
                   </p>
                 </div>
                 
-                {/* Single line lyrics snippet */}
-                <p className="text-sm text-gray-500 italic line-clamp-1 border-l-2 border-orange-200 pl-3">
+                {/* 🌟 FIX: Added font-hindi to lyrics preview */}
+                <p className="text-sm md:text-base text-gray-600 italic font-hindi line-clamp-1 border-l-2 border-orange-200 pl-3 leading-relaxed">
                   "{bhajan.lyrics_hindi?.split('\n')[0] || 'View full lyrics inside'}"...
                 </p>
               </div>
 
-              {/* Right Side: Badges & Arrow */}
               <div className="flex items-center md:flex-col md:items-end justify-between md:justify-center shrink-0 border-t border-gray-50 md:border-t-0 pt-4 md:pt-0">
-                
                 <div className="flex gap-2 mb-0 md:mb-4">
                   {bhajan.deities && (
-                    <span className="bg-orange-50 text-orange-700 border border-orange-100 px-3 py-1 rounded-full text-xs font-bold tracking-wide">
+                    <span className="bg-orange-50 text-orange-700 border border-orange-100 px-3 py-1 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest">
                       {bhajan.deities.name_hinglish}
                     </span>
                   )}
                   {bhajan.categories && (
-                    <span className="bg-gray-50 text-gray-600 border border-gray-100 px-3 py-1 rounded-full text-xs font-bold tracking-wide">
+                    <span className="bg-gray-50 text-gray-600 border border-gray-100 px-3 py-1 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest">
                       {bhajan.categories.name_hinglish}
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center text-orange-500 text-sm font-bold group-hover:translate-x-1 transition-transform">
+                <div className="flex items-center text-orange-600 text-sm font-bold group-hover:translate-x-1 transition-transform">
                   Read <FaArrowRight className="ml-1.5" size={12} />
                 </div>
-
               </div>
             </div>
           </Link>
         ))}
       </div>
 
-      {/* 🌟 SEO-FRIENDLY PAGINATION OR LOAD MORE BUTTON */}
+      {/* 🌟 PAGINATION / LOAD MORE CONTROLS */}
       {isSeoPaginated ? (
-        <div className="flex items-center justify-between pt-8 border-t border-orange-100 mt-4">
-          
+        <div className="flex items-center justify-between pt-8 border-t border-gray-100 mt-4">
           {hasPrevPage ? (
             <Link 
               href={`/category/${categorySlug}${currentPage! - 1 === 1 ? '' : `?page=${currentPage! - 1}`}`}
@@ -176,9 +186,9 @@ export default function BhajanList({
             >
               <FaArrowLeft size={14} /> Previous
             </Link>
-          ) : <div></div>} {/* Empty div to keep 'Page X of Y' centered */}
+          ) : <div></div>} 
 
-          <span className="text-sm font-bold text-gray-400">
+          <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">
             Page {currentPage} of {totalPages}
           </span>
 
@@ -190,20 +200,34 @@ export default function BhajanList({
               Next <FaArrowRight size={14} />
             </Link>
           ) : <div></div>}
-          
         </div>
       ) : hasMore && (
-        <div className="flex justify-center pt-6">
+        <div className="flex flex-col items-center pt-6 border-t border-gray-50 mt-2">
+          
+          {networkError && (
+            <div className="mb-4 flex items-center gap-2 bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-medium border border-red-100 animate-fade-in-up">
+              <FaExclamationTriangle className="shrink-0" />
+              <p>{networkError}</p>
+            </div>
+          )}
+
           <button 
             onClick={loadMoreBhajans}
             disabled={loading}
-            className="group relative px-8 py-3.5 bg-white border border-gray-200 text-gray-600 font-bold rounded-full hover:border-orange-500 hover:text-orange-600 hover:shadow-sm transition-all disabled:opacity-50"
+            className={`group relative px-8 py-3.5 bg-white border font-bold rounded-full shadow-sm transition-all disabled:opacity-80
+              ${networkError 
+                ? 'border-red-300 text-red-600 hover:bg-red-50' 
+                : 'border-gray-200 text-gray-700 hover:border-orange-500 hover:text-orange-600 hover:shadow-md'
+              }
+            `}
           >
             {loading ? (
               <span className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-gray-200 border-t-orange-600 rounded-full animate-spin"></div>
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
                 Fetching...
               </span>
+            ) : networkError ? (
+              "Retry Loading"
             ) : (
               "Load More Bhajans"
             )}

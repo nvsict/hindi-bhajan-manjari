@@ -18,34 +18,49 @@ interface Props {
 }
 
 // ==========================================
-// 🌟 1. DYNAMIC SEO METADATA
+// 🌟 1. DYNAMIC SEO & SOCIAL SHARING METADATA
 // ==========================================
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   
   const { data: artist } = await supabase
     .from('artists')
-    .select('name_hinglish, name_hindi, bio')
+    .select('name_hinglish, name_hindi, bio, profile_image_url')
     .eq('slug', slug)
     .single();
 
   if (!artist) return { title: 'Artist Not Found' };
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
+  const description = artist.bio 
+      ? `${artist.bio.substring(0, 150)}... Read and listen to the best bhajans by ${artist.name_hinglish}.` 
+      : `Explore the complete collection of bhajans, aartis, and lyrics by ${artist.name_hinglish} (${artist.name_hindi}).`;
   
   return {
     title: `Top ${artist.name_hinglish} (${artist.name_hindi}) Bhajans & Lyrics | Hindi Bhajan Manjari`,
-    description: artist.bio 
-      ? `${artist.bio.substring(0, 150)}... Read and listen to the best bhajans by ${artist.name_hinglish}.` 
-      : `Explore the complete collection of bhajans, aartis, and lyrics by ${artist.name_hinglish} (${artist.name_hindi}).`,
+    description: description,
     alternates: {
       canonical: `${baseUrl}/artist/${slug}`,
     },
     openGraph: {
       title: `${artist.name_hindi} - Bhajan Collection`,
-      description: `Complete collection of bhajans by ${artist.name_hinglish}.`,
+      description: description,
       type: 'profile',
       url: `${baseUrl}/artist/${slug}`,
+      images: artist.profile_image_url ? [
+        {
+          url: artist.profile_image_url,
+          width: 800,
+          height: 800,
+          alt: artist.name_hinglish,
+        }
+      ] : [], 
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${artist.name_hindi} - Bhajan Collection`,
+      description: description,
+      images: artist.profile_image_url ? [artist.profile_image_url] : [],
     }
   };
 }
@@ -138,13 +153,15 @@ export default async function ArtistPage({ params }: Props) {
           </div>
 
           <div className="flex-1 text-center md:text-left mt-4 md:mt-8">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-white/10 text-orange-100 text-xs font-bold uppercase tracking-widest backdrop-blur-md border border-white/10 mb-4">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-white/10 text-orange-100 text-xs font-bold uppercase tracking-widest backdrop-blur-md border border-white/10 mb-4 shadow-sm">
               Verified Artist
             </span>
-            <h1 className="text-4xl md:text-6xl font-black mb-1 tracking-tight drop-shadow-lg leading-tight">
+            {/* 🌟 FIX: Applied font-hindi and tracking-tighter */}
+            <h1 className="text-4xl md:text-6xl font-black font-hindi mb-2 tracking-tighter drop-shadow-lg leading-tight">
               {artist.name_hindi}
             </h1>
-            <h2 className="text-xl md:text-3xl font-medium text-orange-200/90 mb-8 font-serif italic">
+            {/* 🌟 FIX: Modern uppercase tracking style for Hinglish */}
+            <h2 className="text-xs md:text-sm font-bold uppercase tracking-[0.2em] text-orange-200/90 mb-8">
               {artist.name_hinglish}
             </h2>
 
@@ -172,8 +189,9 @@ export default async function ArtistPage({ params }: Props) {
           <div className="bg-white p-8 md:p-10 rounded-3xl shadow-xl shadow-orange-900/5 border border-orange-100 flex gap-6 items-start">
             <FaQuoteLeft className="text-4xl text-orange-200 shrink-0 hidden sm:block mt-1" />
             <div>
-              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">About the Artist</h3>
-              <p className="text-gray-700 text-lg md:text-xl leading-relaxed font-serif">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">About the Artist</h3>
+              {/* 🌟 FIX: Removed serif, added leading-[1.8] for high readability */}
+              <p className="text-gray-600 text-base md:text-lg leading-[1.8] font-medium">
                 {artist.bio}
               </p>
             </div>
@@ -185,8 +203,9 @@ export default async function ArtistPage({ params }: Props) {
       <div className={`max-w-5xl mx-auto px-4 ${artist.bio ? 'mt-16' : 'mt-8'}`}>
         <div className="flex items-center gap-3 mb-8 border-b border-orange-200/60 pb-4">
           <FaMusic className="text-orange-500 text-2xl" />
-          <h3 className="text-3xl font-black text-gray-900 tracking-tight">
-            Discography <span className="text-orange-400 font-medium text-2xl">({uniqueWorks.length})</span>
+          {/* 🌟 FIX: Updated tracking */}
+          <h3 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tighter">
+            Discography <span className="text-orange-400 font-medium text-xl md:text-2xl">({uniqueWorks.length})</span>
           </h3>
         </div>
 
@@ -201,34 +220,36 @@ export default async function ArtistPage({ params }: Props) {
               const isWriter = bhajan.roles.includes('writer');
 
               return (
-                <Link key={idx} href={`/bhajan/${bhajan.slug}`} className="group block">
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:shadow-orange-900/5 hover:border-orange-300 transition-all duration-300 flex items-center justify-between relative overflow-hidden h-full">
+                <Link key={idx} href={`/bhajan/${bhajan.slug}`} className="group block h-full">
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:shadow-orange-900/5 hover:border-orange-300 transition-all duration-300 flex items-center justify-between relative overflow-hidden h-full hover:-translate-y-0.5">
                     
-                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${isSinger ? 'bg-green-400' : 'bg-blue-400'} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
+                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isSinger ? 'bg-gradient-to-b from-green-400 to-green-500' : 'bg-gradient-to-b from-blue-400 to-blue-500'} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
 
                     <div className="flex-1 pr-4">
                       <div className="flex flex-wrap items-center gap-2 mb-3">
                         {isSinger && (
-                          <span className="bg-green-50 text-green-700 border border-green-200/60 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm">
+                          <span className="bg-green-50 text-green-700 border border-green-200/60 text-[9px] md:text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm">
                             <FaPlayCircle className="text-green-500" /> Singer
                           </span>
                         )}
                         {isWriter && (
-                          <span className="bg-blue-50 text-blue-700 border border-blue-200/60 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm">
+                          <span className="bg-blue-50 text-blue-700 border border-blue-200/60 text-[9px] md:text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm">
                             <FaPenNib className="text-blue-500" /> Writer
                           </span>
                         )}
                         {bhajan.deities && (
-                          <span className="bg-orange-50 text-orange-700 border border-orange-200/60 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md shadow-sm">
+                          <span className="bg-orange-50 text-orange-700 border border-orange-200/60 text-[9px] md:text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md shadow-sm">
                             {bhajan.deities.name_hinglish}
                           </span>
                         )}
                       </div>
                       
-                      <h4 className="text-xl font-black text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-1 mb-1">
+                      {/* 🌟 FIX: Applied font-hindi, leading-tight */}
+                      <h4 className="text-lg md:text-xl font-black font-hindi text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-1 mb-1 leading-tight">
                         {bhajan.title_hindi}
                       </h4>
-                      <p className="text-sm text-gray-500 font-medium line-clamp-1">
+                      {/* 🌟 FIX: Standardized Hinglish subtitle style */}
+                      <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-gray-500 line-clamp-1">
                         {bhajan.title_hinglish}
                       </p>
                     </div>

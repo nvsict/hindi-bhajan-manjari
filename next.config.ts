@@ -9,6 +9,18 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   turbopack: {}, 
+
+  // 🌟 NEW: The Invisible Bridge for Supabase (Bypasses Jio/Airtel ISP Blocks)
+  async rewrites() {
+    return [
+      {
+        source: '/supabase-proxy/:path*',
+        // Route it securely to your actual Supabase URL
+        destination: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/:path*`, 
+      },
+    ]
+  },
+
   images: {
     formats: ['image/avif', 'image/webp'],
     dangerouslyAllowSVG: true,

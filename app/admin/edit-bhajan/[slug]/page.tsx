@@ -30,6 +30,11 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
     explanation: '',
     tags: '', 
     
+    // 🌟 NEW Advanced SEO Overrides
+    seo_title: '',
+    meta_description: '',
+    alt_queries: '',
+    
     // 🌟 Relations
     selected_categories: [] as string[], 
     deity_id: ''
@@ -78,6 +83,12 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
         tarz: bhajan.tarj_parody || '',
         explanation: bhajan.explanation || '',
         tags: fetchedTags,
+        
+        // 🌟 Populate SEO Fields
+        seo_title: bhajan.seo_title || '',
+        meta_description: bhajan.meta_description || '',
+        alt_queries: bhajan.alt_queries || '',
+
         selected_categories: fetchedCategories,
         deity_id: bhajan.deity_id || ''
       });
@@ -132,6 +143,10 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
           deity_id: formData.deity_id || null,
           explanation: formData.explanation || null,
           faqs: cleanFaqs.length > 0 ? cleanFaqs : null,
+          // 🌟 Push Updated SEO Fields to DB
+          seo_title: formData.seo_title || null,
+          meta_description: formData.meta_description || null,
+          alt_queries: formData.alt_queries || null,
           // We set singer_details to null here since we moved to the new relational tables
           singer_details: null 
         })
@@ -263,7 +278,7 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Deity</label>
               <select value={formData.deity_id} onChange={(e) => setFormData({...formData, deity_id: e.target.value})} className="w-full p-3 bg-white border border-gray-200 rounded-xl">
@@ -274,6 +289,34 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">SEO Tags (Comma Separated)</label>
               <input type="text" value={formData.tags} onChange={(e) => setFormData({...formData, tags: e.target.value})} className="w-full p-3 bg-white border border-gray-200 rounded-xl" placeholder="e.g. diwali, morning pooja, peaceful" />
+            </div>
+          </div>
+
+          {/* 🌟 NEW SEO FIELDS BLOCK ADDED HERE */}
+          <div className="pt-6 border-t border-gray-200">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Advanced SEO Overrides</h3>
+            
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">SEO Title Override</label>
+                <input type="text" value={formData.seo_title} onChange={(e) => setFormData({...formData, seo_title: e.target.value})} className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:outline-orange-500" placeholder="e.g. Achyutam Keshavam Lyrics PDF Download" />
+                <p className="text-xs text-gray-500 mt-1">Leave empty to use default auto-generated title.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Alternative Queries (Also Known As)</label>
+                <input type="text" value={formData.alt_queries} onChange={(e) => setFormData({...formData, alt_queries: e.target.value})} className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:outline-orange-500" placeholder="e.g. Kaun Kehte Hai Bhagwan, Hey Nath" />
+                <p className="text-xs text-gray-500 mt-1">Starting lines users might search for.</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Custom Meta Description</label>
+              <textarea rows={2} value={formData.meta_description} onChange={(e) => setFormData({...formData, meta_description: e.target.value})} className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:outline-orange-500" placeholder="Custom snippet for Google. Leave empty to use auto-generated description..."></textarea>
+              <div className="flex justify-end mt-1">
+                <span className={`text-xs font-bold ${formData.meta_description.length > 160 ? 'text-red-500' : 'text-gray-500'}`}>
+                  {formData.meta_description.length} / 160 chars
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -310,7 +353,7 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
         </div>
 
         <div className="pt-4 pb-8 border-b border-gray-200">
-          <button type="submit" disabled={isSubmitting} className="w-full md:w-auto px-10 py-4 bg-gray-900 text-white font-black rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors">
+          <button type="submit" disabled={isSubmitting} className="w-full md:w-auto px-10 py-4 bg-gray-900 text-white font-black rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors shadow-md hover:shadow-lg hover:-translate-y-0.5">
             {isSubmitting ? 'Saving Text Changes...' : 'Save Bhajan Text Changes'}
           </button>
         </div>

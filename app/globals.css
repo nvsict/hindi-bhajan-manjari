@@ -88,3 +88,70 @@ html {
 ::-webkit-scrollbar-thumb:active {
   background-color: rgba(194, 65, 12, 1); /* Darker orange (orange-700) when dragging */
 }
+
+/* --- Custom Animations for Feature Highlights --- */
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) translateX(-50%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) translateX(-50%);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+/* --- Custom Fonts --- */
+@layer utilities {
+  .font-hindi {
+    font-family: var(--font-hind), sans-serif;
+  }
+}
+
+/* search UI helpers */
+.search-row {
+  @apply flex items-center gap-3 md:gap-4 px-4 md:px-5 py-3 md:py-3.5 transition-colors;
+}
+
+.search-icon-box {
+  @apply flex items-center justify-center shrink-0 rounded-xl transition-all duration-200;
+}
+
+/* mobile */
+.search-icon-sm {
+  @apply w-9 h-9 text-[14px];
+}
+
+/* desktop */
+.search-icon-md {
+  @apply md:w-11 md:h-11 md:text-[16px];
+}
+
+/* 🌟 GLOBAL HINDI FONT FIX 🌟 
+   Prevents top/bottom matras from being clipped by Tailwind's tight line-heights 
+   and overflow-hidden (truncate) classes. */
+
+.font-hindi {
+  /* Force a taller line-height so the matras have room to breathe */
+  line-height: 1.5 !important; 
+  
+  /* Add a microscopic padding to the top and bottom to push the text away 
+     from the invisible bounding box of overflow-hidden containers */
+  padding-top: 0.15em !important;
+  padding-bottom: 0.1em !important;
+}
+
+/* Ensure that when we use 'truncate' on Hindi text, it doesn't squash it */
+.font-hindi.truncate {
+  line-height: 1.5 !important;
+  padding-top: 0.15em !important;
+}
+
+/* If a Hindi title is inside a flex container, ensure it doesn't get squished */
+.font-hindi {
+  flex-shrink: 0;
+}

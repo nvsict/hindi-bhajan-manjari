@@ -1,39 +1,47 @@
 "use client";
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { FaSearch } from 'react-icons/fa';
 
 export default function AdminSearch() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [query, setQuery] = useState(searchParams.get('q') || '');
+  
+  // Initialize state with whatever is currently in the URL
+  const initialQuery = searchParams.get('q') || '';
+  const [searchTerm, setSearchTerm] = useState(initialQuery);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      router.push(`/admin?q=${encodeURIComponent(query.trim())}`);
-    } else {
-      router.push(`/admin`);
-    }
-  };
+  // The Debounce Magic 🪄
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      
+      if (searchTerm) {
+        params.set('q', searchTerm);
+      } else {
+        params.delete('q');
+      }
+      
+      // Update the URL without reloading the page
+      router.replace(`${pathname}?${params.toString()}`);
+    }, 300); // Waits 300ms after user stops typing to execute
+
+    // Cleanup function to reset the timer if user keeps typing
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, pathname, router, searchParams]);
 
   return (
-    <form onSubmit={handleSearch} className="flex w-full md:max-w-md relative">
+    <div className="relative w-full md:w-72">
+      <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
       <input
         type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search bhajans by title or slug..."
-        className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all text-sm font-medium text-gray-700"
+        placeholder="Search by Title or Slug..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm shadow-sm"
       />
-      <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-      <button 
-        type="submit" 
-        className="hidden" // Hiding the button because pressing 'Enter' works perfectly
-      >
-        Search
-      </button>
-    </form>
+    </div>
   );
 }

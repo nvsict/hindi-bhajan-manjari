@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
 import { 
-  FaChartBar, FaPlus, FaTags, FaGlobe, FaBars, FaTimes, FaSignOutAlt 
+  FaChartBar, FaPlus, FaTags, FaGlobe, FaBars, FaTimes, FaSignOutAlt,FaNewspaper 
 } from 'react-icons/fa';
 import { GiLotusFlower } from 'react-icons/gi';
 
@@ -20,6 +20,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Dashboard', href: '/admin', icon: FaChartBar },
     { name: 'Add New Bhajan', href: '/admin/add-bhajan', icon: FaPlus },
     { name: 'Site Metadata', href: '/admin/manage', icon: FaTags },
+    { name: 'Articles', href: '/admin/articles', icon: FaNewspaper },
   ];
 
   // Functional Supabase Logout

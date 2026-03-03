@@ -31,6 +31,10 @@ export default function AddBhajanPage() {
     new_category_hindi: '',
     new_deity_hinglish: '',
     new_deity_hindi: '',
+    // 🌟 NEW SEO FIELDS ADDED HERE
+    seo_title: '',
+    meta_description: '',
+    alt_queries: '',
   });
 
   const [faqs, setFaqs] = useState([{ question: '', answer: '' }]);
@@ -119,7 +123,7 @@ export default function AddBhajanPage() {
 
       const cleanFaqs = faqs.filter(f => f.question.trim() !== '' && f.answer.trim() !== '');
 
-      // 3. Insert the Main Bhajan (Old JSONB fields removed/set to null)
+      // 3. Insert the Main Bhajan (Now includes SEO fields)
       const { data: bhajanData, error: bhajanError } = await supabase.from('bhajans').insert([
         {
           title_hindi: formData.title_hindi,
@@ -132,7 +136,11 @@ export default function AddBhajanPage() {
           singer_details: null, // 🌟 Legacy field, left as null
           deity_id: finalDeityId === 'new' ? null : finalDeityId || null,
           explanation: formData.explanation || null, 
-          faqs: cleanFaqs.length > 0 ? cleanFaqs : null 
+          faqs: cleanFaqs.length > 0 ? cleanFaqs : null,
+          // 🌟 INJECTED SEO COLUMNS 
+          seo_title: formData.seo_title || null,
+          meta_description: formData.meta_description || null,
+          alt_queries: formData.alt_queries || null
         }
       ]).select('id').single();
 
@@ -183,11 +191,12 @@ export default function AddBhajanPage() {
 
       setMessage("✅ Bhajan, Artists & SEO data published successfully!");
       
-      // Reset Form
+      // Reset Form (Including SEO fields)
       setFormData({ 
         title_hindi: '', title_hinglish: '', slug: '', lyrics_hindi: '', lyrics_hinglish: '', 
         video_embed_url: '', tarz: '', explanation: '', tags: '', selected_categories: [], deity_id: '', 
-        new_category_hinglish: '', new_category_hindi: '', new_deity_hinglish: '', new_deity_hindi: '' 
+        new_category_hinglish: '', new_category_hindi: '', new_deity_hinglish: '', new_deity_hindi: '',
+        seo_title: '', meta_description: '', alt_queries: '' 
       });
       setFaqs([{ question: '', answer: '' }]);
       setSelectedArtists([]); // Reset artists
@@ -302,6 +311,35 @@ export default function AddBhajanPage() {
               <p className="text-xs text-gray-500 mt-1">These will become clickable links at the bottom of the page.</p>
             </div>
           </div>
+
+          {/* 🌟 NEW SEO FIELDS ADDED HERE */}
+          <div className="mt-8 border-t border-gray-200 pt-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Advanced SEO Overrides</h3>
+            
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">SEO Title Override</label>
+                <input type="text" value={formData.seo_title} onChange={(e) => setFormData({...formData, seo_title: e.target.value})} className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:outline-orange-500" placeholder="e.g. Achyutam Keshavam Lyrics PDF Download" />
+                <p className="text-xs text-gray-500 mt-1">Leave empty to use default auto-generated title.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Alternative Queries (Also Known As)</label>
+                <input type="text" value={formData.alt_queries} onChange={(e) => setFormData({...formData, alt_queries: e.target.value})} className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:outline-orange-500" placeholder="e.g. Kaun Kehte Hai Bhagwan, Hey Nath" />
+                <p className="text-xs text-gray-500 mt-1">Starting lines users might search for.</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Custom Meta Description</label>
+              <textarea rows={2} value={formData.meta_description} onChange={(e) => setFormData({...formData, meta_description: e.target.value})} className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:outline-orange-500" placeholder="Custom snippet for Google. Leave empty to use auto-generated description..."></textarea>
+              <div className="flex justify-end mt-1">
+                <span className={`text-xs font-bold ${formData.meta_description.length > 160 ? 'text-red-500' : 'text-gray-500'}`}>
+                  {formData.meta_description.length} / 160 chars
+                </span>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         {/* --- 4. FAQs Schema --- */}

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import {
   FaFacebook, FaInstagram, FaYoutube, FaWhatsapp, FaArrowUp,
-  FaEnvelope, FaGavel, FaShieldAlt, FaFileContract,
+  FaEnvelope, FaGavel, FaShieldAlt, FaFileContract, FaHeart
 } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { GiLotusFlower } from 'react-icons/gi';
@@ -24,7 +24,7 @@ export default function Footer() {
     // const result = await addSubscriber(email);
     setTimeout(() => {
       setStatus('success');
-      setMessage("Jai Shri Ram! You're subscribed.");
+      setMessage("✨ जय श्री राम! आप हमारी संगत से जुड़ चुके हैं।");
       setEmail('');
     }, 1500);
   };
@@ -39,12 +39,12 @@ export default function Footer() {
       {/* Top decorative line */}
       <div className="w-full h-px bg-gradient-to-r from-transparent via-orange-500/50 to-transparent" />
 
-      {/* Scroll to Top — sits just inside the footer, not overflowing */}
+      {/* Scroll to Top */}
       <div className="max-w-7xl mx-auto px-6 relative">
         <button
           onClick={scrollToTop}
-          className="absolute -top-5 right-6 md:right-0 bg-orange-600 text-white p-3 rounded-xl shadow-2xl hover:bg-orange-500 hover:-translate-y-1 transition-all z-20 group"
-          aria-label="Scroll to top"
+          className="absolute -top-5 right-6 md:right-0 bg-orange-600 text-white p-3 rounded-xl shadow-[0_0_20px_rgba(234,88,12,0.3)] hover:bg-orange-500 hover:-translate-y-1 transition-all z-20 group"
+          aria-label="ऊपर जाएं"
         >
           <FaArrowUp size={18} className="group-hover:animate-bounce" />
         </button>
@@ -62,7 +62,8 @@ export default function Footer() {
                 <GiLotusFlower className="text-3xl text-orange-500 group-hover:scale-110 transition-transform" />
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-black text-white tracking-tight leading-none">
+                {/* 🌟 FIX: Applied tracking-tighter to English Brand Name */}
+                <span className="text-xl font-black text-white tracking-tighter leading-none">
                   HINDI <span className="text-orange-500">BHAJAN</span>
                 </span>
                 <span className="text-[10px] text-slate-500 tracking-[0.2em] uppercase font-bold mt-1">
@@ -70,85 +71,88 @@ export default function Footer() {
                 </span>
               </div>
             </Link>
-            <p className="text-sm leading-relaxed pr-4">
-              Your digital temple for authentic lyrics, meanings, and devotional content. Preserving the sacred tradition of Bhajans for generations to come.
+            {/* 🌟 FIX: Added font-hindi and leading-[1.8] */}
+            <p className="text-sm leading-[1.8] pr-4 text-slate-400 font-hindi">
+              आपके प्रिय भजनों, आरती और चालीसा का प्रामाणिक डिजिटल संग्रह। सनातन संस्कृति और भक्ति परंपरा को आने वाली पीढ़ियों के लिए संजोने का एक छोटा सा प्रयास।
             </p>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Made with ❤️ in India</span>
+              {/* 🌟 FIX: Removed tracking-widest, added font-hindi */}
+              <span className="text-sm font-bold text-slate-500 flex items-center gap-1.5 font-hindi">
+                ब्रज भूमि में <FaHeart className="text-red-500 text-[12px]" /> के साथ निर्मित
+              </span>
             </div>
           </div>
 
-          {/* 2. Devotional Hub */}
+          {/* 2. Sacred Collections (भक्ति सागर) */}
           <div>
-            <h3 className="text-white font-bold mb-6 text-sm uppercase tracking-widest flex items-center gap-2">
-              <HiSparkles className="text-orange-500" /> Devotional Hub
+            {/* 🌟 FIX: Removed uppercase/tracking, added font-hindi and bumped size */}
+            <h3 className="text-white font-black mb-6 text-lg md:text-xl font-hindi flex items-center gap-2">
+              <HiSparkles className="text-orange-500 text-base" /> भक्ति सागर
             </h3>
             <ul className="space-y-4 text-sm">
-              <li><FooterLink href="/category/aarti">Sampoorna Aarti</FooterLink></li>
-              <li><FooterLink href="/category/chalisa">Chalisa Sangrah</FooterLink></li>
-              <li><FooterLink href="/category/bhajan">Latest Bhajans</FooterLink></li>
-              <li><FooterLink href="/category/festivals">Festival Specials</FooterLink></li>
-              <li><FooterLink href="/deity/krishna">Krishna Bhajans</FooterLink></li>
+              <li><FooterLink href="/category/aarti">सम्पूर्ण आरती संग्रह</FooterLink></li>
+              <li><FooterLink href="/category/chalisa">श्री चालीसा पाठ</FooterLink></li>
+              <li><FooterLink href="/category/bhajan">लोकप्रिय भजन</FooterLink></li>
+              <li><FooterLink href="/category/festivals">त्यौहार विशेष गीत</FooterLink></li>
+              <li><FooterLink href="/deity/krishna">राधा-कृष्ण रसिया</FooterLink></li>
             </ul>
           </div>
 
-          {/* 3. Quick Links */}
+          {/* 3. Quick Links (महत्वपूर्ण लिंक्स) */}
           <div>
-            {/* FIX: added icon to match the other headings' layout */}
-            <h3 className="text-white font-bold mb-6 text-sm uppercase tracking-widest flex items-center gap-2">
-              <HiSparkles className="text-orange-500" /> Quick Links
+            <h3 className="text-white font-black mb-6 text-lg md:text-xl font-hindi flex items-center gap-2">
+              <HiSparkles className="text-orange-500 text-base" /> सहायता एवं जानकारी
             </h3>
             <ul className="space-y-4 text-sm">
-              <li><FooterLink href="/about" icon={<HiSparkles size={12} />}>About Our Mission</FooterLink></li>
-              {/* FIX: Submit Lyrics now correctly renders in orange — overrideColor prop bypasses the default text color */}
-              <li><FooterLink href="/submit" overrideColor="text-orange-400 font-bold">Submit Lyrics</FooterLink></li>
-              <li><FooterLink href="/contact" icon={<FaEnvelope size={12} />}>Contact Support</FooterLink></li>
-              <li><FooterLink href="/privacy" icon={<FaShieldAlt size={12} />}>Privacy Policy</FooterLink></li>
-              <li><FooterLink href="/dmca" icon={<FaGavel size={12} />}>DMCA Notice</FooterLink></li>
-              <li><FooterLink href="/terms" icon={<FaFileContract size={12} />}>Terms of Service</FooterLink></li>
+              <li><FooterLink href="/about" icon={<HiSparkles size={12} />}>हमारी यात्रा (About Us)</FooterLink></li>
+              <li><FooterLink href="/submit" overrideColor="text-orange-400 font-bold">✍️ अपने भजन भेजें</FooterLink></li>
+              <li><FooterLink href="/contact" icon={<FaEnvelope size={12} />}>संपर्क करें (Contact)</FooterLink></li>
+              <li><FooterLink href="/privacy" icon={<FaShieldAlt size={12} />}>गोपनीयता नीति (Privacy)</FooterLink></li>
+              <li><FooterLink href="/dmca" icon={<FaGavel size={12} />}>कॉपीराइट (DMCA)</FooterLink></li>
+              <li><FooterLink href="/terms" icon={<FaFileContract size={12} />}>नियम व शर्तें (Terms)</FooterLink></li>
             </ul>
           </div>
 
-          {/* 4. Newsletter & Socials */}
+          {/* 4. Newsletter & Socials (भक्ति रस से जुड़ें) */}
           <div className="lg:pl-4">
-            <h3 className="text-white font-bold mb-6 text-sm uppercase tracking-widest">Stay Connected</h3>
-            <p className="text-sm text-slate-500 mb-6">
-              Join our newsletter for the latest additions and festival notifications.
+            <h3 className="text-white font-black mb-4 text-lg md:text-xl font-hindi">नियमित अपडेट्स पाएं</h3>
+            <p className="text-sm text-slate-400 mb-6 leading-[1.8] font-hindi">
+              नए भजनों के लिरिक्स, उनका अर्थ और आगामी त्यौहारों की विशेष जानकारी सीधे अपने इनबॉक्स में प्राप्त करें।
             </p>
 
             <form onSubmit={handleSubscribe} className="space-y-3">
-              {/* FIX: removed pointless inner group div */}
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Your Email Address"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all placeholder:text-slate-600"
-                required
-              />
+              <div className="relative">
+                {/* 🌟 FIX: Added font-hindi to placeholder and input */}
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="अपना ईमेल दर्ज़ करें..."
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all font-hindi placeholder:font-hindi placeholder:text-slate-500"
+                  required
+                />
+              </div>
               <button
                 type="submit"
                 disabled={status === 'loading'}
-                className="w-full bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-orange-900/20 flex items-center justify-center gap-2"
+                className="w-full bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white font-bold font-hindi text-base md:text-lg py-3 rounded-xl transition-all shadow-[0_4px_14px_0_rgba(234,88,12,0.3)] hover:shadow-[0_6px_20px_rgba(234,88,12,0.4)] flex items-center justify-center gap-2"
               >
-                {status === 'loading' ? 'Processing...' : 'Subscribe Now'}
+                {status === 'loading' ? 'कृपया प्रतीक्षा करें...' : 'हमारी संगत से जुड़ें'}
               </button>
               {message && (
-                <p className={`text-[11px] text-center font-bold ${status === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+                <p className={`text-sm text-center font-bold font-hindi mt-2 ${status === 'success' ? 'text-green-500' : 'text-red-500'}`}>
                   {message}
                 </p>
               )}
             </form>
 
-            <div className="mt-8">
-              <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.2em] mb-4">Official Channels</p>
+            <div className="mt-10">
+              <p className="text-sm text-slate-500 font-bold mb-4 font-hindi">सोशल मीडिया पर जुड़ें</p>
               <div className="flex gap-3 flex-wrap">
                 <SocialIcon href="https://wa.me/918384844353" icon={<FaWhatsapp />} color="hover:bg-green-600" label="WhatsApp" />
-                <SocialIcon href="#" icon={<FaYoutube />} color="hover:bg-red-600" label="YouTube" />
-                <SocialIcon href="#" icon={<FaInstagram />} color="hover:bg-pink-600" label="Instagram" />
-                <SocialIcon href="#" icon={<FaFacebook />} color="hover:bg-blue-600" label="Facebook" />
-                <SocialIcon href="#" icon={<FaXTwitter />} color="hover:bg-slate-700" label="X (Twitter)" />
+                <SocialIcon href="https://www.instagram.com/imp.erfecto_?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" icon={<FaInstagram />} color="hover:bg-pink-600" label="Instagram" />
+                <SocialIcon href="https://www.facebook.com/mohit.tarkar.7121/" icon={<FaFacebook />} color="hover:bg-blue-600" label="Facebook" />
               </div>
             </div>
           </div>
@@ -157,18 +161,18 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-slate-600 font-medium">
+          <p className="text-sm text-slate-500 font-medium text-center md:text-left font-hindi leading-relaxed">
             © {new Date().getFullYear()}{' '}
-            <span className="text-slate-400">Hindi Bhajan Manjari</span>. Made with devotion for devotees.
+            <span className="text-slate-300 font-bold font-sans">Hindi Bhajan Manjari</span>. 
+            <br className="md:hidden" /> दुनिया भर के भक्तों के लिए भक्ति भाव से निर्मित।
           </p>
-          <div className="flex items-center gap-6 text-[11px] font-bold text-slate-600 uppercase tracking-widest">
-            <Link href="/sitemap.xml" className="hover:text-slate-400 transition-colors">
-              Sitemap
+          <div className="flex items-center gap-6 text-[13px] font-bold text-slate-500 font-hindi">
+            <Link href="/sitemap.xml" className="hover:text-orange-400 transition-colors">
+              साइटमैप (Sitemap)
             </Link>
-            {/* FIX: was a <span>, now a proper mailto <a> */}
             <a
               href="mailto:nvsict06@gmail.com"
-              className="hover:text-slate-400 transition-colors underline underline-offset-4 decoration-orange-500/50"
+              className="hover:text-orange-400 font-sans tracking-wide transition-colors underline underline-offset-4 decoration-orange-500/30 hover:decoration-orange-500"
             >
               nvsict06@gmail.com
             </a>
@@ -185,7 +189,6 @@ export default function Footer() {
 interface FooterLinkProps {
   href: string;
   children: React.ReactNode;
-  /** Pass a full Tailwind text color + weight class to override the default slate-400 color */
   overrideColor?: string;
   icon?: React.ReactNode;
 }
@@ -194,7 +197,8 @@ function FooterLink({ href, children, overrideColor, icon }: FooterLinkProps) {
   return (
     <Link
       href={href}
-      className={`flex items-center gap-2 hover:text-orange-500 hover:translate-x-1 transition-all duration-300 ${overrideColor ?? 'text-slate-400'}`}
+      // 🌟 FIX: Injected font-hindi to ensure links look crisp
+      className={`flex items-center gap-2 font-hindi text-base hover:text-orange-400 hover:translate-x-1 transition-all duration-300 ${overrideColor ?? 'text-slate-400'}`}
     >
       {icon && <span className="text-slate-500">{icon}</span>}
       {children}
@@ -216,7 +220,7 @@ function SocialIcon({ href, icon, color, label }: SocialIconProps) {
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label}
-      className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-400 ${color} hover:text-white transition-all duration-300 border border-white/5 hover:border-transparent hover:shadow-xl`}
+      className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-400 ${color} hover:text-white transition-all duration-300 border border-white/5 hover:border-transparent hover:shadow-lg`}
     >
       {icon}
     </a>

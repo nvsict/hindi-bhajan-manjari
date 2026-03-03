@@ -1,7 +1,8 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { supabase } from '../utils/supabase';
-import Hero from '../components/Hero'; // Adjust paths to '@/components/...' if needed
+import Hero from '../components/Hero'; 
 import Sidebar from '../components/Sidebar';
 import DeityBrowse from '../components/DeityBrowse';
 import BhajanList from '../components/BhajanList'; 
@@ -9,9 +10,9 @@ import { BhajanGridSkeleton } from '../components/Skeletons';
 
 import PopularCategories from '../components/home/PopularCategories';
 import TrendingArtists from '../components/home/TrendingArtists';
+import { FaBookOpen, FaClock, FaArrowRight } from 'react-icons/fa';
 
 // 🌟 THE HOMEPAGE CANONICAL FIX
-// This tells Google this is the ONLY official homepage URL, fixing the GSC warning!
 export const metadata: Metadata = {
   alternates: {
     canonical: 'https://www.hindibhajanmanjari.com/',
@@ -20,6 +21,71 @@ export const metadata: Metadata = {
 
 export const revalidate = 300; 
 
+// ==========================================
+// 🌟 NEW: THE PUBLISHER TRUST SIGNAL (Sanatan Gyan)
+// ==========================================
+async function LatestGyanSection() {
+  const { data: articles, error } = await supabase
+    .from('articles')
+    .select('title_hindi, title_hinglish, slug, read_time_minutes, meta_description, published_at')
+    .eq('is_published', true)
+    .order('published_at', { ascending: false })
+    .limit(3);
+
+  if (error || !articles || articles.length === 0) {
+    return null; // Fail gracefully if no articles exist yet
+  }
+
+  return (
+    <div className="mb-12">
+      <div className="flex flex-row items-center justify-between border-b border-orange-100 pb-3 md:pb-4 mb-6">
+        <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2 md:gap-3">
+          सनातन <span className="text-orange-600">ज्ञान</span>
+        </h2>
+        <Link href="/gyan" className="text-sm font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 group">
+          View All <FaArrowRight className="group-hover:translate-x-1 transition-transform text-xs" />
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4">
+        {articles.map((article) => {
+          const publishDate = new Date(article.published_at).toLocaleDateString('hi-IN', {
+            month: 'short', day: 'numeric', year: 'numeric'
+          });
+
+          return (
+            <Link 
+              href={`/gyan/${article.slug}`} 
+              key={article.slug}
+              className="flex flex-col sm:flex-row gap-4 p-5 bg-gradient-to-br from-white to-orange-50/30 rounded-2xl border border-orange-100 hover:border-orange-300 hover:shadow-md transition-all duration-300 group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-orange-500 group-hover:text-white transition-all duration-300">
+                <FaBookOpen size={20} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+                  <span className="text-orange-500 flex items-center gap-1"><FaClock /> {article.read_time_minutes} Min</span>
+                  <span>&bull;</span>
+                  <span>{publishDate}</span>
+                </div>
+                <h3 className="text-xl font-black text-gray-900 font-hindi mb-1 group-hover:text-orange-600 transition-colors line-clamp-1">
+                  {article.title_hindi}
+                </h3>
+                <p className="text-sm text-gray-600 line-clamp-2">
+                  {article.meta_description || article.title_hinglish}
+                </p>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// EXISTING LATEST BHAJANS
+// ==========================================
 async function LatestBhajansSection() {
   const { data: rawBhajans, error } = await supabase
     .from('bhajans')
@@ -37,13 +103,12 @@ async function LatestBhajansSection() {
   if (error) {
     console.error("Error fetching initial bhajans:", error);
     return (
-      <div className="p-8 text-center bg-red-50 rounded-xl border border-red-100">
-        <p className="text-red-600 font-medium">Unable to load Bhajans at the moment.</p>
+      <div className="p-8 text-center bg-red-50 rounded-2xl border border-red-100">
+        <p className="text-red-600 font-bold">Unable to load Bhajans at the moment.</p>
       </div>
     );
   }
 
-  // Flatten the arrays into single objects so they match your interface
   const initialBhajans = (rawBhajans || []).map(bhajan => ({
     ...bhajan,
     deities: Array.isArray(bhajan.deities) ? bhajan.deities[0] : bhajan.deities,
@@ -55,11 +120,12 @@ async function LatestBhajansSection() {
 
 export default function Home() {
   return (
-    <div className="min-h-screen">
-      {/* 1. Hero Section (Loads instantly with priority AVIF image) */}
+    <div className="min-h-screen bg-white">
+      {/* 1. Hero Section */}
       <Hero />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex flex-col lg:flex-row gap-8 items-start">
+      {/* 🌟 LAYOUT: Flex-row with items-start is crucial here so the Sidebar can be sticky */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16 flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
         
         {/* Main Content Area */}
         <main className="flex-1 w-full min-w-0">
@@ -68,31 +134,34 @@ export default function Home() {
           <DeityBrowse /> 
 
           {/* 3. Popular Categories Section */}
-          <div className="mt-8 rounded-3xl overflow-hidden border border-orange-100 shadow-sm">
-            <PopularCategories />
-          </div>
+          <PopularCategories />
 
           {/* 4. Trending Artists Section */}
-          <div className="mt-8 rounded-3xl overflow-hidden border border-orange-100 shadow-sm">
-            <TrendingArtists />
-          </div>
+          <TrendingArtists />
 
-          {/* 5. Latest Added Bhajans Header */}
-          <div className="flex items-center justify-between border-b border-orange-100 pb-3 mb-8 mt-12">
-            <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 flex items-center gap-3">
-              <span className="w-2 h-8 bg-orange-600 rounded-full"></span>
-              Latest Added Bhajans
+          {/* ==========================================
+              🌟 5. NEW: SANATAN GYAN SECTION
+              This transforms the site from a "Songbook" to a "Publisher"
+              ========================================== */}
+          <Suspense fallback={<div className="h-64 bg-gray-50 rounded-2xl animate-pulse mb-12"></div>}>
+            <LatestGyanSection />
+          </Suspense>
+
+          {/* 6. Latest Added Bhajans Header */}
+          <div className="flex flex-row items-center justify-between border-b border-gray-100 pb-3 md:pb-4 mb-6 md:mb-8 mt-4">
+            <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2 md:gap-3">
+              Latest <span className="text-orange-600">Bhajans</span>
             </h2>
           </div>
           
-          {/* 6. The Dynamic List Section */}
+          {/* 7. The Dynamic List Section */}
           <Suspense fallback={<BhajanGridSkeleton />}>
             <LatestBhajansSection />
           </Suspense>
 
         </main>
 
-        {/* 7. Sidebar */}
+        {/* 8. Sidebar */}
         <Sidebar />
 
       </div>

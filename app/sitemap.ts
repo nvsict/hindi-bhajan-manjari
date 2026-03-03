@@ -33,11 +33,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { data: deities } = await supabase.from('deities').select('slug');
   const { data: tags } = await supabase.from('tags').select('slug');
   const { data: artists } = await supabase.from('artists').select('slug, created_at');
+  
+  // 🌟 NEW: Fetching Published Gyan Articles for the Knowledge Graph
+  const { data: articles } = await supabase
+    .from('articles')
+    .select('slug, published_at')
+    .eq('is_published', true);
 
   // 2. Define truly static routes
   const staticRoutes = [
     '',
     '/search',     // 🌟 Added Search Page
+    '/gyan',       // 🌟 NEW: Added the main Sanatan Gyan Hub
     '/developers', // 🌟 Added your new SaaS Dashboard
     '/artist',
     '/saved',
@@ -48,7 +55,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
     changeFrequency: 'daily' as const,
-    priority: route === '' ? 1.0 : route === '/developers' ? 0.9 : 0.5, 
+    priority: route === '' ? 1.0 : (route === '/gyan' || route === '/developers') ? 0.9 : 0.8, 
   }));
 
   // 3. Map Bhajan pages (High Priority)
@@ -59,7 +66,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.9, 
   }));
 
-  // 4. Map Artist Profile pages
+  // 🌟 NEW: 4. Map Article Pages (Extremely High Priority for AdSense/SEO)
+  const articleRoutes = (articles || []).map((article) => ({
+    url: `${baseUrl}/gyan/${article.slug}`,
+    lastModified: article.published_at ? new Date(article.published_at) : new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.9, 
+  }));
+
+  // 5. Map Artist Profile pages
   const artistRoutes = (artists || []).map((artist) => ({
     url: `${baseUrl}/artist/${artist.slug}`,
     lastModified: artist.created_at ? new Date(artist.created_at) : new Date(),
@@ -67,7 +82,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  // 5. Map Category pages
+  // 6. Map Category pages
   const categoryRoutes = (categories || []).map((category) => ({
     url: `${baseUrl}/category/${category.slug}`,
     lastModified: new Date(),
@@ -75,7 +90,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  // 6. Map Deity pages
+  // 7. Map Deity pages
   const deityRoutes = (deities || []).map((deity) => ({
     url: `${baseUrl}/deity/${deity.slug}`,
     lastModified: new Date(),
@@ -83,7 +98,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  // 7. Map Tag pages
+  // 8. Map Tag pages
   const tagRoutes = (tags || []).map((tag) => ({
     url: `${baseUrl}/tag/${tag.slug}`,
     lastModified: new Date(),
@@ -94,6 +109,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...staticRoutes, 
     ...bhajanRoutes, 
+    ...articleRoutes, // 🌟 Injected Articles into the final XML output
     ...artistRoutes, 
     ...categoryRoutes, 
     ...deityRoutes, 
