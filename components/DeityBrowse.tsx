@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/utils/supabase'; // Adjust path if needed
+import ScrollReveal from './ScrollReveal'; // 🌟 Imported ScrollReveal
 
 export const revalidate = 3600; // Cache this for 1 hour for fast homepage loads
 
@@ -20,70 +21,79 @@ export default async function DeityBrowse() {
   return (
     <section className="mb-12 md:mb-16">
       
-      {/* 🌟 RESPONSIVE HEADER & 3D BUTTON */}
-      <div className="flex flex-row items-center justify-between border-b border-gray-100 pb-3 md:pb-4 mb-6 md:mb-8">
-        <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
-          Divine <span className="text-orange-600">Deities</span>
-        </h2>
-        
-        {/* Mobile-Optimized Uiverse 3D Button */}
-        <Link 
-          href="/deity" 
-          className="relative inline-flex items-center justify-center gap-1.5 md:gap-2 bg-orange-500 text-white px-4 py-2 md:px-6 md:py-2.5 text-[11px] md:text-xs font-bold uppercase tracking-widest transition-all duration-150 rounded-lg opacity-95 hover:opacity-100 shadow-[0_4px_0px_#c2410c] md:shadow-[0_5px_0px_#c2410c] active:top-[4px] md:active:top-[5px] active:shadow-[0_0px_0px_#c2410c] shrink-0"
-          aria-label="View all deities"
-        >
-          View All
-          <svg 
-            className="w-2.5 h-3 md:w-3 md:h-4" 
-            viewBox="0 0 10 18" 
-            fill="none"
+      {/* 🌟 Reveal the Header Smoothly */}
+      <ScrollReveal yOffset={20}>
+        <div className="flex flex-row items-center justify-between border-b border-gray-100 pb-3 md:pb-4 mb-6 md:mb-8">
+          <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+            Divine <span className="text-orange-600">Deities</span>
+          </h2>
+          
+          {/* Mobile-Optimized Uiverse 3D Button */}
+          <Link 
+            href="/deity" 
+            className="relative inline-flex items-center justify-center gap-1.5 md:gap-2 bg-orange-500 text-white px-4 py-2 md:px-6 md:py-2.5 text-[11px] md:text-xs font-bold uppercase tracking-widest transition-all duration-150 rounded-lg opacity-95 hover:opacity-100 shadow-[0_4px_0px_#c2410c] md:shadow-[0_5px_0px_#c2410c] active:top-[4px] md:active:top-[5px] active:shadow-[0_0px_0px_#c2410c] shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+            aria-label="View all deities"
           >
-            <path 
-              d="M0.879395 13.0463L6.41356 7.5L0.879395 1.95375L2.58314 0.25L9.83315 7.5L2.58314 14.75L0.879395 13.0463Z" 
-              fill="currentColor"
-            ></path>
-          </svg>
-        </Link>
-      </div>
+            View All
+            <svg 
+              className="w-2.5 h-3 md:w-3 md:h-4" 
+              viewBox="0 0 10 18" 
+              fill="none"
+            >
+              <path 
+                d="M0.879395 13.0463L6.41356 7.5L0.879395 1.95375L2.58314 0.25L9.83315 7.5L2.58314 14.75L0.879395 13.0463Z" 
+                fill="currentColor"
+              ></path>
+            </svg>
+          </Link>
+        </div>
+      </ScrollReveal>
 
       {/* 🌟 RESPONSIVE GRID: Locked to 16:9 Landscape */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
-        {deities.map((deity) => (
-          <Link href={`/deity/${deity.slug}`} key={deity.slug} className="group outline-none">
-            
-            {/* The Landscape Card Container */}
-            <div className="relative rounded-xl md:rounded-2xl overflow-hidden shadow-sm border border-orange-100/60 cursor-pointer aspect-video bg-gradient-to-br from-orange-50 to-amber-50 group-hover:shadow-[0_8px_25px_rgb(234,88,12,0.15)] group-hover:border-orange-300 transition-all duration-500">
+        {deities.map((deity, index) => (
+          /* 🌟 THE CASCADE MAGIC: Delays each card by 0.1s */
+          <ScrollReveal 
+            key={deity.slug} 
+            delay={index * 0.1} 
+            yOffset={30}
+          >
+            <Link href={`/deity/${deity.slug}`} className="group outline-none block focus-visible:ring-2 focus-visible:ring-orange-400 rounded-2xl">
               
-              {/* Deity Image */}
-              {deity.image_url ? (
-                <Image 
-                  src={deity.image_url} 
-                  alt={deity.name_hinglish} 
-                  fill
-                  quality={50} 
-                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-110" 
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 30vw" 
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center transition-transform duration-700 ease-out group-hover:scale-110 relative z-10">
-                  <span className="text-4xl md:text-6xl font-black text-orange-500/10 drop-shadow-sm">
-                    {deity.name_hinglish.charAt(0)}
+              {/* The Landscape Card Container */}
+              <div className="relative rounded-xl md:rounded-2xl overflow-hidden shadow-sm border border-orange-100/60 cursor-pointer aspect-video bg-gradient-to-br from-orange-50 to-amber-50 group-hover:shadow-[0_8px_25px_rgb(234,88,12,0.15)] group-hover:border-orange-300 transition-all duration-500">
+                
+                {/* Deity Image */}
+                {deity.image_url ? (
+                  <Image 
+                    src={deity.image_url} 
+                    alt={deity.name_hinglish} 
+                    fill
+                    quality={60} 
+                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-110" 
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 30vw" 
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center transition-transform duration-700 ease-out group-hover:scale-110 relative z-10">
+                    <span className="text-4xl md:text-6xl font-black text-orange-500/10 drop-shadow-sm">
+                      {deity.name_hinglish.charAt(0)}
+                    </span>
+                  </div>
+                )} 
+                
+                {/* Cinematic Shadow Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500 z-10 pointer-events-none"></div>
+
+                {/* Responsive Floating White Pill */}
+                <div className="absolute inset-x-0 bottom-2 md:bottom-4 flex justify-center z-20 px-2">
+                  <span className="bg-white/95 backdrop-blur-md border border-white/30 px-3 md:px-6 py-1 md:py-1.5 rounded-full text-[10px] md:text-sm font-black uppercase tracking-wider text-gray-800 shadow-md group-hover:text-orange-600 group-hover:-translate-y-0.5 md:group-hover:-translate-y-1 transition-all duration-300 truncate max-w-full">
+                    {deity.name_hinglish}
                   </span>
                 </div>
-              )} 
-              
-              {/* Cinematic Shadow Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500 z-10 pointer-events-none"></div>
-
-              {/* Responsive Floating White Pill */}
-              <div className="absolute inset-x-0 bottom-2 md:bottom-4 flex justify-center z-20 px-2">
-                <span className="bg-white/95 backdrop-blur-md border border-white/30 px-3 md:px-6 py-1 md:py-1.5 rounded-full text-[10px] md:text-sm font-black uppercase tracking-wider text-gray-800 shadow-md group-hover:text-orange-600 group-hover:-translate-y-0.5 md:group-hover:-translate-y-1 transition-all duration-300 truncate max-w-full">
-                  {deity.name_hinglish}
-                </span>
+                
               </div>
-              
-            </div>
-          </Link>
+            </Link>
+          </ScrollReveal>
         ))}
       </div>
     </section>

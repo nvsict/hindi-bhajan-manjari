@@ -41,7 +41,7 @@ export default async function TrendingArtists() {
   // 3. Sort (Highest unique total_bhajans first) and grab Top 10
   const topArtists = artistsWithCounts
     .sort((a, b) => b.total_bhajans - a.total_bhajans)
-    .slice(0, 10);
+    .slice(0, 20);
 
   if (topArtists.length === 0) return null;
 

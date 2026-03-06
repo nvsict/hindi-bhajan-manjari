@@ -3,8 +3,11 @@ import { Geist, Geist_Mono, Hind } from "next/font/google";
 import "./globals.css";
 import ConditionalHeader from "../components/ConditionalHeader";
 import ConditionalFooter from "../components/ConditionalFooter";
+import SmoothScrolling from "../components/SmoothScrolling"; // 🌟 Imported Lenis Provider
 import { GoogleAnalytics } from '@next/third-parties/google'; 
 import NextTopLoader from 'nextjs-toploader';
+import { SpeedInsights } from "@vercel/speed-insights/next"
+import PushPrompt from '@/components/PushPrompt';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -79,9 +82,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="hi">
-      {/* 🌟 Added mukta.variable to the body classes */}
-      <body
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} ${hindFont.variable} antialiased bg-orange-50/30 flex flex-col min-h-screen`}
       >
         {/* Top Loading Bar */}
@@ -97,16 +99,23 @@ export default function RootLayout({
           shadow="0 0 15px #ea580c, 0 0 10px #fbbf24"
         />
 
-        <ConditionalHeader /> 
-        
-        <main className="flex-1">
-          {children}
-        </main>
-        
-        <ConditionalFooter />
+        {/* 🌟 WRAPPED APP IN SMOOTH SCROLLING */}
+        <SmoothScrolling>
+          <ConditionalHeader /> 
+          
+          <main className="flex-1">
+            {children}
+          </main>
+          
+          <ConditionalFooter />
+        </SmoothScrolling>
+        <SpeedInsights/>
 
         {/* 🌟 PERFECT PLACEMENT: Will load asynchronously without blocking rendering */}
         <GoogleAnalytics gaId="G-LVXN7TD3JB" />
+        
+        {/* 🌟 OUR CUSTOM NATIVE PUSH SYSTEM */}
+        <PushPrompt />
       </body>
     </html>
   );

@@ -11,6 +11,7 @@ import { BhajanGridSkeleton } from '../components/Skeletons';
 import PopularCategories from '../components/home/PopularCategories';
 import TrendingArtists from '../components/home/TrendingArtists';
 import { FaBookOpen, FaClock, FaArrowRight } from 'react-icons/fa';
+import ScrollReveal from '../components/ScrollReveal'; // 🌟 Added ScrollReveal
 
 // 🌟 THE HOMEPAGE CANONICAL FIX
 export const metadata: Metadata = {
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
 export const revalidate = 300; 
 
 // ==========================================
-// 🌟 NEW: THE PUBLISHER TRUST SIGNAL (Sanatan Gyan)
+// 🌟 THE PUBLISHER TRUST SIGNAL (Sanatan Gyan)
 // ==========================================
 async function LatestGyanSection() {
   const { data: articles, error } = await supabase
@@ -38,44 +39,50 @@ async function LatestGyanSection() {
 
   return (
     <div className="mb-12">
-      <div className="flex flex-row items-center justify-between border-b border-orange-100 pb-3 md:pb-4 mb-6">
-        <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2 md:gap-3">
-          सनातन <span className="text-orange-600">ज्ञान</span>
-        </h2>
-        <Link href="/gyan" className="text-sm font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 group">
-          View All <FaArrowRight className="group-hover:translate-x-1 transition-transform text-xs" />
-        </Link>
-      </div>
+      {/* 🌟 Animate the Header */}
+      <ScrollReveal yOffset={20}>
+        <div className="flex flex-row items-center justify-between border-b border-orange-100 pb-3 md:pb-4 mb-6">
+          <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2 md:gap-3">
+            सनातन <span className="text-orange-600">ज्ञान</span>
+          </h2>
+          <Link href="/gyan" className="text-sm font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 group outline-none focus-visible:ring-2 focus-visible:ring-orange-400 rounded px-1">
+            View All <FaArrowRight className="group-hover:translate-x-1 transition-transform text-xs" />
+          </Link>
+        </div>
+      </ScrollReveal>
 
       <div className="grid grid-cols-1 gap-4">
-        {articles.map((article) => {
+        {articles.map((article, index) => {
           const publishDate = new Date(article.published_at).toLocaleDateString('hi-IN', {
             month: 'short', day: 'numeric', year: 'numeric'
           });
 
           return (
-            <Link 
-              href={`/gyan/${article.slug}`} 
-              key={article.slug}
-              className="flex flex-col sm:flex-row gap-4 p-5 bg-gradient-to-br from-white to-orange-50/30 rounded-2xl border border-orange-100 hover:border-orange-300 hover:shadow-md transition-all duration-300 group"
-            >
-              <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-orange-500 group-hover:text-white transition-all duration-300">
-                <FaBookOpen size={20} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">
-                  <span className="text-orange-500 flex items-center gap-1"><FaClock /> {article.read_time_minutes} Min</span>
-                  <span>&bull;</span>
-                  <span>{publishDate}</span>
+            /* 🌟 Animate the Article Cards with a Cascade Delay */
+            <ScrollReveal key={article.slug} delay={index * 0.1} yOffset={30}>
+              <Link 
+                href={`/gyan/${article.slug}`} 
+                className="flex flex-col sm:flex-row gap-4 p-5 bg-gradient-to-br from-white to-orange-50/30 rounded-2xl border border-orange-100 hover:border-orange-300 hover:shadow-md transition-all duration-300 group outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+              >
+                <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-orange-500 group-hover:text-white transition-all duration-300">
+                  <FaBookOpen size={20} />
                 </div>
-                <h3 className="text-xl font-black text-gray-900 font-hindi mb-1 group-hover:text-orange-600 transition-colors line-clamp-1">
-                  {article.title_hindi}
-                </h3>
-                <p className="text-sm text-gray-600 line-clamp-2">
-                  {article.meta_description || article.title_hinglish}
-                </p>
-              </div>
-            </Link>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+                    <span className="text-orange-500 flex items-center gap-1"><FaClock /> {article.read_time_minutes} Min</span>
+                    <span>&bull;</span>
+                    <span>{publishDate}</span>
+                  </div>
+                  {/* 🌟 Applied font-hindi and leading-tight for perfect rendering */}
+                  <h3 className="text-xl font-black text-gray-900 font-hindi leading-tight mb-1 group-hover:text-orange-600 transition-colors line-clamp-1">
+                    {article.title_hindi}
+                  </h3>
+                  <p className="text-sm text-gray-600 line-clamp-2">
+                    {article.meta_description || article.title_hinglish}
+                  </p>
+                </div>
+              </Link>
+            </ScrollReveal>
           );
         })}
       </div>
@@ -148,11 +155,13 @@ export default function Home() {
           </Suspense>
 
           {/* 6. Latest Added Bhajans Header */}
-          <div className="flex flex-row items-center justify-between border-b border-gray-100 pb-3 md:pb-4 mb-6 md:mb-8 mt-4">
-            <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2 md:gap-3">
-              Latest <span className="text-orange-600">Bhajans</span>
-            </h2>
-          </div>
+          <ScrollReveal yOffset={20}>
+            <div className="flex flex-row items-center justify-between border-b border-gray-100 pb-3 md:pb-4 mb-6 md:mb-8 mt-4">
+              <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2 md:gap-3">
+                Latest <span className="text-orange-600">Bhajans</span>
+              </h2>
+            </div>
+          </ScrollReveal>
           
           {/* 7. The Dynamic List Section */}
           <Suspense fallback={<BhajanGridSkeleton />}>

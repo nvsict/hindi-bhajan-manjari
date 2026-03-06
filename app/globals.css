@@ -25,6 +25,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   scrollbar-gutter: stable;
 }
+
 /* globals.css */
 #nprogress .peg {
   box-shadow: 0 0 15px #ea580c, 0 0 8px #ea580c !important;
@@ -48,6 +49,7 @@ a:hover {
   filter: brightness(1.1);
   transition: filter 0.1s ease-in;
 }
+
 /* --- SEAMLESS CUSTOM SCROLLBAR --- */
 
 /* 1. Firefox Support (Clean & Thin) */
@@ -90,19 +92,20 @@ html {
 }
 
 /* --- Custom Animations for Feature Highlights --- */
+/* 🌟 FIX: Removed translateX(-50%) so elements stay correctly aligned left/right */
 @keyframes fade-in-up {
   0% {
     opacity: 0;
-    transform: translateY(10px) translateX(-50%);
+    transform: translateY(20px); 
   }
   100% {
     opacity: 1;
-    transform: translateY(0) translateX(-50%);
+    transform: translateY(0); 
   }
 }
 
 .animate-fade-in-up {
-  animation: fade-in-up 0.5s ease-out forwards;
+  animation: fade-in-up 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
 /* --- Custom Fonts --- */
@@ -154,4 +157,31 @@ html {
 /* If a Hindi title is inside a flex container, ensure it doesn't get squished */
 .font-hindi {
   flex-shrink: 0;
+}
+
+/* --- LENIS SMOOTH SCROLL ESSENTIALS --- */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+/* 🌟 GPU Acceleration Helper */
+.will-change-transform {
+  will-change: transform;
+  transform: translateZ(0);
 }

@@ -298,7 +298,7 @@ export default async function BhajanDetails({ params }: Props) {
             <div className="p-4 md:p-8">
               
               {/* 🌟 SLEEK UX FEATURE BAR (INSTEAD OF HEAVY TEXT) */}
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-8">
+              <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
                 <span className="flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-lg shadow-sm">
                   🌐 8+ Languages
                 </span>
