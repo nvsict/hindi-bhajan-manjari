@@ -7,9 +7,11 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
 
+    // 1. DYNAMIC PARAMETER (Hinglish Title Only)
     const title = searchParams.get('title') || 'Hindi Bhajan Manjari';
-    const subtitle = searchParams.get('subtitle') || 'Authentic Lyrics & Meanings';
-    const badge = searchParams.get('badge') || '🙏 Devotional Sangrah';
+
+    // 2. Fetch Logo
+    const logoUrl = new URL('/logo.png', req.url).toString();
 
     return new ImageResponse(
       (
@@ -21,144 +23,124 @@ export async function GET(req: NextRequest) {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            // Deep regal Saffron/Maroon gradient background
-            backgroundColor: '#431407',
-            backgroundImage: 'linear-gradient(135deg, #431407 0%, #ea580c 100%)',
+            // Subtle radial gradient makes the white feel premium, not flat
+            backgroundColor: '#ffffff',
+            backgroundImage: 'radial-gradient(circle at center, #ffffff 0%, #f9fafb 100%)',
             position: 'relative',
-            overflow: 'hidden',
+            padding: '60px',
             fontFamily: 'sans-serif',
           }}
         >
-          {/* 🌟 Decorative Glowing Orbs in the Background */}
+          {/* 🌟 ELEGANT FRAME: Prevents WhatsApp from blending the image into light-mode chats */}
           <div
             style={{
               position: 'absolute',
-              top: '-150px',
-              left: '-150px',
-              width: '700px',
-              height: '700px',
-              backgroundImage: 'radial-gradient(circle, rgba(251, 191, 36, 0.3) 0%, rgba(0,0,0,0) 70%)',
-              borderRadius: '50%',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '-200px',
-              right: '-100px',
-              width: '900px',
-              height: '900px',
-              backgroundImage: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, rgba(0,0,0,0) 70%)',
-              borderRadius: '50%',
+              top: '24px',
+              bottom: '24px',
+              left: '24px',
+              right: '24px',
+              border: '2px solid rgba(234, 88, 12, 0.1)', // Very faint saffron border
+              borderRadius: '24px',
             }}
           />
 
-          {/* 🌟 Glassmorphism Inner Card */}
+          {/* 🌟 TOP ACCENT BAR: Beautiful gradient combining your theme colors */}
+          <div 
+            style={{ 
+              position: 'absolute', 
+              top: 0, 
+              left: '15%', 
+              right: '15%', 
+              height: '8px', 
+              backgroundImage: 'linear-gradient(90deg, #ea580c, #431407)', 
+              borderBottomLeftRadius: '12px', 
+              borderBottomRightRadius: '12px' 
+            }} 
+          />
+
+          {/* 🌟 WATERMARK: Large, centered logo with extremely low opacity for texture */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={logoUrl}
+            alt="Watermark"
+            style={{
+              position: 'absolute',
+              width: '550px',
+              height: '550px',
+              opacity: 0.03, // Just enough to add texture to the white space
+              objectFit: 'contain',
+            }}
+          />
+
+          {/* 🌟 CENTER SAFE ZONE: Ensures nothing gets cropped on WhatsApp */}
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              // Semi-transparent white creates the "Glass" effect
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '40px',
-              width: '85%',
-              height: '80%',
-              padding: '60px',
-              textAlign: 'center',
-              boxShadow: '0 30px 60px rgba(0, 0, 0, 0.4)',
-              position: 'relative',
+              zIndex: 10,
+              maxWidth: '80%', // Keeps text away from the edges
             }}
           >
-            {/* SVG Lotus Icon */}
-            <svg
-              width="64"
-              height="64"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#fbbf24" // amber-400
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ marginBottom: '24px' }}
-            >
-              <path d="M12 2c0 0-4 4-4 10a4 4 0 0 0 8 0c0-6-4-10-4-10z" />
-              <path d="M12 12c-4 0-8 2-8 6a4 4 0 0 0 8 0c0-4 4-6 4-6z" />
-              <path d="M12 12c4 0 8 2 8 6a4 4 0 0 1-8 0c0-4-4-6-4-6z" />
-              <path d="M12 22v-4" />
-            </svg>
-
-            {/* Glowing Pill Badge */}
-            <div
+            {/* Main Visible Logo */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src={logoUrl} 
+              alt="Logo"
               style={{
-                backgroundColor: 'rgba(251, 191, 36, 0.15)', // Amber tint
-                color: '#fcd34d', // amber-300
-                padding: '10px 28px',
-                borderRadius: '50px',
-                fontSize: 22,
-                fontWeight: 'bold',
-                textTransform: 'uppercase',
-                letterSpacing: '3px',
-                marginBottom: '30px',
-                border: '1px solid rgba(251, 191, 36, 0.3)',
+                width: '110px',
+                height: '110px',
+                marginBottom: '40px',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0px 10px 15px rgba(234, 88, 12, 0.15))',
               }}
-            >
-              {badge}
-            </div>
+            />
 
-            {/* Main Title (High Contrast White & BOLD, with wrap support) */}
+            {/* BLACK TITLE: Clean, slightly off-black for better screen rendering */}
             <div
               style={{
-                fontSize: 40, // Slightly larger
-                fontWeight: 600,
-                color: '#ffffff',
-                lineHeight: 1,
-                marginBottom: '10px',
-                maxWidth: '95%', // Allowed to be wider
-                textShadow: '0 4px 15px rgba(0,0,0,0.4)',
+                fontSize: 76, // Slightly scaled down to fit longer titles safely
+                fontWeight: 900,
+                color: '#111827', // Very dark slate (looks better than pure #000)
                 textAlign: 'center',
-                letterSpacing: '-1px',
-                WebkitTextStroke: '1px #ffffff',
-                // 🌟 CSS to handle long text and force wrapping
+                lineHeight: 1.2,
+                letterSpacing: '-1.5px',
+                textTransform: 'capitalize',
                 wordBreak: 'break-word',
                 overflow: 'hidden',
                 display: '-webkit-box',
-                WebkitLineClamp: 3, // Limit to 3 lines maximum
+                WebkitLineClamp: 3,
                 WebkitBoxOrient: 'vertical',
+                marginBottom: '50px',
               }}
             >
               {title}
             </div>
 
-            {/* Subtitle (Soft Orange) */}
-            <div
-              style={{
-                fontSize: 30,
-                color: '#fdba74', // orange-300
-                fontWeight: 500,
-                marginBottom: '10px',
-                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-              }}
-            >
-              {subtitle}
-            </div>
-
-            {/* Bottom Branding */}
+            {/* 🌟 BRANDING PILL: Instead of plain text, it sits in an elegant container */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                fontSize: 22,
-                color: '#fef3c7', // amber-50
-                fontWeight: 600,
-                letterSpacing: '2px',
-                opacity: 0.7,
-                textTransform: 'uppercase',
+                justifyContent: 'center',
+                backgroundColor: '#fff7ed', // Very light orange tint
+                border: '1px solid #ffedd5',
+                padding: '12px 32px',
+                borderRadius: '50px',
               }}
             >
-              hindibhajanmanjari.com
+              <span
+                style={{
+                  fontSize: 20,
+                  fontWeight: 800,
+                  color: '#ea580c', // Saffron orange
+                  letterSpacing: '3px',
+                  textTransform: 'uppercase',
+                }}
+              >
+                hindibhajanmanjari.com
+              </span>
             </div>
           </div>
         </div>

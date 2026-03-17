@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { supabase } from '@/utils/supabase'; // Adjust this path if needed
+import { supabase } from '@/utils/supabase';
 
 // 🌟 Cache the sitemap for 24 hours to prevent Vercel timeouts
 export const revalidate = 86400; 
@@ -7,23 +7,20 @@ export const revalidate = 86400;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://www.hindibhajanmanjari.com';
 
-  // 1. Fetch static/small tables in parallel for maximum speed
+  // 1. Fetch static/small tables in parallel (REMOVED TAGS)
   const [
     { data: categories },
     { data: deities },
-    { data: tags },
     { data: artists },
     { data: articles }
   ] = await Promise.all([
     supabase.from('categories').select('slug'),
     supabase.from('deities').select('slug'),
-    supabase.from('tags').select('slug'),
     supabase.from('artists').select('slug, created_at'),
     supabase.from('articles').select('slug, published_at').eq('is_published', true)
   ]);
 
   // 2. Fetch all Bhajans
-  // We use a loop just in case you cross Supabase's default 1,000 row limit later.
   const allBhajans: any[] = [];
   let hasMore = true;
   let from = 0;
@@ -32,7 +29,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   while (hasMore) {
     const { data } = await supabase
       .from('bhajans')
-      .select('slug, created_at')
+      .select('slug, created_at') // 💡 TIP: If you add 'updated_at' to DB, use it here!
       .range(from, from + step - 1);
 
     if (!data || data.length === 0) {
@@ -98,14 +95,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  const tagRoutes = (tags || []).map((tag) => ({
-    url: `${baseUrl}/tag/${tag.slug}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.6,
-  }));
-
-  // 5. Combine everything into one giant XML file
+  // 5. Combine everything (NO TAGS INCLUDED)
   return [
     ...staticRoutes,
     ...articleRoutes,
@@ -113,6 +103,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...artistRoutes,
     ...categoryRoutes,
     ...deityRoutes,
-    ...tagRoutes,
   ];
 }

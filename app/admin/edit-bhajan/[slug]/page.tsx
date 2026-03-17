@@ -14,6 +14,7 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
   const [deities, setDeities] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
   const [message, setMessage] = useState("");
 
   const [formData, setFormData] = useState({
@@ -44,61 +45,68 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
 
   useEffect(() => {
     const fetchData = async () => {
-      // 1. Fetch dropdown lists
-      const { data: catData } = await supabase.from('categories').select('id, name_hinglish');
-      const { data: deityData } = await supabase.from('deities').select('id, name_hinglish');
-      if (catData) setCategories(catData);
-      if (deityData) setDeities(deityData);
-
-      // 2. Fetch the specific bhajan AND its junction tables
-      const { data: bhajan, error } = await supabase
-        .from('bhajans')
-        .select(`
-          *,
-          bhajan_category_map ( category_id ),
-          bhajan_tag_map ( tags ( name ) )
-        `)
-        .eq('slug', resolvedParams.slug)
-        .single();
-
-      if (error || !bhajan) {
-        setMessage("❌ Bhajan not found.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Format previously selected categories and tags
-      const fetchedCategories = bhajan.bhajan_category_map?.map((map: any) => map.category_id) || [];
-      const fetchedTags = bhajan.bhajan_tag_map?.map((map: any) => map.tags?.name).filter(Boolean).join(', ') || '';
-
-      // 3. Pre-fill the form
-      setFormData({
-        id: bhajan.id,
-        title_hindi: bhajan.title_hindi || '',
-        title_hinglish: bhajan.title_hinglish || '',
-        slug: bhajan.slug || '',
-        lyrics_hindi: bhajan.lyrics_hindi || '',
-        lyrics_hinglish: bhajan.lyrics_hinglish || '',
-        video_embed_url: bhajan.video_embed_url || '',
-        tarz: bhajan.tarj_parody || '',
-        explanation: bhajan.explanation || '',
-        tags: fetchedTags,
+      try {
+        // 🌟 OPTIMIZATION: Fetch Categories and Deities in parallel for faster loading
+        const [catResponse, deityResponse] = await Promise.all([
+          supabase.from('categories').select('id, name_hinglish'),
+          supabase.from('deities').select('id, name_hinglish')
+        ]);
         
-        // 🌟 Populate SEO Fields
-        seo_title: bhajan.seo_title || '',
-        meta_description: bhajan.meta_description || '',
-        alt_queries: bhajan.alt_queries || '',
+        if (catResponse.data) setCategories(catResponse.data);
+        if (deityResponse.data) setDeities(deityResponse.data);
 
-        selected_categories: fetchedCategories,
-        deity_id: bhajan.deity_id || ''
-      });
+        // Fetch the specific bhajan AND its junction tables
+        const { data: bhajan, error } = await supabase
+          .from('bhajans')
+          .select(`
+            *,
+            bhajan_category_map ( category_id ),
+            bhajan_tag_map ( tags ( name ) )
+          `)
+          .eq('slug', resolvedParams.slug)
+          .single();
 
-      // Pre-fill FAQs
-      if (bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0) {
-        setFaqs(bhajan.faqs);
+        if (error || !bhajan) {
+          setFetchError("❌ Bhajan not found or database error.");
+          setIsLoading(false);
+          return;
+        }
+
+        // Format previously selected categories and tags
+        const fetchedCategories = bhajan.bhajan_category_map?.map((map: any) => map.category_id) || [];
+        const fetchedTags = bhajan.bhajan_tag_map?.map((map: any) => map.tags?.name).filter(Boolean).join(', ') || '';
+
+        // Pre-fill the form
+        setFormData({
+          id: bhajan.id,
+          title_hindi: bhajan.title_hindi || '',
+          title_hinglish: bhajan.title_hinglish || '',
+          slug: bhajan.slug || '',
+          lyrics_hindi: bhajan.lyrics_hindi || '',
+          lyrics_hinglish: bhajan.lyrics_hinglish || '',
+          video_embed_url: bhajan.video_embed_url || '',
+          tarz: bhajan.tarj_parody || '',
+          explanation: bhajan.explanation || '',
+          tags: fetchedTags,
+          
+          // 🌟 Populate SEO Fields
+          seo_title: bhajan.seo_title || '',
+          meta_description: bhajan.meta_description || '',
+          alt_queries: bhajan.alt_queries || '',
+
+          selected_categories: fetchedCategories,
+          deity_id: bhajan.deity_id || ''
+        });
+
+        // Pre-fill FAQs
+        if (bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0) {
+          setFaqs(bhajan.faqs);
+        }
+      } catch (err) {
+        setFetchError("❌ An unexpected error occurred while fetching data.");
+      } finally {
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
     };
 
     fetchData();
@@ -189,10 +197,10 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
 
       setMessage("✅ Bhajan updated successfully!");
       
-      // We don't automatically redirect anymore so you have time to use the Artist Manager below
+      // Auto-hide the success message after 4 seconds
       setTimeout(() => {
         setMessage("");
-      }, 3000);
+      }, 4000);
 
     } catch (err: any) {
       setMessage(`❌ ${err.message}`);
@@ -203,18 +211,21 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
 
   if (isLoading) return <div className="p-12 text-center text-gray-500 font-bold">Loading Bhajan Data...</div>;
 
+  if (fetchError) return (
+    <div className="max-w-4xl mx-auto mt-20 p-8 text-center bg-red-50 border border-red-200 rounded-3xl">
+      <h2 className="text-xl font-bold text-red-600 mb-4">{fetchError}</h2>
+      <button onClick={() => router.push('/admin')} className="text-gray-700 underline hover:text-black">
+        Return to Dashboard
+      </button>
+    </div>
+  );
+
   return (
     <div className="max-w-4xl mx-auto bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mb-20">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-black text-gray-900">Edit Bhajan</h1>
         <button onClick={() => router.push('/admin')} className="text-gray-500 hover:text-gray-800 font-bold">Back to Dashboard</button>
       </div>
-
-      {message && (
-        <div className={`p-4 mb-6 rounded-xl font-bold ${message.includes('❌') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
-          {message}
-        </div>
-      )}
 
       {/* =========================================================
           MAIN BHAJAN FORM
@@ -352,7 +363,15 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
           </div>
         </div>
 
-        <div className="pt-4 pb-8 border-b border-gray-200">
+        {/* 🌟 OPTIMIZED SUBMIT AREA: Message is now directly above the button */}
+        <div className="pt-4 pb-8 border-b border-gray-200 flex flex-col items-start gap-4">
+          
+          {message && (
+            <div className={`px-5 py-3 rounded-xl font-bold w-full md:w-auto flex items-center shadow-sm border ${message.includes('❌') ? 'bg-red-50 text-red-600 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
+              {message}
+            </div>
+          )}
+
           <button type="submit" disabled={isSubmitting} className="w-full md:w-auto px-10 py-4 bg-gray-900 text-white font-black rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors shadow-md hover:shadow-lg hover:-translate-y-0.5">
             {isSubmitting ? 'Saving Text Changes...' : 'Save Bhajan Text Changes'}
           </button>
@@ -364,7 +383,9 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
           ARTIST / SINGER MANAGER (The New Addition!)
           ========================================================= */}
       {formData.id && (
-        <BhajanArtistManager bhajanId={formData.id} />
+        <div className="mt-12">
+          <BhajanArtistManager bhajanId={formData.id} />
+        </div>
       )}
       
     </div>

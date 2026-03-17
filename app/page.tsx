@@ -10,10 +10,9 @@ import { BhajanGridSkeleton } from '../components/Skeletons';
 
 import PopularCategories from '../components/home/PopularCategories';
 import TrendingArtists from '../components/home/TrendingArtists';
-import { FaBookOpen, FaClock, FaArrowRight } from 'react-icons/fa';
-import ScrollReveal from '../components/ScrollReveal'; // 🌟 Added ScrollReveal
+import { FaBookOpen, FaClock, FaArrowRight, FaMusic } from 'react-icons/fa';
+import ScrollReveal from '../components/ScrollReveal';
 
-// 🌟 THE HOMEPAGE CANONICAL FIX
 export const metadata: Metadata = {
   alternates: {
     canonical: 'https://www.hindibhajanmanjari.com/',
@@ -23,7 +22,7 @@ export const metadata: Metadata = {
 export const revalidate = 300; 
 
 // ==========================================
-// 🌟 THE PUBLISHER TRUST SIGNAL (Sanatan Gyan)
+// THE PUBLISHER TRUST SIGNAL (Sanatan Gyan) - Moved to Bottom
 // ==========================================
 async function LatestGyanSection() {
   const { data: articles, error } = await supabase
@@ -33,13 +32,10 @@ async function LatestGyanSection() {
     .order('published_at', { ascending: false })
     .limit(3);
 
-  if (error || !articles || articles.length === 0) {
-    return null; // Fail gracefully if no articles exist yet
-  }
+  if (error || !articles || articles.length === 0) return null; 
 
   return (
-    <div className="mb-12">
-      {/* 🌟 Animate the Header */}
+    <div className="mt-16 mb-12">
       <ScrollReveal yOffset={20}>
         <div className="flex flex-row items-center justify-between border-b border-orange-100 pb-3 md:pb-4 mb-6">
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2 md:gap-3">
@@ -58,7 +54,6 @@ async function LatestGyanSection() {
           });
 
           return (
-            /* 🌟 Animate the Article Cards with a Cascade Delay */
             <ScrollReveal key={article.slug} delay={index * 0.1} yOffset={30}>
               <Link 
                 href={`/gyan/${article.slug}`} 
@@ -73,7 +68,6 @@ async function LatestGyanSection() {
                     <span>&bull;</span>
                     <span>{publishDate}</span>
                   </div>
-                  {/* 🌟 Applied font-hindi and leading-tight for perfect rendering */}
                   <h3 className="text-xl font-black text-gray-900 font-hindi leading-tight mb-1 group-hover:text-orange-600 transition-colors line-clamp-1">
                     {article.title_hindi}
                   </h3>
@@ -91,7 +85,7 @@ async function LatestGyanSection() {
 }
 
 // ==========================================
-// EXISTING LATEST BHAJANS
+// LATEST BHAJANS (Moved Up!)
 // ==========================================
 async function LatestBhajansSection() {
   const { data: rawBhajans, error } = await supabase
@@ -108,7 +102,6 @@ async function LatestBhajansSection() {
     .range(0, 5); 
 
   if (error) {
-    console.error("Error fetching initial bhajans:", error);
     return (
       <div className="p-8 text-center bg-red-50 rounded-2xl border border-red-100">
         <p className="text-red-600 font-bold">Unable to load Bhajans at the moment.</p>
@@ -131,47 +124,54 @@ export default function Home() {
       {/* 1. Hero Section */}
       <Hero />
 
-      {/* 🌟 LAYOUT: Flex-row with items-start is crucial here so the Sidebar can be sticky */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16 flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
         
         {/* Main Content Area */}
         <main className="flex-1 w-full min-w-0">
           
-          {/* 2. Visual Deity Cards */}
+          {/* 2. Visual Hook: Who to pray to? */}
           <DeityBrowse /> 
 
-          {/* 3. Popular Categories Section */}
-          <PopularCategories />
+          {/* 🌟 3. Core Content: The Bhajans (Moved up for immediate gratification) */}
+          <div className="mt-8">
+            <ScrollReveal yOffset={20}>
+              <div className="flex flex-row items-center justify-between border-b border-gray-100 pb-3 md:pb-4 mb-6 md:mb-8 mt-4">
+                <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2 md:gap-3">
+                  <FaMusic className="text-orange-500 text-xl md:text-2xl hidden sm:block" />
+                  Latest <span className="text-orange-600">Bhajans</span>
+                </h2>
+              </div>
+            </ScrollReveal>
+            
+            <Suspense fallback={<BhajanGridSkeleton />}>
+              <LatestBhajansSection />
+            </Suspense>
+          </div>
 
-          {/* 4. Trending Artists Section */}
-          <TrendingArtists />
-
-          {/* ==========================================
-              🌟 5. NEW: SANATAN GYAN SECTION
-              This transforms the site from a "Songbook" to a "Publisher"
-              ========================================== */}
-          <Suspense fallback={<div className="h-64 bg-gray-50 rounded-2xl animate-pulse mb-12"></div>}>
-            <LatestGyanSection />
-          </Suspense>
-
-          {/* 6. Latest Added Bhajans Header */}
-          <ScrollReveal yOffset={20}>
-            <div className="flex flex-row items-center justify-between border-b border-gray-100 pb-3 md:pb-4 mb-6 md:mb-8 mt-4">
-              <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2 md:gap-3">
-                Latest <span className="text-orange-600">Bhajans</span>
-              </h2>
-            </div>
-          </ScrollReveal>
+          {/* 4. Secondary Discovery */}
+          <div className="mt-16">
+            <PopularCategories />
+          </div>
           
-          {/* 7. The Dynamic List Section */}
-          <Suspense fallback={<BhajanGridSkeleton />}>
-            <LatestBhajansSection />
+          <div className="mt-8">
+            <TrendingArtists />
+          </div>
+
+          {/* 5. Deep Reading Anchor (Moved to bottom) */}
+          <Suspense fallback={<div className="h-64 bg-gray-50 rounded-2xl animate-pulse mt-16 mb-12 border border-gray-100"></div>}>
+            <LatestGyanSection />
           </Suspense>
 
         </main>
 
-        {/* 8. Sidebar */}
-        <Sidebar />
+        {/* 6. Intelligent Global Sidebar */}
+        <Suspense fallback={
+          <div className="hidden lg:block w-[340px] h-[800px] shrink-0 bg-gray-50/50 border border-gray-100 rounded-[2rem] animate-pulse sticky top-28"></div>
+        }>
+          <div className="hidden lg:block">
+            <Sidebar />
+          </div>
+        </Suspense>
 
       </div>
     </div>

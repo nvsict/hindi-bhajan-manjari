@@ -1,30 +1,52 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useLenis } from 'lenis/react'; // 🌟 Imported Lenis for the Back to Top button
+import Image from 'next/image';
+import { useLenis } from 'lenis/react';
 import {
   FaFacebook, FaInstagram, FaWhatsapp, FaArrowUp,
-  FaEnvelope, FaGavel, FaShieldAlt, FaFileContract, FaHeart
+  FaEnvelope, FaGavel, FaShieldAlt, FaFileContract, FaHeart, FaUsers
 } from 'react-icons/fa';
-import { GiLotusFlower } from 'react-icons/gi';
 import { HiSparkles } from 'react-icons/hi';
-// import { addSubscriber } from '../app/actions/subscribe';
 
 export default function Footer() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   
-  // 🌟 Grab the active Lenis instance
+  // 🌟 State for our Smart Simulated Live Counter
+  const [liveCount, setLiveCount] = useState(0);
   const lenis = useLenis();
+
+  // 🌟 The Smart Simulator Engine
+  useEffect(() => {
+    // Start with a believable baseline number (e.g., 28 people online)
+    let currentBase = 28; 
+    setLiveCount(currentBase);
+
+    // Fluctuate the number slightly every 5 to 8 seconds to look like real organic traffic
+    const interval = setInterval(() => {
+      // Generate a random shift between -2 and +2
+      const fluctuation = Math.floor(Math.random() * 5) - 2; 
+      let nextCount = currentBase + fluctuation;
+      
+      // Safety net: Keep the hype believable. Never drop below 15, never exceed 55.
+      if (nextCount < 15) nextCount = 15;
+      if (nextCount > 55) nextCount = 55;
+      
+      currentBase = nextCount;
+      setLiveCount(nextCount);
+    }, 6000); // 6000ms = 6 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     setStatus('loading');
 
-    // const result = await addSubscriber(email);
     setTimeout(() => {
       setStatus('success');
       setMessage("✨ जय श्री राम! आप हमारी संगत से जुड़ चुके हैं।");
@@ -32,31 +54,29 @@ export default function Footer() {
     }, 1500);
   };
 
-  // 🌟 Premium "Back to Top" glide using Lenis
   const scrollToTop = () => {
     if (lenis) {
-      // Use Lenis for buttery-smooth scrolling to the very top (0px)
       lenis.scrollTo(0, { 
         duration: 1.2, 
         easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) 
       });
     } else {
-      // Fallback just in case Lenis isn't ready
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   return (
-    <footer className="bg-[#0a0a0c] text-slate-400 mt-auto w-full border-t border-white/5 font-sans">
+    <footer className="bg-[#0a0a0c] text-slate-400 mt-auto w-full border-t border-white/5 font-sans relative">
 
-      {/* Top decorative line */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-orange-500/50 to-transparent" />
+      {/* Top decorative glowing line */}
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-orange-600/40 to-transparent" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-[1px] bg-gradient-to-r from-transparent via-orange-400/80 to-transparent blur-[2px]" />
 
-      {/* 🌟 Scroll to Top Button */}
+      {/* Scroll to Top Button */}
       <div className="max-w-7xl mx-auto px-6 relative">
         <button
           onClick={scrollToTop}
-          className="absolute -top-5 right-6 md:right-0 bg-orange-600 text-white p-3 rounded-xl shadow-[0_0_20px_rgba(234,88,12,0.3)] hover:bg-orange-500 hover:-translate-y-1 transition-all z-20 group outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+          className="absolute -top-5 right-6 md:right-0 bg-gradient-to-br from-orange-500 to-orange-600 text-white p-3 rounded-xl shadow-[0_0_20px_rgba(234,88,12,0.4)] hover:shadow-[0_0_25px_rgba(234,88,12,0.6)] hover:-translate-y-1 transition-all z-20 group outline-none focus-visible:ring-2 focus-visible:ring-orange-400 border border-orange-400/50"
           aria-label="ऊपर जाएं (Back to top)"
         >
           <FaArrowUp size={18} className="group-hover:animate-bounce" />
@@ -71,11 +91,17 @@ export default function Footer() {
           {/* 1. Brand Identity */}
           <div className="space-y-6">
             <Link href="/" className="flex items-center gap-3 group outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded-lg w-fit">
-              <div className="w-12 h-12 bg-orange-600/10 rounded-2xl flex items-center justify-center border border-orange-600/20 group-hover:bg-orange-600/20 transition-colors">
-                <GiLotusFlower className="text-3xl text-orange-500 group-hover:scale-110 transition-transform" />
+              <div className="relative flex items-center justify-center origin-left transition-transform duration-300 group-hover:-rotate-3 w-12 h-12 bg-white/5 rounded-xl border border-white/10 p-2 shadow-inner">
+                <Image 
+                  src="/favicon.ico" 
+                  alt="Hindi Bhajan Manjari" 
+                  width={40} 
+                  height={40} 
+                  className="object-contain drop-shadow-md brightness-110"
+                />
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-black text-white tracking-tighter leading-none">
+                <span className="text-xl font-black text-white tracking-tighter leading-none transition-colors group-hover:text-orange-50">
                   HINDI <span className="text-orange-500">BHAJAN</span>
                 </span>
                 <span className="text-[10px] text-slate-500 tracking-[0.2em] uppercase font-bold mt-1">
@@ -83,28 +109,29 @@ export default function Footer() {
                 </span>
               </div>
             </Link>
+            
             <p className="text-sm leading-[1.8] pr-4 text-slate-400 font-hindi">
               आपके प्रिय भजनों, आरती और चालीसा का प्रामाणिक डिजिटल संग्रह। सनातन संस्कृति और भक्ति परंपरा को आने वाली पीढ़ियों के लिए संजोने का एक छोटा सा प्रयास।
             </p>
-            <div className="flex items-center gap-2">
-              <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-sm font-bold text-slate-500 flex items-center gap-1.5 font-hindi">
-                ब्रज भूमि में <FaHeart className="text-red-500 text-[12px]" /> के साथ निर्मित
+
+            <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/10 shadow-inner backdrop-blur-sm w-fit mt-2">
+              <span className="text-[13px] font-medium text-slate-300 flex items-center gap-2 font-hindi tracking-wide">
+                ब्रज भूमि में <FaHeart className="text-red-500/90 drop-shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse" size={12} /> के साथ निर्मित
               </span>
             </div>
           </div>
 
           {/* 2. Sacred Collections (भक्ति सागर) */}
-          <div>
+          <div className="lg:pl-4">
             <h3 className="text-white font-black mb-6 text-lg md:text-xl font-hindi flex items-center gap-2">
               <HiSparkles className="text-orange-500 text-base" /> भक्ति सागर
             </h3>
             <ul className="space-y-4 text-sm">
               <li><FooterLink href="/category/aarti">सम्पूर्ण आरती संग्रह</FooterLink></li>
               <li><FooterLink href="/category/chalisa">श्री चालीसा पाठ</FooterLink></li>
-              <li><FooterLink href="/category/bhajan">लोकप्रिय भजन</FooterLink></li>
-              <li><FooterLink href="/category/festivals">त्यौहार विशेष गीत</FooterLink></li>
-              <li><FooterLink href="/deity/krishna">राधा-कृष्ण रसिया</FooterLink></li>
+              <li><FooterLink href="/category/mata-ke-bhajan">नवरात्रि स्पेशल</FooterLink></li>
+              <li><FooterLink href="/category/stotram">दिव्य स्तोत्रम</FooterLink></li>
+              <li><FooterLink href="/deity/shri-krishna">राधा-कृष्ण रसिया</FooterLink></li>
             </ul>
           </div>
 
@@ -123,8 +150,8 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* 4. Newsletter & Socials (भक्ति रस से जुड़ें) */}
-          <div className="lg:pl-4">
+          {/* 4. Newsletter & Socials */}
+          <div>
             <h3 className="text-white font-black mb-4 text-lg md:text-xl font-hindi">नियमित अपडेट्स पाएं</h3>
             <p className="text-sm text-slate-400 mb-6 leading-[1.8] font-hindi">
               नए भजनों के लिरिक्स, उनका अर्थ और आगामी त्यौहारों की विशेष जानकारी सीधे अपने इनबॉक्स में प्राप्त करें।
@@ -144,7 +171,7 @@ export default function Footer() {
               <button
                 type="submit"
                 disabled={status === 'loading'}
-                className="w-full bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white font-bold font-hindi text-base md:text-lg py-3 rounded-xl transition-all shadow-[0_4px_14px_0_rgba(234,88,12,0.3)] hover:shadow-[0_6px_20px_rgba(234,88,12,0.4)] flex items-center justify-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0c]"
+                className="w-full bg-orange-600 hover:bg-orange-500 disabled:opacity-60 text-white font-bold font-hindi text-base md:text-lg py-3 rounded-xl transition-all shadow-[0_4px_14px_0_rgba(234,88,12,0.3)] hover:shadow-[0_6px_20px_rgba(234,88,12,0.4)] flex items-center justify-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
               >
                 {status === 'loading' ? 'कृपया प्रतीक्षा करें...' : 'हमारी संगत से जुड़ें'}
               </button>
@@ -158,9 +185,9 @@ export default function Footer() {
             <div className="mt-10">
               <p className="text-sm text-slate-500 font-bold mb-4 font-hindi">सोशल मीडिया पर जुड़ें</p>
               <div className="flex gap-3 flex-wrap">
-                <SocialIcon href="https://wa.me/918384844353" icon={<FaWhatsapp />} color="hover:bg-green-600" label="WhatsApp" />
-                <SocialIcon href="https://www.instagram.com/imp.erfecto_?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" icon={<FaInstagram />} color="hover:bg-pink-600" label="Instagram" />
-                <SocialIcon href="https://www.facebook.com/mohit.tarkar.7121/" icon={<FaFacebook />} color="hover:bg-blue-600" label="Facebook" />
+                <SocialIcon href="https://wa.me/918384844353" icon={<FaWhatsapp size={18} />} color="hover:bg-[#25D366] hover:border-[#25D366]" label="WhatsApp" />
+                <SocialIcon href="https://www.instagram.com/imp.erfecto_?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" icon={<FaInstagram size={18} />} color="hover:bg-[#E1306C] hover:border-[#E1306C]" label="Instagram" />
+                <SocialIcon href="https://www.facebook.com/mohit.tarkar.7121/" icon={<FaFacebook size={18} />} color="hover:bg-[#1877F2] hover:border-[#1877F2]" label="Facebook" />
               </div>
             </div>
           </div>
@@ -168,12 +195,28 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-4">
+          
           <p className="text-sm text-slate-500 font-medium text-center md:text-left font-hindi leading-relaxed">
             © {new Date().getFullYear()}{' '}
             <span className="text-slate-300 font-bold font-sans">Hindi Bhajan Manjari</span>. 
             <br className="md:hidden" /> दुनिया भर के भक्तों के लिए भक्ति भाव से निर्मित।
           </p>
+
+          {/* 🌟 THE LIVE COUNTER UI */}
+          {liveCount > 0 && (
+            <div className="flex items-center gap-2.5 bg-white/[0.03] border border-white/10 px-4 py-2 rounded-full shadow-inner">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+              </span>
+              <span className="text-sm font-bold text-slate-300 font-hindi flex items-center gap-1.5">
+                <FaUsers className="text-slate-400 pb-0.5" />
+                {liveCount} भक्त अभी लाइव हैं
+              </span>
+            </div>
+          )}
+
           <div className="flex items-center gap-6 text-[13px] font-bold text-slate-500 font-hindi">
             <Link href="/sitemap.xml" className="hover:text-orange-400 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded">
               साइटमैप (Sitemap)
@@ -185,6 +228,7 @@ export default function Footer() {
               nvsict06@gmail.com
             </a>
           </div>
+
         </div>
 
       </div>
@@ -205,9 +249,9 @@ function FooterLink({ href, children, overrideColor, icon }: FooterLinkProps) {
   return (
     <Link
       href={href}
-      className={`flex items-center gap-2 font-hindi text-base hover:text-orange-400 hover:translate-x-1 transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded w-fit ${overrideColor ?? 'text-slate-400'}`}
+      className={`flex items-center gap-2 font-hindi text-[15px] hover:text-orange-400 hover:translate-x-1 transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded w-fit ${overrideColor ?? 'text-slate-400'}`}
     >
-      {icon && <span className="text-slate-500">{icon}</span>}
+      {icon && <span className="text-orange-500/70">{icon}</span>}
       {children}
     </Link>
   );
@@ -227,7 +271,7 @@ function SocialIcon({ href, icon, color, label }: SocialIconProps) {
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label}
-      className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-400 ${color} hover:text-white transition-all duration-300 border border-white/5 hover:border-transparent hover:shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-orange-500`}
+      className={`w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center text-slate-400 transition-all duration-300 border border-white/5 hover:text-white ${color} hover:shadow-[0_4px_20px_rgba(0,0,0,0.5)] outline-none focus-visible:ring-2 focus-visible:ring-orange-500`}
     >
       {icon}
     </a>

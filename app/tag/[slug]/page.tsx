@@ -10,7 +10,7 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-// 🌟 DYNAMIC SEO FOR TAG PAGES
+// 🌟 DYNAMIC SEO FOR TAG PAGES (NOW WITH NOINDEX)
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const { data: tag } = await supabase
@@ -24,6 +24,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `Best ${tag.name} Bhajans Lyrics | Hindi Bhajan Manjari`,
     description: `Explore our collection of ${tag.name} bhajans. Read lyrics in Hindi and English with meaning and video references.`,
+    
+    // 🌟 THE FIX: This tells Google to stop indexing tag pages but keep following their links
+    robots: {
+      index: false,
+      follow: true,
+    },
   };
 }
 

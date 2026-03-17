@@ -55,7 +55,7 @@ export default function DMCAPage() {
                   Designated Agent Contact
                 </h2>
                 <p>
-                  Please send all infringement notices to our designated agent via email. We aim to process and remove infringing material within **24-48 hours**.
+                  Please send all infringement notices to our designated agent via email. We aim to process and remove infringing material within 24-48 hours.
                 </p>
                 
                 <div className="bg-gray-900 rounded-2xl p-8 mt-6 relative overflow-hidden group">

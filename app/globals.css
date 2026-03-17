@@ -5,11 +5,15 @@
   --foreground: #171717;
 }
 
+/* 🌟 TAILWIND v4 THEME CONFIGURATION */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  
+  /* Registering your Next.js variable fonts properly with safe fallbacks */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-hindi: var(--font-hind), ui-sans-serif, system-ui, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,7 +26,8 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* 🌟 Force the body to use your custom Geist font, NOT Arial */
+  font-family: var(--font-sans);
   scrollbar-gutter: stable;
 }
 
@@ -108,12 +113,6 @@ html {
   animation: fade-in-up 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
-/* --- Custom Fonts --- */
-@layer utilities {
-  .font-hindi {
-    font-family: var(--font-hind), sans-serif;
-  }
-}
 
 /* search UI helpers */
 .search-row {

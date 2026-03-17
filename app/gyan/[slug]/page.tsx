@@ -26,6 +26,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
 
+  // 🌟 THE FIX: Dynamically construct the OG image URL for articles
+  const ogImageUrl = new URL(`${siteUrl}/api/og/articles`);
+  // Pass the Hinglish title to the sleek new minimalist design
+  ogImageUrl.searchParams.set('title', article.title_hinglish);
+
   return {
     title: `${article.title_hindi} | ${article.title_hinglish}`,
     description: article.meta_description,
@@ -36,7 +41,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: article.title_hindi,
       description: article.meta_description,
       type: 'article',
-    }
+      // 🌟 Add the generated dynamic image to Open Graph
+      images: [
+        {
+          url: ogImageUrl.toString(),
+          width: 1200,
+          height: 630,
+          alt: `${article.title_hinglish} | Sanatan Gyan`,
+        },
+      ],
+    },
+    // Add Twitter card data for good measure
+    twitter: {
+      card: 'summary_large_image',
+      title: article.title_hindi,
+      description: article.meta_description,
+      images: [ogImageUrl.toString()],
+    },
   };
 }
 

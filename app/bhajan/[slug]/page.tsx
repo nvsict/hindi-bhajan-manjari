@@ -35,9 +35,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const categoryNames = bhajan.bhajan_category_map?.map((map: any) => map.categories?.name_hinglish).filter(Boolean).join(', ') || 'Bhajans';
   
   const ogImageUrl = new URL(`${baseUrl}/api/og`);
-  ogImageUrl.searchParams.set('title', bhajan.title_hindi);
-  ogImageUrl.searchParams.set('subtitle', `${bhajan.title_hinglish} Lyrics`);
-  ogImageUrl.searchParams.set('badge', bhajan.deities?.name_hinglish ? `✨ ${bhajan.deities.name_hinglish}` : `🙏 ${categoryNames}`);
+  // 🌟 THE FIX: Pass the Hinglish title for the sleek new minimalist Open Graph image.
+  // We removed subtitle & badge since the new design doesn't need them!
+  ogImageUrl.searchParams.set('title', bhajan.title_hinglish);
 
   // 🌟 DYNAMIC META DESCRIPTION FORMULA (Solves the FAQ Snippet issue)
   const hasMeaning = bhajan.explanation ? "Includes spiritual Bhavarth (Meaning). " : "";
@@ -223,7 +223,7 @@ export default async function BhajanDetails({ params }: Props) {
               <p className="text-xs md:text-sm text-gray-500 font-bold uppercase tracking-[0.2em] mb-8">
                 {bhajan.title_hinglish} Lyrics
               </p>
-
+              
               {/* Artist Details Box */}
               {(displaySingerName || displayLyricistName || displayPhone || displayAddress) && (
                 <div className="flex flex-wrap gap-4 md:gap-6 bg-white/60 p-4 md:p-5 rounded-2xl border border-orange-100 shadow-sm">
@@ -296,21 +296,6 @@ export default async function BhajanDetails({ params }: Props) {
             </div>
 
             <div className="p-4 md:p-8">
-              
-              {/* 🌟 SLEEK UX FEATURE BAR (INSTEAD OF HEAVY TEXT) */}
-              <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
-                <span className="flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-lg shadow-sm">
-                  🌐 8+ Languages
-                </span>
-                <span className="flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-lg shadow-sm">
-                  📄 Free PDF
-                </span>
-                {bhajan.explanation && (
-                  <span className="flex items-center gap-1.5 text-xs font-bold text-orange-600 bg-orange-50 border border-orange-100 px-3 py-1.5 rounded-lg shadow-sm">
-                    ✨ Bhavarth
-                  </span>
-                )}
-              </div>
 
               {/* Note: Ensure LyricsViewer internally uses font-hindi for the Hindi lyrics! */}
               <LyricsViewer 
@@ -435,9 +420,14 @@ export default async function BhajanDetails({ params }: Props) {
             </div>
           </main>
 
-          {/* Desktop Sidebar */}
+          {/* Desktop Sidebar (Now Context-Aware!) */}
           <aside className="hidden lg:block w-[320px] sticky top-24 shrink-0">
-            <Sidebar />
+            <Sidebar 
+              topicName={bhajan.deities?.name_hinglish} // e.g. "Shri Hanuman"
+              filterColumn="deity_id"                   // Tells Supabase what to filter by
+              filterValue={bhajan.deity_id}             // Only fetch Bhajans with this specific Deity ID
+              currentBhajanSlug={bhajan.slug}           // Prevents the sidebar from linking to the page we are already on
+            />
           </aside>
           
         </div>

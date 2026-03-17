@@ -31,7 +31,6 @@ const SCRIPT_OPTIONS = [
   { id: 'oriya', label: 'ଓଡ଼ିଆ (Odia)' }
 ];
 
-// 🌟 NEW: Bulletproof Instagram Embed Component
 const InstagramEmbed = ({ embedId }: { embedId: string }) => {
   useEffect(() => {
     const script = document.createElement('script');
@@ -76,19 +75,18 @@ const InstagramEmbed = ({ embedId }: { embedId: string }) => {
 export default function LyricsViewer({ 
   title, lyricsHindi, lyricsHinglish, slug, videoEmbedUrl, tarz 
 }: LyricsViewerProps) {
-  
- // 1. Set a standard fallback size for Server-Side Rendering (SSR)
-  const [fontSize, setFontSize] = useState(20);
 
-  // 2. 🌟 NEW: Detect screen size on load and set the perfect default
+  const [fontSize, setFontSize] = useState(20);
+  const videoRef = useRef<HTMLDivElement>(null); // 🌟 Ref for smooth scrolling
+
   useEffect(() => {
-    // 768px is the standard breakpoint for tablets/desktops
     if (window.innerWidth < 768) {
-      setFontSize(18); // Default size for Mobile phones
+      setFontSize(18); 
     } else {
-      setFontSize(22); // Default size for Desktop and Tablets
+      setFontSize(22); 
     }
-  }, []); // 🌟 Slightly larger default for readability
+  }, []); 
+
   const [pageUrl, setPageUrl] = useState("");
   const [isFavorite, setIsFavorite] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -106,6 +104,12 @@ export default function LyricsViewer({
     if (typeof window !== 'undefined' && navigator.vibrate) {
       navigator.vibrate(50); 
     }
+  };
+
+  // 🌟 Smooth scroll function
+  const scrollToVideo = () => {
+    triggerHaptic();
+    videoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
   useEffect(() => {
@@ -266,7 +270,6 @@ export default function LyricsViewer({
           <div className="inline-flex items-center gap-2.5 bg-orange-100/80 border border-orange-200 text-orange-900 px-6 py-3 rounded-full shadow-sm">
             <FaMusic className="text-orange-600 animate-pulse text-sm" />
             <p className="text-sm md:text-base font-medium">
-              {/* 🌟 FIX: Injected font-hindi to properly render the Tarz text */}
               <span className="font-bold font-hindi text-orange-800">तर्ज (Tune):</span> <span className="font-hindi">{tarz}</span>
             </p>
           </div>
@@ -274,7 +277,7 @@ export default function LyricsViewer({
       )}
 
       {/* 🌟 ACTION BAR */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 relative z-20 w-[90%] max-w-xs sm:max-w-none sm:w-full mx-auto">
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 relative z-20 w-[90%] max-w-xs sm:max-w-none sm:w-full mx-auto flex-wrap">
         
         {/* CUSTOM DROPDOWN */}
         <div className="w-full sm:w-auto flex flex-col">
@@ -355,21 +358,15 @@ export default function LyricsViewer({
           <FaHeart className="text-red-500 text-[120px] md:text-[180px] drop-shadow-[0_0_40px_rgba(239,68,68,0.5)]" />
         </div>
 
-        {/* 🌟 CHANGED: font-medium is now font-bold */}
-        {/* 🌟 UPGRADED: Lyrics split into Stanzas with elegant dividers */}
         <div 
           className="relative z-10 transition-all duration-300 ease-in-out text-center font-hindi font-bold tracking-normal text-gray-900 antialiased leading-relaxed"
           style={{ fontSize: `${fontSize}px` }}
         >
           {displayLyrics.split(/\n\s*\n/).map((stanza, index, array) => (
             <div key={index}>
-              {/* Individual Stanza */}
               <p className="whitespace-pre-wrap">{stanza.trim()}</p>
-              
-              {/* Elegant Divider (Only shows between stanzas, not after the last one) */}
               {index < array.length - 1 && (
                 <div className="flex items-center justify-center py-6 md:py-8 opacity-60">
-                  {/* 🌟 CHANGED: Width is now much longer (w-3/4 on mobile, md:w-1/2 on desktop) */}
                   <div className="w-3/4 md:w-1/2 max-w-md h-[1px] bg-gradient-to-r from-transparent via-orange-300 to-transparent"></div>
                 </div>
               )}
@@ -379,37 +376,38 @@ export default function LyricsViewer({
       </div>
 
       {/* --- 2. MEDIA PLAYERS --- */}
-      {embedType === 'youtube' && embedId && (
-        <div className="mt-10 rounded-3xl overflow-hidden shadow-md border border-orange-100 bg-white p-2">
-          <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-900 group">
-            {!isVideoPlaying ? (
-              <div className="w-full h-full cursor-pointer relative" onClick={() => setIsVideoPlaying(true)}>
-                <img 
-                  src={`https://img.youtube.com/vi/${embedId}/maxresdefault.jpg`} 
-                  alt={`${title} Video`} 
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 opacity-90"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${embedId}/hqdefault.jpg`;
-                  }}
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-transparent transition-all">
-                  <FaYoutube className="text-red-600 text-6xl md:text-7xl drop-shadow-[0_4px_15px_rgba(0,0,0,0.6)] transition-transform duration-300 group-hover:scale-110" />
+      <div ref={videoRef} className="scroll-mt-24">
+        {embedType === 'youtube' && embedId && (
+          <div className="mt-10 rounded-3xl overflow-hidden shadow-md border border-orange-100 bg-white p-2">
+            <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-900 group">
+              {!isVideoPlaying ? (
+                <div className="w-full h-full cursor-pointer relative" onClick={() => setIsVideoPlaying(true)}>
+                  <img 
+                    src={`https://img.youtube.com/vi/${embedId}/maxresdefault.jpg`} 
+                    alt={`${title} Video`} 
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 opacity-90"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${embedId}/hqdefault.jpg`;
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-transparent transition-all">
+                    <FaYoutube className="text-red-600 text-6xl md:text-7xl drop-shadow-[0_4px_15px_rgba(0,0,0,0.6)] transition-transform duration-300 group-hover:scale-110" />
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <iframe src={`https://www.youtube.com/embed/${embedId}?autoplay=1&rel=0`} title={`${title} Video`} allowFullScreen className="absolute top-0 left-0 w-full h-full border-0"></iframe>
-            )}
+              ) : (
+                <iframe src={`https://www.youtube.com/embed/${embedId}?autoplay=1&rel=0`} title={`${title} Video`} allowFullScreen className="absolute top-0 left-0 w-full h-full border-0"></iframe>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {embedType === 'instagram' && embedId && (
-        <InstagramEmbed embedId={embedId} />
-      )}
+        {embedType === 'instagram' && embedId && (
+          <InstagramEmbed embedId={embedId} />
+        )}
+      </div>
 
       {/* --- 3. FLOATING TOOLBAR --- */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-max max-w-[95vw]">
-        
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw]">
         <div className="relative px-4 py-2.5 bg-white/90 backdrop-blur-xl border border-gray-200 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full">
           
           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-0">
@@ -444,12 +442,22 @@ export default function LyricsViewer({
 
             <div className="w-[1px] h-6 bg-gray-300 hidden sm:block"></div>
 
-            <button onClick={handleWhatsAppShare} className="flex items-center justify-center w-10 h-10 sm:w-auto sm:px-4 bg-[#25D366] text-white rounded-full hover:bg-[#20b858] font-bold shadow-md hover:-translate-y-0.5 transition-all shrink-0">
+            {/* 🌟 SMART WATCH VIDEO BUTTON */}
+            {videoEmbedUrl && (
+              <button 
+                onClick={scrollToVideo} 
+                className="flex items-center justify-center w-10 h-10 sm:w-auto sm:px-4 bg-orange-600 text-white rounded-full hover:bg-orange-700 font-bold shadow-md hover:-translate-y-0.5 transition-all shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+              >
+                <FaYoutube size={18} />
+                <span className="hidden sm:inline ml-2">Watch Video</span>
+              </button>
+            )}
+
+            <button onClick={handleWhatsAppShare} className="flex items-center justify-center w-10 h-10 sm:w-auto sm:px-4 bg-[#25D366] text-white rounded-full hover:bg-[#20b858] font-bold shadow-md hover:-translate-y-0.5 transition-all shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-green-400">
               <FaWhatsapp size={20} />
               <span className="hidden sm:inline ml-2">Share</span>
             </button>
           </div>
-
         </div>
       </div>
     </div>
