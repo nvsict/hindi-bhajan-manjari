@@ -1,22 +1,53 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { supabase } from '@/utils/supabase'; // Adjust path if needed
-import ScrollReveal from './ScrollReveal'; // 🌟 Imported ScrollReveal
+import { supabase } from '@/utils/supabase';
+import ScrollReveal from './ScrollReveal';
 
-export const revalidate = 3600; // Cache this for 1 hour for fast homepage loads
+export const revalidate = 3600; // Refreshes the cache every hour
 
 export default async function DeityBrowse() {
-  // Fetch up to 6 deities to keep the homepage grid perfectly balanced
-  const { data: deities, error } = await supabase
-    .from('deities')
-    .select('name_hinglish, slug, image_url')
-    .order('created_at', { ascending: true })
-    .limit(6);
+  // 🌟 STEP 1: Fetch the 30 most recently added/updated Bhajans
+  // We pull the attached Deity data along with them.
+  const { data: recentBhajans, error } = await supabase
+    .from('bhajans')
+    .select(`
+      deities (
+        name_hinglish,
+        slug,
+        image_url
+      )
+    `)
+    .order('created_at', { ascending: false }) // Get the newest ones first
+    .limit(30); // We grab 30 just to ensure we find 6 unique deities
 
-  // If there's an error or no data, we fail gracefully and hide the section
-  if (error || !deities || deities.length === 0) {
+  if (error || !recentBhajans || recentBhajans.length === 0) {
     return null;
   }
+
+  // 🌟 STEP 2: Filter out duplicates to get exactly 6 UNIQUE Deities
+  // 🌟 STEP 2: Filter out duplicates to get exactly 6 UNIQUE Deities
+  const uniqueDeitiesMap = new Map();
+  
+  // We cast to 'any[]' to bypass TypeScript's strict inference on Supabase joins
+  for (const bhajan of (recentBhajans || []) as any[]) {
+    
+    // Supabase sometimes returns joins as an array [0], sometimes as a direct object. 
+    // This safely extracts the exact Deity data regardless of the format!
+    const deity = Array.isArray(bhajan.deities) ? bhajan.deities[0] : bhajan.deities;
+
+    // If a deity exists and we haven't added it to our map yet, add it!
+    if (deity && deity.slug && !uniqueDeitiesMap.has(deity.slug)) {
+      uniqueDeitiesMap.set(deity.slug, deity);
+    }
+    
+    // Stop once we have exactly 6 unique deities for our grid
+    if (uniqueDeitiesMap.size === 6) break;
+  }
+
+  const deities = Array.from(uniqueDeitiesMap.values());
+
+  // If we couldn't find any deities attached to the recent bhajans, hide section
+  if (deities.length === 0) return null;
 
   return (
     <section className="mb-12 md:mb-16">

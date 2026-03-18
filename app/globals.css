@@ -1,8 +1,18 @@
 @import "tailwindcss";
 
+/* 🌟 Tell Tailwind v4 to trigger dark mode when the .dark class is present */
+@custom-variant dark (&:is(.dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+}
+
+/* 🌟 Temple Mode Dark Colors */
+.dark {
+  /* A very deep, rich, warm black (better than pure gray for a devotional site) */
+  --background: #0c0804; 
+  --foreground: #ededed;
 }
 
 /* 🌟 TAILWIND v4 THEME CONFIGURATION */
@@ -10,17 +20,15 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   
-  /* Registering your Next.js variable fonts properly with safe fallbacks */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  
+  /* 🌟 The 5 Devotional Font Personalities */
   --font-hindi: var(--font-hind), ui-sans-serif, system-ui, sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-noto-serif: var(--font-noto-serif), serif;
+  --font-amita: var(--font-amita), cursive;
+  --font-poppins: var(--font-poppins), sans-serif;
+  --font-kalam: var(--font-kalam), cursive;
 }
 
 body {
@@ -97,7 +105,6 @@ html {
 }
 
 /* --- Custom Animations for Feature Highlights --- */
-/* 🌟 FIX: Removed translateX(-50%) so elements stay correctly aligned left/right */
 @keyframes fade-in-up {
   0% {
     opacity: 0;
@@ -112,7 +119,6 @@ html {
 .animate-fade-in-up {
   animation: fade-in-up 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
-
 
 /* search UI helpers */
 .search-row {

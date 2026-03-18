@@ -1,5 +1,14 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Hind } from "next/font/google";
+// 🌟 1. All 5 Devotional Fonts + Base Fonts Imported
+import { 
+  Geist, 
+  Geist_Mono, 
+  Hind, 
+  Noto_Serif_Devanagari, 
+  Amita, 
+  Poppins, 
+  Kalam 
+} from "next/font/google";
 import "./globals.css";
 import ConditionalHeader from "../components/ConditionalHeader";
 import ConditionalFooter from "../components/ConditionalFooter";
@@ -9,10 +18,12 @@ import NextTopLoader from 'nextjs-toploader';
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import PushPrompt from '@/components/PushPrompt';
 
-// 🌟 NEW PWA IMPORTS
+// 🌟 PWA & GLOBAL FEATURE IMPORTS
 import InstallPwaPrompt from '@/components/InstallPwaPrompt';
 import PwaRegistration from '@/components/PwaRegistration';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
+// --- BASE FONTS ---
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -23,10 +34,44 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// --- THE 5 DEVOTIONAL PERSONALITIES ---
+// 1. Standard
 const hindFont = Hind({
   weight: ['400', '500', '600', '700'],
   subsets: ['devanagari', 'latin'],
   variable: "--font-hind",
+  display: 'swap',
+});
+
+// 2. Granth (Serif)
+const notoSerifDeva = Noto_Serif_Devanagari({
+  weight: ['400', '500', '600', '700'],
+  subsets: ['devanagari'],
+  variable: "--font-noto-serif",
+  display: 'swap',
+});
+
+// 3. Calligraphy
+const amitaFont = Amita({
+  weight: ['400', '700'],
+  subsets: ['devanagari'],
+  variable: "--font-amita",
+  display: 'swap',
+});
+
+// 4. Modern (Sans-Serif)
+const poppinsFont = Poppins({
+  weight: ['400', '500', '600', '700'],
+  subsets: ['devanagari', 'latin'],
+  variable: "--font-poppins",
+  display: 'swap',
+});
+
+// 5. Diary (Handwritten)
+const kalamFont = Kalam({
+  weight: ['400', '700'],
+  subsets: ['devanagari'],
+  variable: "--font-kalam",
   display: 'swap',
 });
 
@@ -50,8 +95,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: '/favicon.ico',
-    // PWA Apple Touch Icon fallback
-    apple: '/logo.png',
+    apple: '/logo.png', // PWA Apple Touch Icon fallback
   },
   manifest: '/manifest.json', // Points to the PWA manifest route
   other: {
@@ -80,40 +124,43 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} ${hindFont.variable} antialiased bg-orange-50/30 flex flex-col min-h-screen selection:bg-orange-500 selection:text-white`}
+      {/* 🌟 All font variables are safely injected here */}
+      <body 
+        suppressHydrationWarning
+        className={`${geistSans.variable} ${geistMono.variable} ${hindFont.variable} ${notoSerifDeva.variable} ${amitaFont.variable} ${poppinsFont.variable} ${kalamFont.variable} antialiased bg-orange-50/30 dark:bg-[#0c0804] flex flex-col min-h-screen selection:bg-orange-500 selection:text-white transition-colors duration-300`}
       >
-        <NextTopLoader 
-          color="#ea580c"
-          initialPosition={0.65}
-          crawlSpeed={50}
-          height={4}
-          showSpinner={false}
-          easing="cubic-bezier(0.1, 0.7, 1.0, 0.1)"
-          speed={150}
-          crawl={true}
-          shadow="0 0 15px #ea580c, 0 0 10px #fbbf24"
-        />
+        {/* 🌟 ThemeProvider wraps the entire application */}
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <NextTopLoader 
+            color="#ea580c"
+            initialPosition={0.65}
+            crawlSpeed={50}
+            height={4}
+            showSpinner={false}
+            easing="cubic-bezier(0.1, 0.7, 1.0, 0.1)"
+            speed={150}
+            crawl={true}
+            shadow="0 0 15px #ea580c, 0 0 10px #fbbf24"
+          />
 
-        <SmoothScrolling>
-          <ConditionalHeader /> 
+          <SmoothScrolling>
+            <ConditionalHeader /> 
+            
+            <main className="flex-1">
+              {children}
+            </main>
+            
+            <ConditionalFooter />
+          </SmoothScrolling>
           
-          <main className="flex-1">
-            {children}
-          </main>
+          <SpeedInsights/>
+          <AnalyticsWrapper gaId="G-LVXN7TD3JB" />
           
-          <ConditionalFooter />
-
-        </SmoothScrolling>
-        
-        <SpeedInsights/>
-        <AnalyticsWrapper gaId="G-LVXN7TD3JB" />
-        
-        {/* 🌟 PWA & Engagement UI */}
-        <PushPrompt />
-        <InstallPwaPrompt />
-        <PwaRegistration />
-        
+          {/* 🌟 PWA & Engagement UI */}
+          <PushPrompt />
+          <InstallPwaPrompt />
+          <PwaRegistration />
+        </ThemeProvider>
       </body>
     </html>
   );
