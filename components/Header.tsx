@@ -7,14 +7,13 @@ import { HiMenuAlt3, HiX } from 'react-icons/hi';
 import { GiLotusFlower } from 'react-icons/gi';
 import {
   FaSearch, FaPenNib, FaInstagram,
-  FaFacebookF, FaHeart, FaChevronRight, FaBookOpen, FaChevronDown, FaMusic
+  FaFacebookF, FaHeart, FaChevronRight, FaBookOpen, FaChevronDown, FaMusic, FaHandHoldingHeart
 } from 'react-icons/fa';
 import { FaOm, FaHandsPraying } from 'react-icons/fa6';
 import dynamic from 'next/dynamic';
 import { Hind } from 'next/font/google';
 import { useLenis } from 'lenis/react';
 import Image from 'next/image';
-import ThemeToggle from './ThemeToggle'; // 🌟 Added ThemeToggle Import
 
 const hind = Hind({
   subsets: ['devanagari', 'latin'],
@@ -86,7 +85,7 @@ const SearchBar = dynamic(() => import('./SearchBar'), { ssr: false });
 
 const UtilityBar = memo(function UtilityBar() {
   return (
-    <div className="hidden md:block bg-gradient-to-r from-[#1a0a00] via-[#2c1200] to-[#1a0a00] border-b border-orange-900/30 relative z-50 transition-colors duration-300">
+    <div className="hidden md:block bg-gradient-to-r from-[#1a0a00] via-[#2c1200] to-[#1a0a00] border-b border-orange-900/30 relative z-50">
       <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-orange-600/40 to-transparent" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-9">
         <nav className="flex items-center gap-5 text-[11px] font-bold tracking-wider uppercase text-orange-100">
@@ -201,8 +200,8 @@ export default function Header() {
           isHidden && !isSearchOpen && !isMenuOpen && !hoveredMenu ? '-translate-y-full' : 'translate-y-0'
         } ${
           scrolled 
-            ? 'bg-white/95 dark:bg-[#0c0804]/95 backdrop-blur-xl shadow-[0_10px_30px_-10px_rgba(234,88,12,0.1)] dark:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] border-b border-orange-100/60 dark:border-white/10' 
-            : 'bg-white dark:bg-[#0c0804] border-b border-orange-100/80 dark:border-white/5'
+            ? 'bg-white/95 backdrop-blur-xl shadow-[0_10px_30px_-10px_rgba(234,88,12,0.1)] border-b border-orange-100/60' 
+            : 'bg-white border-b border-orange-100/80'
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -210,7 +209,7 @@ export default function Header() {
 
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 group shrink-0 outline-none rounded-lg z-10 relative">
-              <div className={`relative flex items-center justify-center origin-left transition-transform duration-300 ease-out group-hover:-rotate-6 w-11 h-11 ${scrolled ? 'scale-[0.85]' : 'scale-100'} bg-orange-50 dark:bg-gray-800 rounded-xl shadow-sm border border-transparent dark:border-white/10`}>
+              <div className={`relative flex items-center justify-center origin-left transition-transform duration-300 ease-out group-hover:-rotate-6 w-11 h-11 ${scrolled ? 'scale-[0.85]' : 'scale-100'} bg-orange-50 rounded-xl shadow-sm border border-transparent`}>
                 <Image 
                   src="/favicon.ico" 
                   alt="Hindi Bhajan Manjari" 
@@ -220,10 +219,10 @@ export default function Header() {
                 />
               </div>
               <div className="flex flex-col leading-none">
-                <span className={`font-black tracking-tight text-gray-900 dark:text-white text-xl md:text-2xl origin-left inline-block transition-all duration-300 ${scrolled ? 'scale-[0.9]' : 'scale-100'}`}>
+                <span className={`font-black tracking-tight text-gray-900 text-xl md:text-2xl origin-left inline-block transition-all duration-300 ${scrolled ? 'scale-[0.9]' : 'scale-100'}`}>
                   HINDI<span className="text-orange-600">BHAJAN</span>
                 </span>
-                <span className="text-[9px] md:text-[10px] font-bold text-gray-500 dark:text-gray-400 tracking-[0.3em] uppercase mt-0.5">Manjari</span>
+                <span className="text-[9px] md:text-[10px] font-bold text-gray-500 tracking-[0.3em] uppercase mt-0.5">Manjari</span>
               </div>
             </Link>
 
@@ -234,7 +233,7 @@ export default function Header() {
             >
               {/* Magic Hover Pill Background */}
               <div 
-                className="absolute h-10 bg-orange-50 dark:bg-gray-800 rounded-full transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] pointer-events-none"
+                className="absolute h-10 bg-orange-50 rounded-full transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] pointer-events-none"
                 style={{
                   left: pillStyle.left,
                   width: pillStyle.width,
@@ -256,14 +255,14 @@ export default function Header() {
                   >
                     {item.megaMenu ? (
                       <button className={`relative z-10 flex items-center gap-1.5 px-5 py-2.5 text-[14px] font-bold uppercase tracking-widest rounded-full transition-colors duration-200 ${
-                        isItemActive || isHovered ? 'text-orange-700 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'
+                        isItemActive || isHovered ? 'text-orange-700' : 'text-gray-700'
                       }`}>
                         {item.name}
                         <FaChevronDown size={10} className={`transition-transform duration-300 opacity-60 ${isHovered ? 'rotate-180' : ''}`} />
                       </button>
                     ) : (
                       <Link href={item.href!} className={`relative z-10 flex items-center gap-1.5 px-5 py-2.5 text-[14px] font-bold uppercase tracking-widest rounded-full transition-colors duration-200 ${
-                        isItemActive || isHovered ? 'text-orange-700 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'
+                        isItemActive || isHovered ? 'text-orange-700' : 'text-gray-700'
                       }`}>
                         {item.name}
                       </Link>
@@ -280,7 +279,7 @@ export default function Header() {
                 }`}
                 onMouseEnter={() => { if (hoverTimeout.current) clearTimeout(hoverTimeout.current); }} // Keep open if mouse moves into the box
               >
-                <div className="w-[720px] bg-white/95 dark:bg-[#111] backdrop-blur-2xl rounded-[2rem] shadow-[0_25px_70px_-15px_rgba(234,88,12,0.2)] dark:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.8)] border border-white dark:border-white/10 ring-1 ring-black/5 dark:ring-white/5 p-2 grid relative overflow-hidden transition-colors duration-300">
+                <div className="w-[720px] bg-white/95 backdrop-blur-2xl rounded-[2rem] shadow-[0_25px_70px_-15px_rgba(234,88,12,0.2)] border border-white ring-1 ring-black/5 p-2 grid relative overflow-hidden transition-colors duration-300">
                   
                   {/* Render content based on active hovered menu. CSS Grid allows overlap for cross-fade */}
                   {NAV_ITEMS.filter(i => i.megaMenu).map((item) => {
@@ -316,16 +315,16 @@ export default function Header() {
                               key={subItem.name} 
                               href={subItem.href}
                               onClick={closeMenu}
-                              className={`group/link flex items-start gap-4 p-3 rounded-2xl transition-all duration-200 ${isActive(subItem.href) ? 'bg-orange-50 dark:bg-orange-900/20' : 'hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                              className={`group/link flex items-start gap-4 p-3 rounded-2xl transition-all duration-200 ${isActive(subItem.href) ? 'bg-orange-50' : 'hover:bg-gray-50'}`}
                             >
-                              <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-lg transition-colors ${isActive(subItem.href) ? 'bg-orange-200/50 text-orange-700 dark:text-orange-400' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 shadow-sm group-hover/link:bg-orange-100 dark:group-hover/link:bg-orange-900/50 group-hover/link:text-orange-600 dark:group-hover/link:text-orange-400 group-hover/link:border-orange-200 dark:group-hover/link:border-orange-500/30'}`}>
+                              <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-lg transition-colors ${isActive(subItem.href) ? 'bg-orange-200/50 text-orange-700' : 'bg-white border border-gray-100 text-gray-500 shadow-sm group-hover/link:bg-orange-100 group-hover/link:text-orange-600 group-hover/link:border-orange-200'}`}>
                                 {subItem.icon}
                               </div>
                               <div>
-                                <p className={`font-bold text-[15px] leading-tight mb-0.5 transition-colors ${isActive(subItem.href) ? 'text-orange-800 dark:text-orange-400' : 'text-gray-900 dark:text-gray-200 group-hover/link:text-orange-600 dark:group-hover/link:text-orange-400'}`}>
+                                <p className={`font-bold text-[15px] leading-tight mb-0.5 transition-colors ${isActive(subItem.href) ? 'text-orange-800' : 'text-gray-900 group-hover/link:text-orange-600'}`}>
                                   {subItem.name}
                                 </p>
-                                <p className="text-[12px] text-gray-500 dark:text-gray-400 font-medium leading-snug">
+                                <p className="text-[12px] text-gray-500 font-medium leading-snug">
                                   {subItem.desc}
                                 </p>
                               </div>
@@ -342,24 +341,40 @@ export default function Header() {
 
             {/* Desktop Actions */}
             <div className="hidden lg:flex items-center gap-2 shrink-0 z-10">
-              {/* 🌟 THE THEME TOGGLE ADDED HERE 🌟 */}
-              <ThemeToggle />
+              {/* 🌟 NEW DESKTOP DONATE BUTTON */}
+              <Link 
+                href="/donate" 
+                className="mr-2 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white text-sm font-bold rounded-full shadow-[0_4px_15px_rgba(234,88,12,0.3)] hover:shadow-[0_6px_20px_rgba(234,88,12,0.4)] hover:-translate-y-0.5 transition-all outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+              >
+                <FaHandHoldingHeart size={16} /> Support Us
+              </Link>
               
-              <button onClick={openSearch} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-gray-800 transition-colors">
+              <button onClick={openSearch} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors">
                 <FaSearch size={16} />
               </button>
-              <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
-              <Link href="/saved" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+              <div className="w-px h-5 bg-gray-200 mx-1" />
+              <Link href="/saved" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:text-red-500 hover:bg-red-50 transition-colors">
                 <FaHeart size={16} />
               </Link>
             </div>
 
             {/* Mobile Actions */}
             <div className="lg:hidden flex items-center gap-1 z-10 relative">
-              {/* 🌟 THE THEME TOGGLE ADDED HERE FOR MOBILE TOO 🌟 */}
-              <ThemeToggle />
+              {/* 🌟 NEW MOBILE DONATE ICON */}
+              <Link 
+                href="/donate" 
+                className="w-10 h-10 flex items-center justify-center rounded-full text-orange-500 hover:bg-orange-50 transition-colors relative"
+                aria-label="Support Us"
+              >
+                {/* Subtle ping animation to draw the eye */}
+                <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>
+                </span>
+                <FaHandHoldingHeart size={20} />
+              </Link>
               
-              <button onClick={openSearch} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 dark:text-gray-400 hover:bg-orange-50 dark:hover:bg-gray-800 transition-colors">
+              <button onClick={openSearch} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:bg-orange-50 transition-colors">
                 <FaSearch size={18} />
               </button>
               <button onClick={openMenu} className="w-10 h-10 flex items-center justify-center rounded-xl bg-orange-600 text-white hover:bg-orange-700 transition-colors shadow-md ml-1 active:scale-95">
@@ -370,11 +385,11 @@ export default function Header() {
         </div>
 
         {/* Search Panel */}
-        <div className={`absolute top-full inset-x-0 bg-white/95 dark:bg-[#111]/95 backdrop-blur-xl border-t border-orange-100 dark:border-white/10 shadow-2xl z-50 transition-all duration-300 origin-top ${isSearchOpen ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-95 pointer-events-none'}`}>
+        <div className={`absolute top-full inset-x-0 bg-white/95 backdrop-blur-xl border-t border-orange-100 shadow-2xl z-50 transition-all duration-300 origin-top ${isSearchOpen ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-95 pointer-events-none'}`}>
           <div className="max-w-3xl mx-auto px-4 py-6">
             <div className="relative">
               {isSearchOpen && <SearchBar onClose={closeSearch} />}
-              <button onClick={closeSearch} className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+              <button onClick={closeSearch} className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
                 <HiX size={18} />
               </button>
             </div>
@@ -387,8 +402,8 @@ export default function Header() {
       {isMenuOpen && <div onClick={closeMenu} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] lg:hidden transition-opacity" />}
 
       {/* MOBILE DRAWER */}
-      <aside className={`fixed top-0 right-0 h-full w-[85%] max-w-[360px] z-[120] lg:hidden flex flex-col bg-white dark:bg-[#111] shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+      <aside className={`fixed top-0 right-0 h-full w-[85%] max-w-[360px] z-[120] lg:hidden flex flex-col bg-white shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <Image 
               src="/favicon.ico" 
@@ -397,36 +412,36 @@ export default function Header() {
               height={36} 
               className="object-contain drop-shadow-sm brightness-110"
             />
-            <span className="font-black text-gray-900 dark:text-white tracking-widest text-sm uppercase">Menu</span>
+            <span className="font-black text-gray-900 tracking-widest text-sm uppercase">Menu</span>
           </div>
-          <button onClick={closeMenu} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+          <button onClick={closeMenu} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
             <HiX size={20} />
           </button>
         </div>
 
-        <nav data-lenis-prevent="true" className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-2 bg-gray-50/50 dark:bg-black/20">
+        <nav data-lenis-prevent="true" className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-2 bg-gray-50/50">
           {NAV_ITEMS.map((item) => (
             <div key={item.name}>
               {item.megaMenu ? (
-                <div className="bg-white dark:bg-gray-900/50 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden transition-colors duration-300">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-colors duration-300">
                   <button 
                     onClick={() => setExpandedMobileMenu(expandedMobileMenu === item.name ? null : item.name)}
-                    className="w-full flex items-center justify-between px-5 py-4 font-bold text-[15px] text-gray-800 dark:text-gray-200 active:bg-gray-50 dark:active:bg-gray-800 transition-colors"
+                    className="w-full flex items-center justify-between px-5 py-4 font-bold text-[15px] text-gray-800 active:bg-gray-50 transition-colors"
                   >
                     {item.name}
-                    <FaChevronDown size={12} className={`text-gray-400 dark:text-gray-500 transition-transform duration-300 ${expandedMobileMenu === item.name ? 'rotate-180' : ''}`} />
+                    <FaChevronDown size={12} className={`text-gray-400 transition-transform duration-300 ${expandedMobileMenu === item.name ? 'rotate-180' : ''}`} />
                   </button>
                   <div className={`grid transition-all duration-300 ease-in-out ${expandedMobileMenu === item.name ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-                    <div className="overflow-hidden bg-gray-50/50 dark:bg-gray-800/30">
+                    <div className="overflow-hidden bg-gray-50/50">
                       <div className="px-3 pb-4 pt-1 flex flex-col gap-1">
                         {item.megaMenu.links.map(subItem => (
                           <Link 
                             key={subItem.name} 
                             href={subItem.href}
                             onClick={closeMenu}
-                            className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-colors ${isActive(subItem.href) ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-bold shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-800 hover:shadow-sm font-semibold'}`}
+                            className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-colors ${isActive(subItem.href) ? 'bg-orange-100 text-orange-700 font-bold shadow-sm' : 'text-gray-600 hover:bg-white hover:shadow-sm font-semibold'}`}
                           >
-                            <span className={`w-8 h-8 flex items-center justify-center rounded-lg text-lg ${isActive(subItem.href) ? 'bg-orange-200/50 dark:bg-orange-800/50' : 'bg-white dark:bg-gray-900 shadow-sm border border-gray-100 dark:border-gray-800'}`}>
+                            <span className={`w-8 h-8 flex items-center justify-center rounded-lg text-lg ${isActive(subItem.href) ? 'bg-orange-200/50' : 'bg-white shadow-sm border border-gray-100'}`}>
                               {subItem.icon}
                             </span>
                             {subItem.name}
@@ -440,19 +455,19 @@ export default function Header() {
                 <Link
                   href={item.href!}
                   onClick={closeMenu}
-                  className={`flex items-center justify-between px-5 py-4 rounded-2xl font-bold text-[15px] transition-all duration-200 ${isActive(item.href!) ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 shadow-sm border border-orange-200/50 dark:border-orange-500/30' : 'bg-white dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 hover:shadow-sm border border-gray-100 dark:border-gray-800'}`}
+                  className={`flex items-center justify-between px-5 py-4 rounded-2xl font-bold text-[15px] transition-all duration-200 ${isActive(item.href!) ? 'bg-orange-100 text-orange-700 shadow-sm border border-orange-200/50' : 'bg-white text-gray-700 hover:shadow-sm border border-gray-100'}`}
                 >
                   <span>{item.name}</span>
-                  {isActive(item.href!) ? <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-sm" /> : <FaChevronRight size={14} className="text-gray-400 dark:text-gray-600" />}
+                  {isActive(item.href!) ? <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-sm" /> : <FaChevronRight size={14} className="text-gray-400" />}
                 </Link>
               )}
             </div>
           ))}
           
-          <div className="my-4 border-t border-gray-200/60 dark:border-gray-800/60 mx-2" />
+          <div className="my-4 border-t border-gray-200/60 mx-2" />
           
-          <Link href="/saved" onClick={closeMenu} className="flex items-center gap-4 px-5 py-3 rounded-2xl text-gray-700 dark:text-gray-300 font-semibold bg-white dark:bg-gray-900/50 hover:shadow-sm transition-all border border-gray-100 dark:border-gray-800">
-            <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400"><FaHeart size={16} /></span> My Sangrah
+          <Link href="/saved" onClick={closeMenu} className="flex items-center gap-4 px-5 py-3 rounded-2xl text-gray-700 font-semibold bg-white hover:shadow-sm transition-all border border-gray-100">
+            <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500"><FaHeart size={16} /></span> My Sangrah
           </Link>
         </nav>
       </aside>
