@@ -8,8 +8,6 @@ import LyricsViewer from '../../../components/LyricsViewer';
 import { FaMicrophoneAlt, FaPenNib, FaPhoneAlt, FaMapMarkerAlt, FaQuestionCircle } from 'react-icons/fa';
 import ViewCounter from '../../../components/ViewCounter';
 import CommentsSection from '@/components/CommentsSection';
-
-// 🌟 NEW IMPORTS FOR E-E-A-T AND KNOWLEDGE GRAPH BRIDGES
 import AuthorBox from '@/components/AuthorBox';
 import RelatedContent from '@/components/RelatedContent';
 
@@ -23,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const resolvedParams = await params;
   const { data: bhajan } = await supabase
     .from('bhajans')
-    .select('*, deities(name_hinglish), bhajan_category_map(categories(name_hinglish))')
+    .select('*, deities(name_hinglish), bhajan_category_map(categories(name_hinglish)), bhajan_tag_map(tags(name))')
     .eq('slug', resolvedParams.slug)
     .single();
 
@@ -32,20 +30,30 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
   const pageUrl = `${baseUrl}/bhajan/${bhajan.slug}`;
   
-  const categoryNames = bhajan.bhajan_category_map?.map((map: any) => map.categories?.name_hinglish).filter(Boolean).join(', ') || 'Bhajans';
+  const categoryNames = bhajan.bhajan_category_map?.map((map: any) => map.categories?.name_hinglish).filter(Boolean) || ['Bhajans'];
+  const tagNames = bhajan.bhajan_tag_map?.map((map: any) => map.tags?.name).filter(Boolean) || [];
   
   const ogImageUrl = new URL(`${baseUrl}/api/og`);
-  // 🌟 THE FIX: Pass the Hinglish title for the sleek new minimalist Open Graph image.
-  // We removed subtitle & badge since the new design doesn't need them!
   ogImageUrl.searchParams.set('title', bhajan.title_hinglish);
 
-  // 🌟 DYNAMIC META DESCRIPTION FORMULA (Solves the FAQ Snippet issue)
   const hasMeaning = bhajan.explanation ? "Includes spiritual Bhavarth (Meaning). " : "";
   const dynamicMetaDescription = `Read complete ${bhajan.title_hindi} (${bhajan.title_hinglish}) lyrics. ${hasMeaning}Available in 8+ Indian languages with free PDF download for daily Puja.`;
+
+  // 🌟 Dynamic Keywords for better ranking
+  const dynamicKeywords = [
+    `${bhajan.title_hinglish} lyrics`,
+    `${bhajan.title_hindi} लिरिक्स`,
+    `${bhajan.title_hinglish} in Hindi`,
+    `${bhajan.title_hinglish} PDF download`,
+    bhajan.deities?.name_hinglish ? `${bhajan.deities.name_hinglish} bhajans` : "",
+    ...categoryNames,
+    ...tagNames
+  ].filter(Boolean).join(', ');
 
   return {
     title: `${bhajan.title_hindi} - ${bhajan.title_hinglish} Lyrics | Bhajan Sangrah`,
     description: dynamicMetaDescription,
+    keywords: dynamicKeywords,
     alternates: {
       canonical: pageUrl, 
     },
@@ -96,16 +104,14 @@ export default async function BhajanDetails({ params }: Props) {
   const categories = bhajan.bhajan_category_map?.map((map: any) => map.categories).filter(Boolean) || [];
   const tags = bhajan.bhajan_tag_map?.map((map: any) => map.tags).filter(Boolean) || [];
   
-  // Process the New Relational Artist Data
+  // Process Relational Artist Data
   const artistMaps = bhajan.bhajan_artist_map || [];
   const singers = artistMaps.filter((m: any) => m.role.toLowerCase() === 'singer').map((m: any) => m.artists);
   const lyricists = artistMaps.filter((m: any) => m.role.toLowerCase() === 'lyricist').map((m: any) => m.artists);
 
-  // Fallback to old JSON format so your non-updated pages don't break
   const displaySingerName = singers.length > 0 ? singers.map((s:any) => s.name_hinglish).join(', ') : bhajan.singer_details?.name;
   const displayLyricistName = lyricists.length > 0 ? lyricists.map((l:any) => l.name_hinglish).join(', ') : bhajan.singer_details?.lyricist;
   
-  // Grab the phone/address from the first available linked artist, fallback to JSON
   const primaryArtist = singers[0] || lyricists[0];
   const displayPhone = primaryArtist?.phone || bhajan.singer_details?.phone;
   const displayAddress = primaryArtist?.address || bhajan.singer_details?.address;
@@ -116,16 +122,51 @@ export default async function BhajanDetails({ params }: Props) {
   ];
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
+  const pageUrl = `${baseUrl}/bhajan/${bhajan.slug}`;
 
   // ==========================================
-  // 🌟 ADVANCED SEO SCHEMAS (JSON-LD)
+  // 🌟 THE ADVANCED SEO ENTITY GRAPH
   // ==========================================
+  
+  const graphNodes: any[] = [];
 
-  const musicSchema = {
-    "@context": "https://schema.org",
+  // 1. Breadcrumb Node
+  graphNodes.push({
+    "@type": "BreadcrumbList",
+    "@id": `${pageUrl}#breadcrumb`,
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": baseUrl },
+      { "@type": "ListItem", "position": 2, "name": bhajan.deities?.name_hinglish || "Deities", "item": `${baseUrl}/deity/${bhajan.deities?.slug}` },
+      { "@type": "ListItem", "position": 3, "name": bhajan.title_hindi, "item": pageUrl }
+    ]
+  });
+
+  // 2. Video Node (If exists)
+  if (bhajan.video_embed_url) {
+    graphNodes.push({
+      "@type": "VideoObject",
+      "@id": `${pageUrl}#video`,
+      "name": `${bhajan.title_hinglish} Video`,
+      "description": `Watch the divine video for ${bhajan.title_hindi}`,
+      "thumbnailUrl": `https://img.youtube.com/vi/${bhajan.video_embed_url.split('v=')[1]?.split('&')[0]}/maxresdefault.jpg`,
+      "uploadDate": bhajan.created_at, // Consider updating this to actual video date if available in future
+      "embedUrl": bhajan.video_embed_url
+    });
+  }
+
+  // 3. Music Composition Node (The Core Entity)
+  graphNodes.push({
     "@type": "MusicComposition",
+    "@id": `${pageUrl}#composition`,
     "name": bhajan.title_hindi,
     "alternateName": bhajan.title_hinglish,
+    "genre": ["Hindu Devotional Music", "Bhajan", ...categories.map((c:any) => c.name_hinglish)],
+    "about": {
+      "@type": "Thing",
+      "name": bhajan.deities?.name_hinglish || "Hindu Deity"
+    },
+    // 🌟 Transliterator Hack: Telling Google we support these languages!
+    "inLanguage": ["hi", "en-IN", "gu", "bn", "te", "kn", "ml", "or"],
     "lyricist": {
       "@type": "Person",
       "name": displayLyricistName || "Traditional"
@@ -141,39 +182,15 @@ export default async function BhajanDetails({ params }: Props) {
       "@type": "CreativeWork",
       "text": bhajan.lyrics_hindi,
       "inLanguage": "hi"
-    }
-  };
+    },
+    ...(bhajan.video_embed_url && { "video": { "@id": `${pageUrl}#video` } })
+  });
 
-  const breadcrumbSchema = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
-      { "@type": "ListItem", "position": 1, "name": "Home", "item": baseUrl },
-      { "@type": "ListItem", "position": 2, "name": bhajan.deities?.name_hinglish || "Deities", "item": `${baseUrl}/deity/${bhajan.deities?.slug}` },
-      { "@type": "ListItem", "position": 3, "name": bhajan.title_hindi, "item": `${baseUrl}/bhajan/${bhajan.slug}` }
-    ]
-  };
-
-  let videoSchema = null;
-  if (bhajan.video_embed_url) {
-    videoSchema = {
-      "@context": "https://schema.org",
-      "@type": "VideoObject",
-      "name": `${bhajan.title_hinglish} Video`,
-      "description": `Watch the video for ${bhajan.title_hindi}`,
-      "thumbnailUrl": `https://img.youtube.com/vi/${bhajan.video_embed_url.split('v=')[1]?.split('&')[0]}/maxresdefault.jpg`,
-      "uploadDate": bhajan.created_at,
-      "embedUrl": bhajan.video_embed_url
-    };
-  }
-
-  let faqSchema = null;
-  const hasFaqs = bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0;
-  
-  if (hasFaqs) {
-    faqSchema = {
-      "@context": "https://schema.org",
+  // 4. FAQ Node (If exists)
+  if (bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0) {
+    graphNodes.push({
       "@type": "FAQPage",
+      "@id": `${pageUrl}#faq`,
       "mainEntity": bhajan.faqs.map((faq: any) => ({
         "@type": "Question",
         "name": faq.question,
@@ -182,17 +199,35 @@ export default async function BhajanDetails({ params }: Props) {
           "text": faq.answer
         }
       }))
-    };
+    });
   }
+
+  // 5. WebPage Node (Ties everything together)
+  graphNodes.push({
+    "@type": "WebPage",
+    "@id": pageUrl,
+    "url": pageUrl,
+    "name": `${bhajan.title_hindi} Lyrics`,
+    "isPartOf": {
+      "@type": "WebSite",
+      "name": "Hindi Bhajan Manjari",
+      "url": baseUrl
+    },
+    "breadcrumb": { "@id": `${pageUrl}#breadcrumb` },
+    "mainEntity": { "@id": `${pageUrl}#composition` }
+  });
+
+  // The final wrapped Graph
+  const advancedSchemaGraph = {
+    "@context": "https://schema.org",
+    "@graph": graphNodes
+  };
 
   return (
     <div className="min-h-screen bg-orange-50/30">
       
-      {/* 🌟 INJECTING THE SEO BRAIN INTO THE DOM */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(musicSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
-      {videoSchema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoSchema) }} />}
-      {faqSchema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />}
+      {/* 🌟 INJECTING THE ADVANCED GRAPH SCHEMA ONCE */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(advancedSchemaGraph) }} />
       
       <ViewCounter slug={bhajan.slug} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
@@ -297,7 +332,6 @@ export default async function BhajanDetails({ params }: Props) {
 
             <div className="p-4 md:p-8">
 
-              {/* Note: Ensure LyricsViewer internally uses font-hindi for the Hindi lyrics! */}
               <LyricsViewer 
                 title={bhajan.title_hindi} 
                 lyricsHindi={bhajan.lyrics_hindi} 
@@ -318,9 +352,7 @@ export default async function BhajanDetails({ params }: Props) {
                 </div>
               )}
 
-              {/* ==========================================
-                  🌟 DYNAMIC SEO INTRO PARAGRAPH (Moved Below Lyrics for UX)
-                  ========================================== */}
+              {/* DYNAMIC SEO INTRO PARAGRAPH */}
               <div className="mt-12 bg-gray-50/50 border border-gray-100 rounded-3xl p-6 md:p-8 shadow-sm">
                 {/* English SEO Text */}
                 <p className="text-sm md:text-base text-gray-700 leading-relaxed mb-6">
@@ -342,7 +374,7 @@ export default async function BhajanDetails({ params }: Props) {
                 </p>
               </div>
 
-              {hasFaqs && (
+              {bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0 && (
                 <div className="mt-12">
                   <h3 className="text-2xl font-black text-gray-900 tracking-tighter mb-6 flex items-center gap-2">
                     <FaQuestionCircle className="text-orange-500" />
@@ -398,9 +430,6 @@ export default async function BhajanDetails({ params }: Props) {
                 <CommentsSection bhajanSlug={slug} />
               </div>
 
-              {/* ==========================================
-                  🌟 THE NEW GYAN BRIDGE (Session Duration Booster)
-                  ========================================== */}
               {bhajan.deity_id && (
                 <div className="mt-12">
                   <RelatedContent 
@@ -410,9 +439,6 @@ export default async function BhajanDetails({ params }: Props) {
                 </div>
               )}
 
-              {/* ==========================================
-                  🌟 THE AUTHOR BOX (E-E-A-T Trust Signal)
-                  ========================================== */}
               <div className="mt-8 pt-8 border-t border-gray-100">
                 <AuthorBox />
               </div>
@@ -420,20 +446,18 @@ export default async function BhajanDetails({ params }: Props) {
             </div>
           </main>
 
-          {/* Desktop Sidebar (Now Context-Aware!) */}
+          {/* Desktop Sidebar */}
           <aside className="hidden lg:block w-[320px] sticky top-24 shrink-0">
             <Sidebar 
-              topicName={bhajan.deities?.name_hinglish} // e.g. "Shri Hanuman"
-              filterColumn="deity_id"                   // Tells Supabase what to filter by
-              filterValue={bhajan.deity_id}             // Only fetch Bhajans with this specific Deity ID
-              currentBhajanSlug={bhajan.slug}           // Prevents the sidebar from linking to the page we are already on
+              topicName={bhajan.deities?.name_hinglish}
+              filterColumn="deity_id"
+              filterValue={bhajan.deity_id}
+              currentBhajanSlug={bhajan.slug}
             />
           </aside>
           
         </div>
-        
       </div>
-     
     </div>
   );
 }

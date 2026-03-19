@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
 import { useRouter, useParams } from 'next/navigation';
-import { FaSave, FaArrowLeft, FaSpinner } from 'react-icons/fa';
+import { FaSave, FaArrowLeft, FaSpinner, FaImage } from 'react-icons/fa';
 import Link from 'next/link';
 
 export default function EditArticlePage() {
@@ -16,12 +16,13 @@ export default function EditArticlePage() {
   const [deities, setDeities] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
 
-  // Form State
+  // 🌟 Form State (Added featured_image_url)
   const [formData, setFormData] = useState({
     title_hindi: '',
     title_hinglish: '',
     slug: '',
     meta_description: '',
+    featured_image_url: '', // <-- नया कॉलम यहाँ जोड़ दिया है
     content_html: '',
     read_time_minutes: 5,
     deity_id: '',
@@ -62,6 +63,7 @@ export default function EditArticlePage() {
               title_hinglish: article.title_hinglish || '',
               slug: article.slug || '',
               meta_description: article.meta_description || '',
+              featured_image_url: article.featured_image_url || '', // <-- डेटाबेस से इमेज URL लाएँ
               content_html: article.content_html || '',
               read_time_minutes: article.read_time_minutes || 5,
               deity_id: article.deity_id || '',
@@ -164,6 +166,36 @@ export default function EditArticlePage() {
             <textarea required value={formData.meta_description} onChange={(e) => setFormData({...formData, meta_description: e.target.value})} rows={2} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Short 160-character summary for Google..." />
           </div>
 
+          {/* 🌟 NEW: Featured Image Field with Live Preview */}
+          <div className="p-5 bg-blue-50/50 rounded-2xl border border-blue-100">
+            <label className="flex items-center gap-2 text-sm font-bold text-blue-900 mb-2">
+              <FaImage className="text-blue-500" /> 
+              Featured Image URL (For Google Discover)
+            </label>
+            <input 
+              type="url" 
+              value={formData.featured_image_url} 
+              onChange={(e) => setFormData({...formData, featured_image_url: e.target.value})} 
+              className="w-full border border-blue-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white" 
+              placeholder="https://example.com/image.jpg (Recommended: 1200x630px)" 
+            />
+            
+            {/* Live Image Preview */}
+            {formData.featured_image_url && (
+              <div className="mt-4 relative w-full md:w-1/2 aspect-[21/9] rounded-xl overflow-hidden border border-blue-200 shadow-sm bg-gray-100 flex items-center justify-center">
+                <img 
+                  src={formData.featured_image_url} 
+                  alt="Featured Preview" 
+                  className="object-cover w-full h-full"
+                  onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/1200x630?text=Invalid+Image+URL' }}
+                />
+                <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded backdrop-blur-md">
+                  Google Discover Preview
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="p-5 bg-orange-50 rounded-2xl border border-orange-100 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-bold text-orange-900 mb-2">Link to Deity (For Read Next)</label>
@@ -189,7 +221,7 @@ export default function EditArticlePage() {
 
           <div className="flex items-center justify-between pt-6 border-t border-gray-100">
             <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" checked={formData.is_published} onChange={(e) => setFormData({...formData, is_published: e.target.checked})} className="w-5 h-5 text-orange-600 rounded focus:ring-orange-500" />
+              <input type="checkbox" checked={formData.is_published} onChange={(e) => setFormData({...formData, is_published: e.target.checked})} className="w-5 h-5 text-orange-600 rounded focus:ring-orange-500 cursor-pointer" />
               <span className="font-bold text-gray-700">Publish Immediately</span>
             </label>
 

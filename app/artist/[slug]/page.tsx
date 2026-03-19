@@ -17,6 +17,8 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
+export const revalidate = 3600; // Cache for performance
+
 // ==========================================
 // 🌟 1. DYNAMIC SEO & SOCIAL SHARING METADATA
 // ==========================================
@@ -32,35 +34,47 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!artist) return { title: 'Artist Not Found' };
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
+  const pageUrl = `${baseUrl}/artist/${slug}`;
+  
+  // Create a highly clickable description
   const description = artist.bio 
-      ? `${artist.bio.substring(0, 150)}... Read and listen to the best bhajans by ${artist.name_hinglish}.` 
-      : `Explore the complete collection of bhajans, aartis, and lyrics by ${artist.name_hinglish} (${artist.name_hindi}).`;
+      ? `${artist.bio.substring(0, 150).trim()}... Explore the complete collection of bhajans, aartis, and lyrics by ${artist.name_hinglish}.` 
+      : `Explore the complete collection of authentic bhajans, aartis, and lyrics by renowned artist ${artist.name_hinglish} (${artist.name_hindi}). Read, listen, and download.`;
   
   return {
-    title: `Top ${artist.name_hinglish} (${artist.name_hindi}) Bhajans & Lyrics | Hindi Bhajan Manjari`,
+    title: `Top ${artist.name_hinglish} (${artist.name_hindi}) Bhajans & Lyrics Collection | Hindi Bhajan Manjari`,
     description: description,
+    keywords: `${artist.name_hinglish} bhajans, ${artist.name_hindi} भजन, ${artist.name_hinglish} songs, ${artist.name_hinglish} aarti lyrics, popular bhajans by ${artist.name_hinglish}, Hindi Bhajan Manjari`,
     alternates: {
-      canonical: `${baseUrl}/artist/${slug}`,
+      canonical: pageUrl,
     },
     openGraph: {
-      title: `${artist.name_hindi} - Bhajan Collection`,
+      title: `${artist.name_hindi} - Complete Bhajan Collection`,
       description: description,
       type: 'profile',
-      url: `${baseUrl}/artist/${slug}`,
+      url: pageUrl,
+      siteName: 'Hindi Bhajan Manjari',
       images: artist.profile_image_url ? [
         {
           url: artist.profile_image_url,
           width: 800,
           height: 800,
-          alt: artist.name_hinglish,
+          alt: `${artist.name_hinglish} - Bhajan Singer & Lyricist`,
         }
-      ] : [], 
+      ] : [
+        {
+          url: `${baseUrl}/og-image.jpg`, // Fallback
+          width: 1200,
+          height: 630,
+          alt: 'Hindi Bhajan Manjari Artist Collection',
+        }
+      ], 
     },
     twitter: {
       card: 'summary_large_image',
       title: `${artist.name_hindi} - Bhajan Collection`,
       description: description,
-      images: artist.profile_image_url ? [artist.profile_image_url] : [],
+      images: artist.profile_image_url ? [artist.profile_image_url] : [`${baseUrl}/og-image.jpg`],
     }
   };
 }
@@ -114,27 +128,62 @@ export default async function ArtistPage({ params }: Props) {
 
   const uniqueWorks = Object.values(groupedWorksMap);
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
+  const pageUrl = `${baseUrl}/artist/${artist.slug}`;
 
   // ==========================================
-  // 🌟 3. SEO SCHEMAS
+  // 🌟 3. ADVANCED ENTITY GRAPH SCHEMA
   // ==========================================
-  const profileSchema = {
-    "@context": "https://schema.org",
+  
+  const graphNodes: any[] = [];
+
+  // Node 1: The Person (Artist) Entity
+  graphNodes.push({
+    "@type": "Person",
+    "@id": `${pageUrl}#person`,
+    "name": artist.name_hinglish,
+    "alternateName": artist.name_hindi,
+    "description": artist.bio || `Renowned Bhajan singer and lyricist: ${artist.name_hinglish}`,
+    "jobTitle": "Devotional Artist",
+    "telephone": artist.phone || undefined,
+    "url": pageUrl,
+    "image": artist.profile_image_url || undefined
+  });
+
+  // Node 2: ItemList (The Discography)
+  if (uniqueWorks.length > 0) {
+    graphNodes.push({
+      "@type": "ItemList",
+      "@id": `${pageUrl}#discography`,
+      "name": `Bhajans by ${artist.name_hinglish}`,
+      "itemListElement": uniqueWorks.map((bhajan: any, index: number) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "url": `${baseUrl}/bhajan/${bhajan.slug}`,
+        "name": bhajan.title_hindi
+      }))
+    });
+  }
+
+  // Node 3: ProfilePage (Tying it together)
+  graphNodes.push({
     "@type": "ProfilePage",
-    "mainEntity": {
-      "@type": "Person",
-      "name": artist.name_hinglish,
-      "alternateName": artist.name_hindi,
-      "description": artist.bio || `Bhajan singer and lyricist: ${artist.name_hinglish}`,
-      "telephone": artist.phone || undefined,
-      "url": `${baseUrl}/artist/${artist.slug}`,
-      "image": artist.profile_image_url || undefined
-    }
+    "@id": pageUrl,
+    "url": pageUrl,
+    "name": `${artist.name_hindi} - Artist Profile & Bhajans`,
+    "mainEntity": { "@id": `${pageUrl}#person` },
+    "about": uniqueWorks.length > 0 ? { "@id": `${pageUrl}#discography` } : undefined
+  });
+
+  const advancedProfileSchema = {
+    "@context": "https://schema.org",
+    "@graph": graphNodes
   };
 
   return (
     <div className="min-h-screen bg-orange-50/40 pb-20 font-sans">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(profileSchema) }} />
+      
+      {/* 🌟 INJECT THE ADVANCED ENTITY GRAPH */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(advancedProfileSchema) }} />
 
       {/* --- PREMIUM ARTIST HEADER --- */}
       <div className="relative overflow-hidden bg-gradient-to-br from-orange-600 via-red-600 to-orange-800 text-white pt-20 pb-24 px-4 shadow-2xl">
@@ -156,11 +205,11 @@ export default async function ArtistPage({ params }: Props) {
             <span className="inline-block px-4 py-1.5 rounded-full bg-white/10 text-orange-100 text-xs font-bold uppercase tracking-widest backdrop-blur-md border border-white/10 mb-4 shadow-sm">
               Verified Artist
             </span>
-            {/* 🌟 FIX: Applied font-hindi and tracking-tighter */}
+            
             <h1 className="text-4xl md:text-6xl font-black font-hindi mb-2 tracking-tighter drop-shadow-lg leading-tight">
               {artist.name_hindi}
             </h1>
-            {/* 🌟 FIX: Modern uppercase tracking style for Hinglish */}
+            
             <h2 className="text-xs md:text-sm font-bold uppercase tracking-[0.2em] text-orange-200/90 mb-8">
               {artist.name_hinglish}
             </h2>
@@ -190,7 +239,6 @@ export default async function ArtistPage({ params }: Props) {
             <FaQuoteLeft className="text-4xl text-orange-200 shrink-0 hidden sm:block mt-1" />
             <div>
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">About the Artist</h3>
-              {/* 🌟 FIX: Removed serif, added leading-[1.8] for high readability */}
               <p className="text-gray-600 text-base md:text-lg leading-[1.8] font-medium">
                 {artist.bio}
               </p>
@@ -203,7 +251,6 @@ export default async function ArtistPage({ params }: Props) {
       <div className={`max-w-5xl mx-auto px-4 ${artist.bio ? 'mt-16' : 'mt-8'}`}>
         <div className="flex items-center gap-3 mb-8 border-b border-orange-200/60 pb-4">
           <FaMusic className="text-orange-500 text-2xl" />
-          {/* 🌟 FIX: Updated tracking */}
           <h3 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tighter">
             Discography <span className="text-orange-400 font-medium text-xl md:text-2xl">({uniqueWorks.length})</span>
           </h3>
@@ -217,7 +264,7 @@ export default async function ArtistPage({ params }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {uniqueWorks.map((bhajan: any, idx: number) => {
               const isSinger = bhajan.roles.includes('singer');
-              const isWriter = bhajan.roles.includes('writer');
+              const isWriter = bhajan.roles.includes('writer') || bhajan.roles.includes('lyricist');
 
               return (
                 <Link key={idx} href={`/bhajan/${bhajan.slug}`} className="group block h-full">
@@ -244,11 +291,9 @@ export default async function ArtistPage({ params }: Props) {
                         )}
                       </div>
                       
-                      {/* 🌟 FIX: Applied font-hindi, leading-tight */}
                       <h4 className="text-lg md:text-xl font-black font-hindi text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-1 mb-1 leading-tight">
                         {bhajan.title_hindi}
                       </h4>
-                      {/* 🌟 FIX: Standardized Hinglish subtitle style */}
                       <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-gray-500 line-clamp-1">
                         {bhajan.title_hinglish}
                       </p>

@@ -13,16 +13,46 @@ import TrendingArtists from '../components/home/TrendingArtists';
 import { FaBookOpen, FaClock, FaArrowRight, FaMusic } from 'react-icons/fa';
 import ScrollReveal from '../components/ScrollReveal';
 
-export const metadata: Metadata = {
-  alternates: {
-    canonical: 'https://www.hindibhajanmanjari.com/',
-  },
-};
-
 export const revalidate = 300; 
 
 // ==========================================
-// THE PUBLISHER TRUST SIGNAL (Sanatan Gyan) - Moved to Bottom
+// 🌟 ADVANCED HOMEPAGE METADATA
+// ==========================================
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
+const seoDescription = "हिंदी भजन मंजरी पर आपका हार्दिक स्वागत है। यहाँ आप सभी देवी-देवताओं के प्रामाणिक भजन, आरती, चालीसा और मंत्रों के लिरिक्स (Lyrics) और उनके भावार्थ हिंदी में पढ़ सकते हैं।";
+
+export const metadata: Metadata = {
+  title: 'हिंदी भजन मंजरी | Hindi Bhajan Manjari - Lyrics, Aarti & Chalisa Sangrah',
+  description: seoDescription,
+  keywords: 'Hindi Bhajan, Bhajan Lyrics, Aarti Lyrics, Chalisa Sangrah, Devotional Songs, हिंदी भजन, आरती संग्रह, हनुमान चालीसा, शिव भजन',
+  alternates: {
+    canonical: siteUrl,
+  },
+  openGraph: {
+    title: 'Hindi Bhajan Manjari - Ultimate Devotional Lyrics Collection',
+    description: seoDescription,
+    url: siteUrl,
+    siteName: 'Hindi Bhajan Manjari',
+    type: 'website',
+    images: [
+      {
+        url: `${siteUrl}/og-image.jpg`, // Ensure you have an og-image.jpg in your public folder!
+        width: 1200,
+        height: 630,
+        alt: 'Hindi Bhajan Manjari',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Hindi Bhajan Manjari',
+    description: seoDescription,
+    images: [`${siteUrl}/og-image.jpg`],
+  },
+};
+
+// ==========================================
+// THE PUBLISHER TRUST SIGNAL (Sanatan Gyan)
 // ==========================================
 async function LatestGyanSection() {
   const { data: articles, error } = await supabase
@@ -85,7 +115,7 @@ async function LatestGyanSection() {
 }
 
 // ==========================================
-// LATEST BHAJANS (Moved Up!)
+// LATEST BHAJANS
 // ==========================================
 async function LatestBhajansSection() {
   const { data: rawBhajans, error } = await supabase
@@ -119,8 +149,50 @@ async function LatestBhajansSection() {
 }
 
 export default function Home() {
+  // ==========================================
+  // 🌟 THE HOMEPAGE SEO GRAPH (WebSite + Organization)
+  // ==========================================
+  const homeSchemaGraph = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${siteUrl}/#website`,
+        "url": siteUrl,
+        "name": "Hindi Bhajan Manjari",
+        "description": seoDescription,
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": `${siteUrl}/search?q={search_term_string}`
+          },
+          "query-input": "required name=search_term_string"
+        },
+        "inLanguage": ["hi", "en-IN"]
+      },
+      {
+        "@type": "Organization",
+        "@id": `${siteUrl}/#organization`,
+        "name": "Hindi Bhajan Manjari",
+        "url": siteUrl,
+        "logo": {
+          "@type": "ImageObject",
+          "url": `${siteUrl}/logo.png`
+        },
+        "sameAs": [
+          "https://www.facebook.com/mohit.tarkar.7121/",
+          "https://www.instagram.com/imp.erfecto_"
+        ]
+      }
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-white">
+      {/* 🌟 INJECTING THE HOMEPAGE SCHEMA */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(homeSchemaGraph) }} />
+
       {/* 1. Hero Section */}
       <Hero />
 

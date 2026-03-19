@@ -5,7 +5,7 @@ import { supabase } from '@/utils/supabase';
 export const revalidate = 86400; 
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://www.hindibhajanmanjari.com';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
 
   // 1. Fetch static/small tables in parallel (REMOVED TAGS)
   const [
@@ -20,7 +20,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     supabase.from('articles').select('slug, published_at').eq('is_published', true)
   ]);
 
-  // 2. Fetch all Bhajans
+  // 2. Fetch all Bhajans (Batch fetching to bypass 1000 row limit)
+  // 💡 Note: If you ever cross 45,000 Bhajans, we will need to split this using Next.js `generateSitemaps` 
   const allBhajans: any[] = [];
   let hasMore = true;
   let from = 0;
@@ -29,7 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   while (hasMore) {
     const { data } = await supabase
       .from('bhajans')
-      .select('slug, created_at') // 💡 TIP: If you add 'updated_at' to DB, use it here!
+      .select('slug, created_at') 
       .range(from, from + step - 1);
 
     if (!data || data.length === 0) {
@@ -41,22 +42,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
-  // 3. Map Static Routes
+  // 3. Map Static Routes (🌟 Added Donate & Index Pages)
   const staticRoutes = [
-    '',
-    '/search',
-    '/gyan',
-    '/developers',
-    '/artist',
-    '/saved',
-    '/submit',
-    '/about',
-    '/contact',
+    { url: '', priority: 1.0 },
+    { url: '/gyan', priority: 0.9 },
+    { url: '/search', priority: 0.9 },
+    { url: '/category', priority: 0.8 },
+    { url: '/deity', priority: 0.8 },
+    { url: '/artist', priority: 0.8 },
+    { url: '/saved', priority: 0.8 },
+    { url: '/submit', priority: 0.8 },
+    { url: '/donate', priority: 0.8 }, // Our new premium page!
+    { url: '/about', priority: 0.7 },
+    { url: '/contact', priority: 0.7 },
+    { url: '/developers', priority: 0.6 },
   ].map((route) => ({
-    url: `${baseUrl}${route}`,
+    url: `${baseUrl}${route.url}`,
     lastModified: new Date(),
     changeFrequency: 'daily' as const,
-    priority: route === '' ? 1.0 : (route === '/gyan' || route === '/developers') ? 0.9 : 0.8,
+    priority: route.priority,
   }));
 
   // 4. Map Dynamic Routes
@@ -64,14 +68,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${baseUrl}/bhajan/${bhajan.slug}`,
     lastModified: bhajan.created_at ? new Date(bhajan.created_at) : new Date(),
     changeFrequency: 'weekly' as const,
-    priority: 0.9,
+    priority: 0.9, // Bhajans are the core content
   }));
 
   const articleRoutes = (articles || []).map((article) => ({
     url: `${baseUrl}/gyan/${article.slug}`,
     lastModified: article.published_at ? new Date(article.published_at) : new Date(),
     changeFrequency: 'weekly' as const,
-    priority: 0.9,
+    priority: 0.9, // High priority for Google Discover & News
   }));
 
   const artistRoutes = (artists || []).map((artist) => ({
@@ -95,13 +99,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  // 5. Combine everything (NO TAGS INCLUDED)
+  // 5. Combine everything
   return [
     ...staticRoutes,
     ...articleRoutes,
     ...bhajanRoutes,
-    ...artistRoutes,
     ...categoryRoutes,
     ...deityRoutes,
+    ...artistRoutes,
   ];
 }

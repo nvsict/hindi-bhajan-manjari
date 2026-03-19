@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
 import { useRouter } from 'next/navigation';
-import { FaSave, FaArrowLeft } from 'react-icons/fa';
+import { FaSave, FaArrowLeft, FaImage } from 'react-icons/fa';
 import Link from 'next/link';
 
 export default function NewArticlePage() {
@@ -12,18 +12,19 @@ export default function NewArticlePage() {
   const [deities, setDeities] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
 
-  // Form State
+  // 🌟 Form State (Added featured_image_url)
   const [formData, setFormData] = useState({
     title_hindi: '',
     title_hinglish: '',
     slug: '',
     meta_description: '',
+    featured_image_url: '', // <-- नया कॉलम यहाँ जोड़ दिया है 
     content_html: '',
     read_time_minutes: 5,
     deity_id: '',
     category_id: '',
     is_published: true,
-    author_name: 'Mohit Tarkar', // Default E-E-A-T
+    author_name: 'Mohit Tarkar', 
     author_slug: 'mohit-tarkar',
   });
 
@@ -104,18 +105,48 @@ export default function NewArticlePage() {
             <textarea required value={formData.meta_description} onChange={(e) => setFormData({...formData, meta_description: e.target.value})} rows={2} className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Short 160-character summary for Google..." />
           </div>
 
+          {/* 🌟 NEW: Featured Image Field for Google Discover */}
+          <div className="p-5 bg-blue-50/50 rounded-2xl border border-blue-100">
+            <label className="flex items-center gap-2 text-sm font-bold text-blue-900 mb-2">
+              <FaImage className="text-blue-500" /> 
+              Featured Image URL (For Google Discover)
+            </label>
+            <input 
+              type="url" 
+              value={formData.featured_image_url} 
+              onChange={(e) => setFormData({...formData, featured_image_url: e.target.value})} 
+              className="w-full border border-blue-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none" 
+              placeholder="https://example.com/image.jpg (Recommended: 1200x630px)" 
+            />
+            
+            {/* Live Image Preview */}
+            {formData.featured_image_url && (
+              <div className="mt-4 relative w-full md:w-1/2 aspect-[21/9] rounded-xl overflow-hidden border border-blue-200 shadow-sm bg-gray-100 flex items-center justify-center">
+                <img 
+                  src={formData.featured_image_url} 
+                  alt="Featured Preview" 
+                  className="object-cover w-full h-full"
+                  onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/1200x630?text=Invalid+Image+URL' }}
+                />
+                <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded backdrop-blur-md">
+                  Google Discover Preview
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* 🌟 KNOWLEDGE GRAPH BRIDGES */}
           <div className="p-5 bg-orange-50 rounded-2xl border border-orange-100 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-bold text-orange-900 mb-2">Link to Deity (For Read Next)</label>
-              <select value={formData.deity_id} onChange={(e) => setFormData({...formData, deity_id: e.target.value})} className="w-full border border-orange-200 rounded-xl p-3 outline-none">
+              <select value={formData.deity_id} onChange={(e) => setFormData({...formData, deity_id: e.target.value})} className="w-full border border-orange-200 rounded-xl p-3 outline-none bg-white">
                 <option value="">-- No Deity --</option>
                 {deities.map(d => <option key={d.id} value={d.id}>{d.name_hinglish}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm font-bold text-orange-900 mb-2">Link to Category</label>
-              <select value={formData.category_id} onChange={(e) => setFormData({...formData, category_id: e.target.value})} className="w-full border border-orange-200 rounded-xl p-3 outline-none">
+              <select value={formData.category_id} onChange={(e) => setFormData({...formData, category_id: e.target.value})} className="w-full border border-orange-200 rounded-xl p-3 outline-none bg-white">
                 <option value="">-- No Category --</option>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name_hinglish}</option>)}
               </select>
@@ -132,7 +163,7 @@ export default function NewArticlePage() {
           {/* PUBLISH TOGGLE & SUBMIT */}
           <div className="flex items-center justify-between pt-6 border-t border-gray-100">
             <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" checked={formData.is_published} onChange={(e) => setFormData({...formData, is_published: e.target.checked})} className="w-5 h-5 text-orange-600 rounded focus:ring-orange-500" />
+              <input type="checkbox" checked={formData.is_published} onChange={(e) => setFormData({...formData, is_published: e.target.checked})} className="w-5 h-5 text-orange-600 rounded focus:ring-orange-500 cursor-pointer" />
               <span className="font-bold text-gray-700">Publish Immediately</span>
             </label>
 

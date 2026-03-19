@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
 import Link from 'next/link';
-import { FaPlus, FaEdit, FaTrash, FaBookOpen } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaBookOpen, FaImage } from 'react-icons/fa';
 
 export default function AdminArticlesPage() {
   const [articles, setArticles] = useState<any[]>([]);
@@ -16,7 +16,8 @@ export default function AdminArticlesPage() {
   const fetchArticles = async () => {
     const { data, error } = await supabase
       .from('articles')
-      .select('id, title_hindi, title_hinglish, slug, is_published, read_time_minutes, published_at')
+      // 🌟 NEW: Added featured_image_url to the query
+      .select('id, title_hindi, title_hinglish, slug, is_published, read_time_minutes, published_at, featured_image_url')
       .order('created_at', { ascending: false });
 
     if (!error && data) setArticles(data);
@@ -56,60 +57,79 @@ export default function AdminArticlesPage() {
         </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 uppercase tracking-widest text-[11px] font-bold">
-                <th className="p-5">Title (Hindi / Hinglish)</th>
-                <th className="p-5">Status</th>
-                <th className="p-5">Read Time</th>
-                <th className="p-5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {articles.map((article) => (
-                <tr key={article.id} className="border-b border-gray-50 hover:bg-orange-50/30 transition-colors group">
-                  <td className="p-5">
-                    <p className="font-bold text-gray-900 font-hindi text-lg leading-tight mb-1">{article.title_hindi}</p>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{article.title_hinglish}</p>
-                  </td>
-                  <td className="p-5">
-                    <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-black rounded-full ${article.is_published ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-yellow-100 text-yellow-700 border border-yellow-200'}`}>
-                      {article.is_published ? 'Published' : 'Draft'}
-                    </span>
-                  </td>
-                  <td className="p-5 text-sm text-gray-600 font-bold">
-                    {article.read_time_minutes} Min
-                  </td>
-                  <td className="p-5 text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      {/* 🌟 FIX: Updated link to match dynamic route folder structure /[id]/edit */}
-                      <Link 
-                        href={`/admin/articles/${article.id}/edit`} 
-                        className="text-blue-500 hover:text-white p-2.5 bg-blue-50 hover:bg-blue-500 rounded-xl transition-all shadow-sm"
-                        title="Edit Article"
-                      >
-                        <FaEdit />
-                      </Link>
-                      <button 
-                        onClick={() => deleteArticle(article.id)} 
-                        className="text-red-500 hover:text-white p-2.5 bg-red-50 hover:bg-red-500 rounded-xl transition-all shadow-sm"
-                        title="Delete Article"
-                      >
-                        <FaTrash />
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 uppercase tracking-widest text-[11px] font-bold">
+                  <th className="p-5">Article Details</th>
+                  <th className="p-5">Status</th>
+                  <th className="p-5">Read Time</th>
+                  <th className="p-5 text-right">Actions</th>
                 </tr>
-              ))}
-              {articles.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="p-12 text-center text-gray-500 font-medium">
-                    No articles found. Click "Write New Article" to start.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {articles.map((article) => (
+                  <tr key={article.id} className="border-b border-gray-50 hover:bg-orange-50/30 transition-colors group">
+                    <td className="p-5">
+                      <div className="flex items-center gap-4">
+                        {/* 🌟 NEW: Image Thumbnail Preview */}
+                        <div className="w-16 h-12 shrink-0 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center relative">
+                          {article.featured_image_url ? (
+                            <img 
+                              src={article.featured_image_url} 
+                              alt="Thumbnail" 
+                              className="w-full h-full object-cover"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                            />
+                          ) : (
+                            <FaImage className="text-gray-300 text-xl" title="No featured image" />
+                          )}
+                        </div>
+                        
+                        <div>
+                          <p className="font-bold text-gray-900 font-hindi text-lg leading-tight mb-1 line-clamp-1">{article.title_hindi}</p>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest line-clamp-1">{article.title_hinglish}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-5">
+                      <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-black rounded-full ${article.is_published ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-yellow-100 text-yellow-700 border border-yellow-200'}`}>
+                        {article.is_published ? 'Published' : 'Draft'}
+                      </span>
+                    </td>
+                    <td className="p-5 text-sm text-gray-600 font-bold whitespace-nowrap">
+                      {article.read_time_minutes} Min
+                    </td>
+                    <td className="p-5 text-right">
+                      <div className="flex items-center justify-end gap-3">
+                        <Link 
+                          href={`/admin/articles/${article.id}/edit`} 
+                          className="text-blue-500 hover:text-white p-2.5 bg-blue-50 hover:bg-blue-500 rounded-xl transition-all shadow-sm"
+                          title="Edit Article"
+                        >
+                          <FaEdit />
+                        </Link>
+                        <button 
+                          onClick={() => deleteArticle(article.id)} 
+                          className="text-red-500 hover:text-white p-2.5 bg-red-50 hover:bg-red-500 rounded-xl transition-all shadow-sm"
+                          title="Delete Article"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {articles.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-12 text-center text-gray-500 font-medium">
+                      No articles found. Click "Write New Article" to start.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

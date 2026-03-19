@@ -13,6 +13,8 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
+export const revalidate = 3600; // Cache the page for 1 hour for lightning fast loads
+
 // ==========================================
 // 🌟 1. HIGH-CTR SEO METADATA (Click-Magnet)
 // ==========================================
@@ -27,15 +29,38 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!deity) return { title: 'Not Found' };
 
-  // Using dynamic year for freshness signal in Google
   const currentYear = new Date().getFullYear();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
+  const pageUrl = `${siteUrl}/deity/${slug}`;
+  
+  const dynamicDescription = `Read the most authentic and popular ${deity.name_hinglish} (${deity.name_hindi}) bhajans, aartis, and chalisa. Complete lyrics with meanings, curated by experts.`;
 
   return {
     title: `100+ Best ${deity.name_hindi} Bhajans & Aarti Lyrics (${currentYear}) | Hindi Bhajan Manjari`,
-    description: `Read the most authentic and popular ${deity.name_hinglish} (${deity.name_hindi}) bhajans, aartis, and chalisa. Complete lyrics with meanings, curated by experts.`,
+    description: dynamicDescription,
+    keywords: `${deity.name_hinglish} bhajans, ${deity.name_hindi} भजन, ${deity.name_hinglish} aarti lyrics, ${deity.name_hinglish} chalisa, Hindi Bhajan Manjari, best ${deity.name_hinglish} songs`,
     alternates: {
-      canonical: `${siteUrl}/deity/${slug}`,
+      canonical: pageUrl,
+    },
+    openGraph: {
+      title: `Best ${deity.name_hindi} Bhajans & Aarti Collection`,
+      description: dynamicDescription,
+      url: pageUrl,
+      type: 'website',
+      siteName: 'Hindi Bhajan Manjari',
+      images: [
+        {
+          url: `${siteUrl}/og-image.jpg`, // Default OG image or you can create a dynamic one!
+          width: 1200,
+          height: 630,
+          alt: `${deity.name_hinglish} Bhajans Collection`,
+        }
+      ]
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${deity.name_hindi} Bhajans Collection`,
+      description: dynamicDescription,
     }
   };
 }
@@ -74,27 +99,20 @@ export default async function DeityPage({ params }: Props) {
     deities: Array.isArray(bhajan.deities) ? bhajan.deities[0] : bhajan.deities,
     categories: Array.isArray(bhajan.categories) ? bhajan.categories[0] : bhajan.categories,
   })) || [];
-// 🌟 NEW: Fetch Trending/Classic Bhajans (Top 5)
+
+  // 🌟 Fetch Trending/Classic Bhajans (Top 5)
   const { data: trendingBhajans } = await supabase
     .from('bhajans')
     .select('title_hindi, title_hinglish, slug')
     .eq('deity_id', deity.id)
-    .order('created_at', { ascending: true }) // Simulating "classics" until we add view_count
+    .order('created_at', { ascending: true }) 
     .limit(5);
-  // ==========================================
-  // 🌟 4. SEO SCHEMA (Collection Page)
-  // ==========================================
+
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
-  const collectionSchema = {
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    "name": `${deity.name_hindi} Bhajans Collection`,
-    "description": `A curated collection of sacred bhajans dedicated to ${deity.name_hinglish}.`,
-    "url": `${siteUrl}/deity/${slug}`,
-  };
-  
+  const pageUrl = `${siteUrl}/deity/${slug}`;
+
   // ==========================================
-  // 🌟 5. DYNAMIC FAQS FOR SEO
+  // 🌟 4. DYNAMIC FAQS FOR SEO
   // ==========================================
   const deityFaqs = [
     {
@@ -111,9 +129,77 @@ export default async function DeityPage({ params }: Props) {
     }
   ];
 
+  // ==========================================
+  // 🌟 5. ADVANCED SEO SCHEMA GRAPH (The "Hub" Strategy)
+  // ==========================================
+  
+  const graphNodes: any[] = [];
+
+  // Node 1: Breadcrumbs
+  graphNodes.push({
+    "@type": "BreadcrumbList",
+    "@id": `${pageUrl}#breadcrumb`,
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": siteUrl },
+      { "@type": "ListItem", "position": 2, "name": "Deities", "item": `${siteUrl}/deity` },
+      { "@type": "ListItem", "position": 3, "name": deity.name_hinglish, "item": pageUrl }
+    ]
+  });
+
+  // Node 2: ItemList (Tells Google this is a list of Bhajans)
+  const allVisibleBhajans = [...(trendingBhajans || []), ...(rawBhajans || [])];
+  // Deduplicate just in case a trending bhajan is also in the latest list
+  const uniqueBhajans = Array.from(new Set(allVisibleBhajans.map(b => b.slug)))
+    .map(slug => allVisibleBhajans.find(b => b.slug === slug));
+
+  if (uniqueBhajans.length > 0) {
+    graphNodes.push({
+      "@type": "ItemList",
+      "@id": `${pageUrl}#itemlist`,
+      "name": `Top ${deity.name_hinglish} Bhajans`,
+      "itemListElement": uniqueBhajans.map((b: any, index: number) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "url": `${siteUrl}/bhajan/${b.slug}`,
+        "name": b.title_hindi || b.title_hinglish
+      }))
+    });
+  }
+
+  // Node 3: FAQPage
+  graphNodes.push({
+    "@type": "FAQPage",
+    "@id": `${pageUrl}#faq`,
+    "mainEntity": deityFaqs.map(faq => ({
+      "@type": "Question",
+      "name": faq.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.answer
+      }
+    }))
+  });
+
+  // Node 4: CollectionPage (The Master Node tying it all together)
+  graphNodes.push({
+    "@type": "CollectionPage",
+    "@id": pageUrl,
+    "url": pageUrl,
+    "name": `${deity.name_hindi} Bhajans Collection`,
+    "description": `A curated collection of sacred bhajans dedicated to ${deity.name_hinglish}.`,
+    "breadcrumb": { "@id": `${pageUrl}#breadcrumb` },
+    "mainEntity": uniqueBhajans.length > 0 ? { "@id": `${pageUrl}#itemlist` } : undefined
+  });
+
+  const advancedCollectionSchema = {
+    "@context": "https://schema.org",
+    "@graph": graphNodes
+  };
+
   return (
     <div className="min-h-screen bg-orange-50/30">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }} />
+      {/* 🌟 INJECT THE ADVANCED ENTITY GRAPH */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(advancedCollectionSchema) }} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         <Breadcrumbs items={[{ label: deity.name_hinglish }]} />
@@ -132,13 +218,15 @@ export default async function DeityPage({ params }: Props) {
                 Immerse yourself in devotion. Explore our expertly curated collection of sacred lyrics, aartis, and chalisa dedicated to {deity.name_hinglish}.
               </p>
             </div>
-          {/* ==========================================
+
+            {/* ==========================================
                 🌟 TRENDING CAROUSEL (Anti-Bounce Rate)
                 ========================================== */}
             <TrendingBhajans 
               bhajans={trendingBhajans || []} 
               deityNameHindi={deity.name_hindi} 
             />
+
             {/* --- CURATION SECTION --- */}
             <div className="mb-8 flex items-center gap-3 border-b border-orange-200/60 pb-3">
               <FaFire className="text-orange-500 text-xl" />
