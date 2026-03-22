@@ -48,8 +48,6 @@ export default function BhajanList({
   const [networkError, setNetworkError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if initialBhajans actually contain video_embed_url
-    // If they don't, it means the parent component (like page.tsx) didn't fetch it in its Supabase query!
     setBhajans(initialBhajans);
     setLoadMorePage(1); 
     setHasMore(true);
@@ -148,11 +146,11 @@ export default function BhajanList({
               yOffset={30}
             >
               <Link href={`/bhajan/${bhajan.slug}`}>
-                {/* 🌟 FIX 2: Added items-start instead of items-center so long titles don't push the layout weirdly */}
-                <div className="group bg-white p-5 md:p-6 rounded-3xl border border-gray-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-orange-200 transition-all duration-300 flex flex-col md:flex-row md:items-start justify-between gap-5 md:gap-6 relative overflow-hidden hover:-translate-y-0.5">
+                <div className="group bg-white p-5 md:p-6 rounded-3xl border border-gray-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-orange-200 transition-all duration-300 flex flex-col sm:flex-row sm:items-start justify-between gap-5 md:gap-6 relative overflow-hidden hover:-translate-y-0.5">
                   
+                  {/* 🌟 PERFECT 16:9 YOUTUBE THUMBNAIL UI */}
                   {thumbnailUrl ? (
-                    <div className="relative w-full md:w-44 h-48 md:h-28 shrink-0 rounded-2xl overflow-hidden bg-gray-100 group-hover:shadow-md transition-all border border-gray-100/50">
+                    <div className="relative w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl overflow-hidden bg-gray-100 group-hover:shadow-md transition-all border border-gray-100/50">
                       <img 
                         src={thumbnailUrl} 
                         alt={bhajan.title_hinglish} 
@@ -160,20 +158,20 @@ export default function BhajanList({
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
                       />
                       <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/10 transition-colors duration-500">
-                        <div className="w-10 h-10 bg-white/95 rounded-full flex items-center justify-center text-orange-600 shadow-xl backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
-                          <FaPlay className="ml-1 text-sm" />
+                        <div className="w-10 h-10 md:w-12 md:h-12 bg-white/95 rounded-full flex items-center justify-center text-orange-600 shadow-xl backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
+                          <FaPlay className="ml-1 text-sm md:text-base" />
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="hidden md:flex w-44 h-28 shrink-0 rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100/50 items-center justify-center border border-orange-100 text-orange-200/60">
+                    /* Placeholder for Bhajans without YouTube links - Also matching 16:9 */
+                    <div className="hidden sm:flex w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100/50 items-center justify-center border border-orange-100 text-orange-200/60">
                       <FaMusic size={32} />
                     </div>
                   )}
 
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-col-reverse md:flex-col gap-1.5 mb-3.5">
-                      {/* 🌟 FIX 2: Changed to line-clamp-2 for better handling of long titles */}
                       <h3 className="text-xl md:text-2xl font-black font-hindi text-gray-900 group-hover:text-orange-600 transition-colors leading-tight line-clamp-2">
                         {bhajan.title_hindi}
                       </h3>
@@ -187,9 +185,8 @@ export default function BhajanList({
                     </p>
                   </div>
 
-                  {/* 🌟 FIX 2: Adjusted alignment for the meta section */}
-                  <div className="flex items-center md:flex-col md:items-end justify-between md:justify-center shrink-0 border-t border-gray-50 md:border-t-0 pt-4 md:pt-0 mt-auto md:mt-0">
-                    <div className="flex flex-wrap gap-2 mb-0 md:mb-4">
+                  <div className="flex items-center sm:flex-col sm:items-end justify-between sm:justify-center shrink-0 border-t border-gray-50 sm:border-t-0 pt-4 sm:pt-0 mt-auto sm:mt-0">
+                    <div className="flex flex-wrap gap-2 mb-0 sm:mb-4">
                       {bhajan.deities && (
                         <span className="bg-orange-50 text-orange-700 border border-orange-100 px-3 py-1 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest">
                           {bhajan.deities.name_hinglish}

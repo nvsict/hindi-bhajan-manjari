@@ -125,17 +125,22 @@ async function LatestBhajansSection() {
       title_hindi, 
       slug, 
       lyrics_hindi,
-      video_embed_url, /* 🌟 FIXED: Added this column so thumbnails load instantly on page 1! */
+      video_embed_url,
       deities ( name_hinglish ), 
       categories ( name_hinglish )
     `)
     .order('created_at', { ascending: false })
-    .range(0, 9); // Set to 9 (so it fetches 10 items for the first page instead of 5)
+    .range(0, 9);
+  // 👇 यह लाइन जोड़ें
+  if (error) {
+    console.error("Supabase Error Full Details:", error); // <-- टर्मिनल में एरर दिखाएगा
+  }
 
   if (error) {
     return (
       <div className="p-8 text-center bg-red-50 rounded-2xl border border-red-100">
-        <p className="text-red-600 font-bold">Unable to load Bhajans at the moment.</p>
+        <p className="text-red-600 font-bold">Unable to load Bhajans: {error.message}</p> 
+        {/* 👆 स्क्रीन पर भी एरर का कारण दिखा देगा */}
       </div>
     );
   }
