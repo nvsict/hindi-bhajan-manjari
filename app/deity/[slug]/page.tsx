@@ -87,14 +87,16 @@ export default async function DeityPage({ params }: Props) {
       title_hindi, 
       slug, 
       lyrics_hindi,
+      video_embed_url, 
       deities ( name_hinglish ), 
       categories ( name_hinglish )
     `)
     .eq('deity_id', deity.id)
     .order('created_at', { ascending: false })
-    .range(0, 10);
+    .range(0, 9); // Fetches exactly 10 initial bhajans for the first page load
 
-  const initialBhajans = rawBhajans?.map(bhajan => ({
+  // 🌟 FIXED TYPE ERROR: Added (bhajan: any) to prevent spread operator build failure
+  const initialBhajans = rawBhajans?.map((bhajan: any) => ({
     ...bhajan,
     deities: Array.isArray(bhajan.deities) ? bhajan.deities[0] : bhajan.deities,
     categories: Array.isArray(bhajan.categories) ? bhajan.categories[0] : bhajan.categories,

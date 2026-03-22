@@ -107,6 +107,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         title_hindi, 
         slug, 
         lyrics_hindi,
+        video_embed_url, /* 🌟 FIXED: Added video_embed_url for Thumbnails */
         created_at,
         deities ( name_hinglish )
       )
@@ -115,12 +116,14 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     .order('bhajans(created_at)', { ascending: false })
     .range(from, to); 
 
+  // 🌟 FIXED: Added video_embed_url to the Interface
   interface BhajanData {
     id: string;
     title_hinglish: string;
     title_hindi: string;
     slug: string;
     lyrics_hindi: string;
+    video_embed_url?: string;
     deities: { name_hinglish: string } | null;
     categories: { name_hinglish: string } | null;
   }
@@ -134,6 +137,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       title_hindi: b.title_hindi,
       slug: b.slug,
       lyrics_hindi: b.lyrics_hindi,
+      video_embed_url: b.video_embed_url, /* 🌟 FIXED: Map it correctly */
       deities: Array.isArray(b.deities) ? b.deities[0] : b.deities,
       categories: { name_hinglish: category.name_hinglish } 
     };
@@ -153,7 +157,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const categoryFaqs = [
     {
       question: `इस श्रेणी (${category.name_hindi}) में कौन-कौन सी रचनाएं शामिल हैं?`,
-      answer: `इस श्रेणी में आपको ${category.name_hindi} से जुड़ी सभी प्रामाणिक और लोकप्रिय रचनाएं मिलेंगी। आप अपनी पसंद की रचना को हिंदी, अंग्रेजी या अन्य क्षेत्रीय भाषाओं में पढ़ सकते हैं।`
+      answer: `इस श्रेणी में आपको ${category.name_hindi} से जुड़ी सभी प्रामाणिक और लोकप्रिय रचनाएं मिलेंगी। आप अपनी पसंद की रचना को हिंदी, अंग्रेजी या अन्य क्षेत्रीय भाषाओं में पढ़ सकते हैं।`
     },
     {
       question: `क्या मैं इन ${category.name_hindi} की PDF फाइल सेव कर सकता हूँ?`,
@@ -297,7 +301,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
                   <div className="text-lg text-gray-700 font-hindi leading-loose space-y-4">
                     <p>
                       सनातन धर्म में <strong>{category.name_hindi}</strong> का एक विशेष और अत्यंत पवित्र स्थान है। 
-                      यह केवल कुछ शब्दों का संग्रह नहीं है, बल्कि परमात्मा से जुड़ने और उनके प्रति अपनी श्रद्धा 
+                      यह केवल कुछ शब्दों का संग्रह नहीं है, बल्कि परमात्मा से जुड़ने और उनके प्रति अपनी श्रद्धा 
                       प्रकट करने का एक सरल और सुंदर माध्यम है।
                     </p>
                     <p>
