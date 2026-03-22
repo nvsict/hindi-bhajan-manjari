@@ -5,6 +5,7 @@ import { supabase } from '../utils/supabase';
 import Link from 'next/link';
 import { FaArrowRight, FaArrowLeft, FaExclamationTriangle, FaPlay, FaMusic } from 'react-icons/fa';
 import ScrollReveal from './ScrollReveal'; 
+import Image from 'next/image'; // 🌟 Next.js का जादुई कंपोनेंट
 
 interface Bhajan {
   title_hinglish: string;
@@ -52,13 +53,13 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
           {/* 🌟 PERFECT 16:9 YOUTUBE THUMBNAIL UI */}
           {thumbnailUrl ? (
             <div className="relative w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl overflow-hidden bg-gray-100 group-hover:shadow-md transition-all border border-gray-100/50">
-              <img 
-                src={thumbnailUrl} 
-                alt={bhajan.title_hinglish} 
-                loading="lazy"
-                decoding="async" /* 🌟 OPTIMIZATION: Prevents image decoding from blocking the main thread */
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
-              />
+              <Image 
+  src={thumbnailUrl} 
+  alt={bhajan.title_hinglish} 
+  fill /* 🌟 Parent div relative है, इसलिए यह उसे परफेक्टली भर देगा */
+  sizes="(max-width: 640px) 100vw, (max-width: 768px) 192px, 224px" /* 🌟 मोबाइल के लिए छोटी, डेस्कटॉप के लिए बड़ी इमेज */
+  className="object-cover group-hover:scale-105 transition-transform duration-700" 
+/>
               <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/10 transition-colors duration-500">
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-white/95 rounded-full flex items-center justify-center text-orange-600 shadow-xl backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
                   <FaPlay className="ml-1 text-sm md:text-base" />
