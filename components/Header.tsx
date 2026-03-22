@@ -7,7 +7,7 @@ import { HiMenuAlt3, HiX } from 'react-icons/hi';
 import { GiLotusFlower } from 'react-icons/gi';
 import {
   FaSearch, FaPenNib, FaInstagram,
-  FaFacebookF, FaHeart, FaChevronRight, FaBookOpen, FaChevronDown, FaMusic, FaHandHoldingHeart
+  FaFacebookF, FaHeart, FaChevronRight, FaBookOpen, FaChevronDown, FaMusic, FaHandHoldingHeart, FaDownload
 } from 'react-icons/fa';
 import { FaOm, FaHandsPraying } from 'react-icons/fa6';
 import dynamic from 'next/dynamic';
@@ -126,9 +126,37 @@ export default function Header() {
   const navRefs = useRef<{ [key: string]: HTMLElement | null }>({});
   const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  // 🌟 PWA Install Logic State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
   const lastScrollY = useRef(0);
   const pathname = usePathname();
   const lenis = useLenis();
+
+  // 🌟 Capture PWA Install Event
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault(); // Prevent the default mini-infobar
+      setDeferredPrompt(e); // Stash the event so it can be triggered later
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    
+    // Show the install prompt
+    deferredPrompt.prompt();
+    
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null); // Hide button if they accepted
+    }
+  };
 
   // Scroll logic
   useLenis(({ scroll }) => {
@@ -272,7 +300,6 @@ export default function Header() {
               })}
 
               {/* 🌟 SHARED MEGA MENU DROPDOWN CONTAINER */}
-              {/* Renders one single floating box that morphs its inner content */}
               <div 
                 className={`absolute top-full left-1/2 -translate-x-1/2 pt-4 transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] origin-top z-50 ${
                   hasActiveMegaMenu ? 'opacity-100 visible translate-y-0 scale-100' : 'opacity-0 invisible translate-y-3 scale-95 pointer-events-none'
@@ -341,7 +368,6 @@ export default function Header() {
 
             {/* Desktop Actions */}
             <div className="hidden lg:flex items-center gap-2 shrink-0 z-10">
-              {/* 🌟 NEW DESKTOP DONATE BUTTON */}
               <Link 
                 href="/donate" 
                 className="mr-2 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white text-sm font-bold rounded-full shadow-[0_4px_15px_rgba(234,88,12,0.3)] hover:shadow-[0_6px_20px_rgba(234,88,12,0.4)] hover:-translate-y-0.5 transition-all outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
@@ -360,13 +386,11 @@ export default function Header() {
 
             {/* Mobile Actions */}
             <div className="lg:hidden flex items-center gap-1 z-10 relative">
-              {/* 🌟 NEW MOBILE DONATE ICON */}
               <Link 
                 href="/donate" 
                 className="w-10 h-10 flex items-center justify-center rounded-full text-orange-500 hover:bg-orange-50 transition-colors relative"
                 aria-label="Support Us"
               >
-                {/* Subtle ping animation to draw the eye */}
                 <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>
@@ -465,6 +489,22 @@ export default function Header() {
           ))}
           
           <div className="my-4 border-t border-gray-200/60 mx-2" />
+
+          {/* 🌟 NEW PWA INSTALL BUTTON (Only shows if browser allows it) */}
+          {deferredPrompt && (
+            <button
+              onClick={handleInstallClick}
+              className="flex items-center gap-4 px-5 py-3.5 mb-2 rounded-2xl text-white font-bold bg-gradient-to-r from-orange-500 to-red-500 shadow-md shadow-orange-500/20 active:scale-95 transition-all w-full border border-orange-400/50 text-left"
+            >
+              <span className="w-9 h-9 flex items-center justify-center shrink-0 rounded-xl bg-white/20 backdrop-blur-sm text-white">
+                <FaDownload size={16} />
+              </span>
+              <div className="flex flex-col items-start leading-tight">
+                <span className="text-[15px]">Install App</span>
+                <span className="text-[10px] text-orange-100 font-medium">Fast & Offline Access</span>
+              </div>
+            </button>
+          )}
           
           <Link href="/saved" onClick={closeMenu} className="flex items-center gap-4 px-5 py-3 rounded-2xl text-gray-700 font-semibold bg-white hover:shadow-sm transition-all border border-gray-100">
             <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500"><FaHeart size={16} /></span> My Sangrah
