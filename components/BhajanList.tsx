@@ -6,13 +6,12 @@ import Link from 'next/link';
 import { FaArrowRight, FaArrowLeft, FaExclamationTriangle, FaPlay, FaMusic } from 'react-icons/fa';
 import ScrollReveal from './ScrollReveal'; 
 
-// 🌟 1. UPDATE INTERFACE: Added video_embed_url
 interface Bhajan {
   title_hinglish: string;
   title_hindi: string;
   slug: string;
   lyrics_hindi: string;
-  video_embed_url?: string; // <--- यहाँ अपडेट किया
+  video_embed_url?: string; 
   deities: { name_hinglish: string } | null;
   categories: { name_hinglish: string } | null;
 }
@@ -26,7 +25,6 @@ interface Props {
   itemsPerPage?: number;
 }
 
-// 🌟 2. HELPER FUNCTION: To extract YouTube ID from any YouTube URL
 const getYouTubeId = (url?: string) => {
   if (!url) return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -50,6 +48,8 @@ export default function BhajanList({
   const [networkError, setNetworkError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check if initialBhajans actually contain video_embed_url
+    // If they don't, it means the parent component (like page.tsx) didn't fetch it in its Supabase query!
     setBhajans(initialBhajans);
     setLoadMorePage(1); 
     setHasMore(true);
@@ -71,7 +71,6 @@ export default function BhajanList({
     try {
       let fetchedData = null;
 
-      // 🌟 3. UPDATE QUERIES: Added 'video_embed_url'
       if (categoryId) {
         const { data, error } = await supabase
           .from('bhajan_category_map')
@@ -137,10 +136,8 @@ export default function BhajanList({
   return (
     <div className="flex flex-col gap-8 max-w-4xl mx-auto">
       
-      {/* List Container */}
       <div className="flex flex-col gap-4">
         {bhajans.map((bhajan, index) => {
-          // 🌟 4. GET THUMBNAIL URL (Using video_embed_url)
           const ytId = getYouTubeId(bhajan.video_embed_url);
           const thumbnailUrl = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
 
@@ -151,9 +148,9 @@ export default function BhajanList({
               yOffset={30}
             >
               <Link href={`/bhajan/${bhajan.slug}`}>
-                <div className="group bg-white p-5 md:p-6 rounded-3xl border border-gray-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-orange-200 transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-5 md:gap-6 relative overflow-hidden hover:-translate-y-0.5">
+                {/* 🌟 FIX 2: Added items-start instead of items-center so long titles don't push the layout weirdly */}
+                <div className="group bg-white p-5 md:p-6 rounded-3xl border border-gray-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-orange-200 transition-all duration-300 flex flex-col md:flex-row md:items-start justify-between gap-5 md:gap-6 relative overflow-hidden hover:-translate-y-0.5">
                   
-                  {/* 🌟 5. THUMBNAIL UI SECTION */}
                   {thumbnailUrl ? (
                     <div className="relative w-full md:w-44 h-48 md:h-28 shrink-0 rounded-2xl overflow-hidden bg-gray-100 group-hover:shadow-md transition-all border border-gray-100/50">
                       <img 
@@ -162,7 +159,6 @@ export default function BhajanList({
                         loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
                       />
-                      {/* Play Button Overlay */}
                       <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/10 transition-colors duration-500">
                         <div className="w-10 h-10 bg-white/95 rounded-full flex items-center justify-center text-orange-600 shadow-xl backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
                           <FaPlay className="ml-1 text-sm" />
@@ -170,16 +166,15 @@ export default function BhajanList({
                       </div>
                     </div>
                   ) : (
-                    /* Placeholder if no YouTube link exists */
                     <div className="hidden md:flex w-44 h-28 shrink-0 rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100/50 items-center justify-center border border-orange-100 text-orange-200/60">
                       <FaMusic size={32} />
                     </div>
                   )}
 
-                  {/* Existing Text Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-col-reverse md:flex-col gap-1.5 mb-3.5">
-                      <h3 className="text-xl md:text-2xl font-black font-hindi text-gray-900 group-hover:text-orange-600 transition-colors leading-tight line-clamp-1">
+                      {/* 🌟 FIX 2: Changed to line-clamp-2 for better handling of long titles */}
+                      <h3 className="text-xl md:text-2xl font-black font-hindi text-gray-900 group-hover:text-orange-600 transition-colors leading-tight line-clamp-2">
                         {bhajan.title_hindi}
                       </h3>
                       <p className="text-[11px] md:text-xs font-bold uppercase tracking-widest text-gray-500 line-clamp-1">
@@ -192,7 +187,8 @@ export default function BhajanList({
                     </p>
                   </div>
 
-                  <div className="flex items-center md:flex-col md:items-end justify-between md:justify-center shrink-0 border-t border-gray-50 md:border-t-0 pt-4 md:pt-0">
+                  {/* 🌟 FIX 2: Adjusted alignment for the meta section */}
+                  <div className="flex items-center md:flex-col md:items-end justify-between md:justify-center shrink-0 border-t border-gray-50 md:border-t-0 pt-4 md:pt-0 mt-auto md:mt-0">
                     <div className="flex flex-wrap gap-2 mb-0 md:mb-4">
                       {bhajan.deities && (
                         <span className="bg-orange-50 text-orange-700 border border-orange-100 px-3 py-1 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest">
@@ -217,7 +213,6 @@ export default function BhajanList({
         })}
       </div>
 
-      {/* Pagination & Load More Logic */}
       {isSeoPaginated ? (
         <ScrollReveal yOffset={20}>
           <div className="flex items-center justify-between pt-8 border-t border-gray-100 mt-4">

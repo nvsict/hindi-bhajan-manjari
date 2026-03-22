@@ -125,11 +125,12 @@ async function LatestBhajansSection() {
       title_hindi, 
       slug, 
       lyrics_hindi,
+      video_embed_url, /* 🌟 FIXED: Added this column so thumbnails load instantly on page 1! */
       deities ( name_hinglish ), 
       categories ( name_hinglish )
     `)
     .order('created_at', { ascending: false })
-    .range(0, 5); 
+    .range(0, 9); // Set to 9 (so it fetches 10 items for the first page instead of 5)
 
   if (error) {
     return (
@@ -139,7 +140,7 @@ async function LatestBhajansSection() {
     );
   }
 
-  const initialBhajans = (rawBhajans || []).map(bhajan => ({
+  const initialBhajans = (rawBhajans || []).map((bhajan: any) => ({
     ...bhajan,
     deities: Array.isArray(bhajan.deities) ? bhajan.deities[0] : bhajan.deities,
     categories: Array.isArray(bhajan.categories) ? bhajan.categories[0] : bhajan.categories,
