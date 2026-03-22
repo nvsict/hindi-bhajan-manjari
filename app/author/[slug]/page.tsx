@@ -24,7 +24,7 @@ export const AUTHORS: Record<string, any> = {
     role: "Founder & Chief Editor",
     bio: "A passionate seeker of Sanatan Dharma, Mohit has spent years documenting rare bhajans and explaining the deep spiritual meanings behind ancient stotrams. He ensures every piece of content on Hindi Bhajan Manjari is fact-checked for religious accuracy and linguistic purity.",
     quote: "Sanatan Dharma is not just a religion, it's the ultimate science of life and cosmos.",
-    expertise: ["Sanatan Dharma Literature", "Sanskrit Translation", "Bhajan Preservation", "Vedic Philosophy"],
+    expertise: ["Sanatan Dharma Literature", "Bhajan Preservation", "Vedic Philosophy"],
     image: "https://i.ibb.co/NddGCY05/Whats-App-Image-2026-02-28-at-12-37-16-AM.jpg",
     verified: true,
     stats: {
