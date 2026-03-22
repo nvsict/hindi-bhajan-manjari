@@ -246,7 +246,8 @@ export default function Home() {
         <Suspense fallback={
           <div className="hidden lg:block w-[340px] h-[800px] shrink-0 bg-gray-50/50 border border-gray-100 rounded-[2rem] animate-pulse sticky top-28"></div>
         }>
-          <div className="hidden lg:block">
+          {/* 🌟 THE FIX: हमने इस रैपर को भी sticky और h-fit कर दिया है */}
+          <div className="hidden lg:block lg:sticky lg:top-28 h-fit w-[340px] shrink-0">
             <Sidebar />
           </div>
         </Suspense>

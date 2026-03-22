@@ -172,7 +172,7 @@ export default async function Sidebar({
             Get daily Bhajans, festive Aartis, and spiritual updates sent directly to you.
           </p>
           <a 
-            href="https://whatsapp.com/channel/0029VbBxMM7Ae5VutiItov27"
+            href="https://chat.whatsapp.com/HFNrbRo9l8Q0wPyGdlk6BX"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full bg-white text-[#075E54] font-black text-base py-4 rounded-xl shadow-[0_4px_14px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 active:scale-95 transition-all duration-300"

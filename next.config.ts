@@ -1,45 +1,35 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Turbopack is active by default in Next 15+, but good to have the object ready
-  turbopack: {}, 
-
-  // 🌟 The Invisible Bridge for Supabase (Bypasses Jio/Airtel ISP Blocks)
-  async rewrites() {
-    return [
-      {
-        source: '/supabase-proxy/:path*',
-        // Route it securely to your actual Supabase URL
-        destination: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/:path*`, 
-      },
-    ]
-  },
-
   images: {
+    // 🌟 Next.js को AVIF और WebP सपोर्ट करने का निर्देश
     formats: ['image/avif', 'image/webp'],
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    // Note: removed 'qualities' array as it's not a standard Next.js image config property in newer versions
+    
+    // 🌟 FIXED: Added qualities to stop the terminal warnings for quality="60"
+    qualities: [60, 75, 90, 100], 
+    
     remotePatterns: [
       {
-        protocol: "https" as const,
+        protocol: "https",
         hostname: "**.supabase.co",
       },
       {
-        protocol: "https" as const,
+        protocol: "https",
         hostname: "i.postimg.cc",
       },
       {
-        protocol: "https" as const,
+        protocol: "https",
         hostname: "**.googleusercontent.com",
       },
       {
-        protocol: "https" as const,
+        protocol: "https",
         hostname: "images.pexels.com",
       },
-      // Keep the wildcard last just in case
+      // Keep the wildcard last just in case you use other image hosts
       {
-        protocol: "https" as const,
+        protocol: "https",
         hostname: "**",
       },
     ],
