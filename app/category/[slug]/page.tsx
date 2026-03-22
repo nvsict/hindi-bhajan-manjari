@@ -98,8 +98,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   }
 
   // Fetching with Pagination
-  // Fetching with Pagination
-  const { data: mappedData, count, error: mapError } = await supabase
+  const { data: mappedData, count } = await supabase
     .from('bhajan_category_map')
     .select(`
       id,
@@ -115,12 +114,9 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       )
     `, { count: 'exact' })
     .eq('category_id', category.id)
-    .order('id', { ascending: false }) // 🌟 FIXED: Changed back to Map ID
-    .range(from, to); 
+    .order('id', { ascending: false })
+    .range(from, to);
 
-  if (mapError) {
-    console.error("Supabase Category Fetch Error:", mapError);
-  }
 
   // 🌟 FIXED: Added video_embed_url to the Interface
   interface BhajanData {
