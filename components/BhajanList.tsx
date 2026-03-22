@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { supabase } from '../utils/supabase';
 import Link from 'next/link';
 import { FaArrowRight, FaArrowLeft, FaExclamationTriangle, FaPlay, FaMusic } from 'react-icons/fa';
@@ -32,6 +32,92 @@ const getYouTubeId = (url?: string) => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
+// ==========================================
+// 🌟 OPTIMIZATION: Memoized Card Component
+// ==========================================
+// This ensures that already rendered cards DO NOT re-render when the parent's state changes 
+// (e.g., when clicking "Load More" or when 'loading' state toggles).
+const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, index: number, itemsPerPage: number }) => {
+  const ytId = getYouTubeId(bhajan.video_embed_url);
+  const thumbnailUrl = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
+
+  return (
+    <ScrollReveal 
+      delay={(index % itemsPerPage) * 0.05} 
+      yOffset={30}
+    >
+      <Link href={`/bhajan/${bhajan.slug}`}>
+        <div className="group bg-white p-5 md:p-6 rounded-3xl border border-gray-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-orange-200 transition-all duration-300 flex flex-col sm:flex-row sm:items-start justify-between gap-5 md:gap-6 relative overflow-hidden hover:-translate-y-0.5">
+          
+          {/* 🌟 PERFECT 16:9 YOUTUBE THUMBNAIL UI */}
+          {thumbnailUrl ? (
+            <div className="relative w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl overflow-hidden bg-gray-100 group-hover:shadow-md transition-all border border-gray-100/50">
+              <img 
+                src={thumbnailUrl} 
+                alt={bhajan.title_hinglish} 
+                loading="lazy"
+                decoding="async" /* 🌟 OPTIMIZATION: Prevents image decoding from blocking the main thread */
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+              />
+              <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/10 transition-colors duration-500">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-white/95 rounded-full flex items-center justify-center text-orange-600 shadow-xl backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
+                  <FaPlay className="ml-1 text-sm md:text-base" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Placeholder for Bhajans without YouTube links - Also matching 16:9 */
+            <div className="hidden sm:flex w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100/50 items-center justify-center border border-orange-100 text-orange-200/60">
+              <FaMusic size={32} />
+            </div>
+          )}
+
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col-reverse md:flex-col gap-1.5 mb-3.5">
+              <h3 className="text-xl md:text-2xl font-black font-hindi text-gray-900 group-hover:text-orange-600 transition-colors leading-tight line-clamp-2">
+                {bhajan.title_hindi}
+              </h3>
+              <p className="text-[11px] md:text-xs font-bold uppercase tracking-widest text-gray-500 line-clamp-1">
+                {bhajan.title_hinglish}
+              </p>
+            </div>
+            
+            <p className="text-sm md:text-base text-gray-600 italic font-hindi line-clamp-1 border-l-2 border-orange-200 pl-3 leading-relaxed">
+              "{bhajan.lyrics_hindi?.split('\n')[0] || 'View full lyrics inside'}"...
+            </p>
+          </div>
+
+          <div className="flex items-center sm:flex-col sm:items-end justify-between sm:justify-center shrink-0 border-t border-gray-50 sm:border-t-0 pt-4 sm:pt-0 mt-auto sm:mt-0">
+            <div className="flex flex-wrap gap-2 mb-0 sm:mb-4">
+              {bhajan.deities && (
+                <span className="bg-orange-50 text-orange-700 border border-orange-100 px-3 py-1 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest">
+                  {bhajan.deities.name_hinglish}
+                </span>
+              )}
+              {bhajan.categories && (
+                <span className="bg-gray-50 text-gray-600 border border-gray-100 px-3 py-1 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest">
+                  {bhajan.categories.name_hinglish}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center text-orange-600 text-sm font-bold group-hover:translate-x-1 transition-transform">
+              Read <FaArrowRight className="ml-1.5" size={12} />
+            </div>
+          </div>
+        </div>
+      </Link>
+    </ScrollReveal>
+  );
+});
+
+// For debugging purposes in React DevTools
+BhajanCard.displayName = "BhajanCard";
+
+
+// ==========================================
+// MAIN BHAJAN LIST COMPONENT
+// ==========================================
 export default function BhajanList({ 
   initialBhajans, 
   categoryId,
@@ -135,79 +221,15 @@ export default function BhajanList({
     <div className="flex flex-col gap-8 max-w-4xl mx-auto">
       
       <div className="flex flex-col gap-4">
-        {bhajans.map((bhajan, index) => {
-          const ytId = getYouTubeId(bhajan.video_embed_url);
-          const thumbnailUrl = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
-
-          return (
-            <ScrollReveal 
-              key={bhajan.slug} 
-              delay={(index % itemsPerPage) * 0.05} 
-              yOffset={30}
-            >
-              <Link href={`/bhajan/${bhajan.slug}`}>
-                <div className="group bg-white p-5 md:p-6 rounded-3xl border border-gray-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-orange-200 transition-all duration-300 flex flex-col sm:flex-row sm:items-start justify-between gap-5 md:gap-6 relative overflow-hidden hover:-translate-y-0.5">
-                  
-                  {/* 🌟 PERFECT 16:9 YOUTUBE THUMBNAIL UI */}
-                  {thumbnailUrl ? (
-                    <div className="relative w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl overflow-hidden bg-gray-100 group-hover:shadow-md transition-all border border-gray-100/50">
-                      <img 
-                        src={thumbnailUrl} 
-                        alt={bhajan.title_hinglish} 
-                        loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
-                      />
-                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/10 transition-colors duration-500">
-                        <div className="w-10 h-10 md:w-12 md:h-12 bg-white/95 rounded-full flex items-center justify-center text-orange-600 shadow-xl backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
-                          <FaPlay className="ml-1 text-sm md:text-base" />
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    /* Placeholder for Bhajans without YouTube links - Also matching 16:9 */
-                    <div className="hidden sm:flex w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100/50 items-center justify-center border border-orange-100 text-orange-200/60">
-                      <FaMusic size={32} />
-                    </div>
-                  )}
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-col-reverse md:flex-col gap-1.5 mb-3.5">
-                      <h3 className="text-xl md:text-2xl font-black font-hindi text-gray-900 group-hover:text-orange-600 transition-colors leading-tight line-clamp-2">
-                        {bhajan.title_hindi}
-                      </h3>
-                      <p className="text-[11px] md:text-xs font-bold uppercase tracking-widest text-gray-500 line-clamp-1">
-                        {bhajan.title_hinglish}
-                      </p>
-                    </div>
-                    
-                    <p className="text-sm md:text-base text-gray-600 italic font-hindi line-clamp-1 border-l-2 border-orange-200 pl-3 leading-relaxed">
-                      "{bhajan.lyrics_hindi?.split('\n')[0] || 'View full lyrics inside'}"...
-                    </p>
-                  </div>
-
-                  <div className="flex items-center sm:flex-col sm:items-end justify-between sm:justify-center shrink-0 border-t border-gray-50 sm:border-t-0 pt-4 sm:pt-0 mt-auto sm:mt-0">
-                    <div className="flex flex-wrap gap-2 mb-0 sm:mb-4">
-                      {bhajan.deities && (
-                        <span className="bg-orange-50 text-orange-700 border border-orange-100 px-3 py-1 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest">
-                          {bhajan.deities.name_hinglish}
-                        </span>
-                      )}
-                      {bhajan.categories && (
-                        <span className="bg-gray-50 text-gray-600 border border-gray-100 px-3 py-1 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest">
-                          {bhajan.categories.name_hinglish}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center text-orange-600 text-sm font-bold group-hover:translate-x-1 transition-transform">
-                      Read <FaArrowRight className="ml-1.5" size={12} />
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            </ScrollReveal>
-          );
-        })}
+        {bhajans.map((bhajan, index) => (
+          /* 🌟 Using our highly optimized Memoized Component */
+          <BhajanCard 
+            key={bhajan.slug} 
+            bhajan={bhajan} 
+            index={index} 
+            itemsPerPage={itemsPerPage} 
+          />
+        ))}
       </div>
 
       {isSeoPaginated ? (

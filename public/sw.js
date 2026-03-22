@@ -12,7 +12,14 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // 🌟 FIXED 1: Ignore non-GET requests
   if (event.request.method !== 'GET') return;
+  
+  // 🌟 FIXED 2: Ignore chrome extensions and non-HTTP requests (Stops the annoying console errors)
+  if (!(event.request.url.startsWith('http:') || event.request.url.startsWith('https:'))) {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {

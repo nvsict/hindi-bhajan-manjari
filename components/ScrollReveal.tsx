@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from 'framer-motion';
-import { ReactNode } from 'react';
+import { ReactNode, memo } from 'react';
 
 interface ScrollRevealProps {
   children: ReactNode;
@@ -12,7 +12,8 @@ interface ScrollRevealProps {
   once?: boolean;       // Should it only animate once? (Usually yes)
 }
 
-export default function ScrollReveal({ 
+// 🌟 OPTIMIZATION 1: Wrapped in React.memo to prevent unnecessary re-renders
+const ScrollReveal = memo(function ScrollReveal({ 
   children, 
   delay = 0, 
   yOffset = 40, 
@@ -33,16 +34,23 @@ export default function ScrollReveal({
       }}
       viewport={{ 
         once: once, 
-        margin: "-50px" // 🌟 Triggers the animation when the element is 50px inside the viewport, preventing premature triggering
+        margin: "-50px", // Triggers the animation when the element is 50px inside the viewport
+        amount: 0.1      // 🌟 Ensures it triggers smoothly without waiting for the whole element
       }}
       transition={{
         duration: duration,
         delay: delay,
-        ease: [0.21, 0.47, 0.32, 0.98], // 🌟 The "Apple" easing curve: fast start, buttery smooth deceleration
+        ease: [0.21, 0.47, 0.32, 0.98], // The "Apple" easing curve
+      }}
+      // 🌟 OPTIMIZATION 2: Hardware Acceleration! Offloads work from CPU to GPU
+      style={{
+        willChange: "opacity, transform" 
       }}
       className={className}
     >
       {children}
     </motion.div>
   );
-}
+});
+
+export default ScrollReveal;
