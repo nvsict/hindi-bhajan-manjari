@@ -98,23 +98,29 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   }
 
   // Fetching with Pagination
-  const { data: mappedData, count } = await supabase
+  // Fetching with Pagination
+  const { data: mappedData, count, error: mapError } = await supabase
     .from('bhajan_category_map')
     .select(`
+      id,
       bhajans (
         id,
         title_hinglish, 
         title_hindi, 
         slug, 
         lyrics_hindi,
-        video_embed_url, /* 🌟 FIXED: Added video_embed_url for Thumbnails */
+        video_embed_url,
         created_at,
         deities ( name_hinglish )
       )
     `, { count: 'exact' })
     .eq('category_id', category.id)
-    .order('bhajans(created_at)', { ascending: false })
+    .order('id', { ascending: false }) // 🌟 FIXED: Changed back to Map ID
     .range(from, to); 
+
+  if (mapError) {
+    console.error("Supabase Category Fetch Error:", mapError);
+  }
 
   // 🌟 FIXED: Added video_embed_url to the Interface
   interface BhajanData {
