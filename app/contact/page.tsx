@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { supabase } from '../../utils/supabase';
-import { FaEnvelope, FaWhatsapp, FaCheckCircle, FaSpinner } from 'react-icons/fa';
+import { FaEnvelope, FaWhatsapp, FaCheckCircle, FaSpinner, FaMapMarkerAlt, FaShieldAlt } from 'react-icons/fa';
 import { HiArrowRight } from 'react-icons/hi';
 import { GiLotusFlower } from 'react-icons/gi';
+import Link from 'next/link';
 
 export default function ContactPage() {
   const [loading, setLoading] = useState(false);
@@ -43,7 +44,7 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white relative overflow-hidden">
+    <div className="min-h-screen bg-white relative overflow-hidden selection:bg-orange-100 selection:text-orange-900">
       
       {/* Background Decorative Elements */}
       <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-orange-50/50 to-transparent pointer-events-none"></div>
@@ -58,11 +59,9 @@ export default function ContactPage() {
           <span className="inline-block bg-orange-50 border border-orange-100 text-orange-600 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest shadow-sm mb-6">
             Get in Touch
           </span>
-          {/* 🌟 FIX: Bilingual Header with tracking-tighter */}
           <h1 className="text-4xl md:text-6xl font-black font-hindi text-gray-900 mb-6 tracking-tighter leading-tight">
             हमसे <span className="text-orange-600">संपर्क करें</span>
           </h1>
-          {/* 🌟 FIX: Bilingual description with leading-[1.8] */}
           <p className="text-gray-600 max-w-2xl mx-auto text-lg md:text-xl leading-[1.8] font-hindi font-medium">
             चाहे आपको कोई नया भजन सुझाना हो, या किसी त्रुटि (typo) की जानकारी देनी हो, हम आपके संदेश का स्वागत करते हैं। 
             <span className="block mt-2 text-gray-500 font-sans text-base">We're here to listen. Devotion is better when shared.</span>
@@ -105,6 +104,20 @@ export default function ContactPage() {
               </a>
             </div>
 
+            {/* 🌟 NEW: Location Card (Boosts AdSense Trust & E-E-A-T) */}
+            <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-xl shadow-blue-900/5 hover:-translate-y-1 hover:border-blue-200 transition-all duration-300 group">
+              <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors shadow-sm">
+                <FaMapMarkerAlt size={24} />
+              </div>
+              <h3 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">Our Location</h3>
+              <p className="text-gray-500 mb-6 text-sm leading-relaxed font-medium">
+                Proudly operating and managing our spiritual digital library from the holy land.
+              </p>
+              <div className="inline-flex items-center gap-2 text-blue-600 font-bold">
+               Farah, Mathura, Uttar Pradesh – 281122, India
+              </div>
+            </div>
+
           </div>
 
           {/* --- FORM SIDE (3 Columns) --- */}
@@ -115,7 +128,7 @@ export default function ContactPage() {
                   <FaCheckCircle size={48} />
                 </div>
                 <h2 className="text-4xl font-black font-hindi text-gray-900 mb-4 tracking-tighter">जय श्री राम!</h2>
-                <p className="text-gray-600 text-lg mb-8 font-medium">Your message has been received. We will get back to you shortly.</p>
+                <p className="text-gray-600 text-lg mb-8 font-medium">Your message has been received securely. We will get back to you shortly.</p>
                 <button 
                   onClick={() => setSubmitted(false)}
                   className="px-8 py-3 bg-orange-50 text-orange-600 font-bold rounded-full hover:bg-orange-100 transition-colors"
@@ -130,7 +143,6 @@ export default function ContactPage() {
               >
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    {/* 🌟 FIX: Updated labels to our standard uppercase tracking format */}
                     <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Full Name</label>
                     <input 
                       required
@@ -180,9 +192,15 @@ export default function ContactPage() {
                     </>
                   )}
                 </button>
-                <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-wider mt-4">
-                  We usually respond within 24-48 hours.
-                </p>
+                
+                {/* 🌟 NEW: Privacy Consent Statement */}
+                <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-gray-100">
+                  <FaShieldAlt className="text-green-500" />
+                  <p className="text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider m-0">
+                    Your data is secure. By contacting us, you agree to our <Link href="/privacy-policy" className="text-gray-600 hover:text-orange-600 transition-colors">Privacy Policy</Link>.
+                  </p>
+                </div>
+
               </form>
             )}
           </div>
