@@ -13,6 +13,7 @@ import TrendingArtists from '../components/home/TrendingArtists';
 import { FaBookOpen, FaClock, FaArrowRight, FaMusic } from 'react-icons/fa';
 import ScrollReveal from '../components/ScrollReveal';
 
+// VPS Native ISR (Incremental Static Regeneration)
 export const revalidate = 300; 
 
 // ==========================================
@@ -36,7 +37,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: `${siteUrl}/og-image.jpg`, // Ensure you have an og-image.jpg in your public folder!
+        url: `${siteUrl}/og-image.jpg`, 
         width: 1200,
         height: 630,
         alt: 'Hindi Bhajan Manjari',
@@ -131,16 +132,13 @@ async function LatestBhajansSection() {
     `)
     .order('created_at', { ascending: false })
     .range(0, 9);
-  // 👇 यह लाइन जोड़ें
-  if (error) {
-    console.error("Supabase Error Full Details:", error); // <-- टर्मिनल में एरर दिखाएगा
-  }
 
   if (error) {
+    // Log securely to VPS server logs, but don't expose raw DB schema/messages to users
+    console.error("[Homepage] Failed to fetch latest bhajans:", error.message);
     return (
-      <div className="p-8 text-center bg-red-50 rounded-2xl border border-red-100">
-        <p className="text-red-600 font-bold">Unable to load Bhajans: {error.message}</p> 
-        {/* 👆 स्क्रीन पर भी एरर का कारण दिखा देगा */}
+      <div className="p-8 text-center bg-orange-50 rounded-2xl border border-orange-100">
+        <p className="text-orange-800 font-medium">संग्रह लोड हो रहा है, कृपया कुछ समय बाद पुनः प्रयास करें।</p> 
       </div>
     );
   }
@@ -156,7 +154,7 @@ async function LatestBhajansSection() {
 
 export default function Home() {
   // ==========================================
-  // 🌟 THE HOMEPAGE SEO GRAPH (WebSite + Organization)
+  // 🌟 THE HOMEPAGE SEO GRAPH
   // ==========================================
   const homeSchemaGraph = {
     "@context": "https://schema.org",
@@ -196,7 +194,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* 🌟 INJECTING THE HOMEPAGE SCHEMA */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(homeSchemaGraph) }} />
 
       {/* 1. Hero Section */}
@@ -210,7 +207,7 @@ export default function Home() {
           {/* 2. Visual Hook: Who to pray to? */}
           <DeityBrowse /> 
 
-          {/* 🌟 3. Core Content: The Bhajans (Moved up for immediate gratification) */}
+          {/* 3. Core Content: The Bhajans */}
           <div className="mt-8">
             <ScrollReveal yOffset={20}>
               <div className="flex flex-row items-center justify-between border-b border-gray-100 pb-3 md:pb-4 mb-6 md:mb-8 mt-4">
@@ -235,7 +232,7 @@ export default function Home() {
             <TrendingArtists />
           </div>
 
-          {/* 5. Deep Reading Anchor (Moved to bottom) */}
+          {/* 5. Deep Reading Anchor */}
           <Suspense fallback={<div className="h-64 bg-gray-50 rounded-2xl animate-pulse mt-16 mb-12 border border-gray-100"></div>}>
             <LatestGyanSection />
           </Suspense>
@@ -246,7 +243,6 @@ export default function Home() {
         <Suspense fallback={
           <div className="hidden lg:block w-[340px] h-[800px] shrink-0 bg-gray-50/50 border border-gray-100 rounded-[2rem] animate-pulse sticky top-28"></div>
         }>
-          {/* 🌟 THE FIX: हमने इस रैपर को भी sticky और h-fit कर दिया है */}
           <div className="hidden lg:block lg:sticky lg:top-28 h-fit w-[340px] shrink-0">
             <Sidebar />
           </div>

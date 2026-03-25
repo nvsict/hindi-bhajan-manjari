@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { supabase } from '@/utils/supabase'; // 🌟 Ensure this path is correct for your project
 import { HiMenuAlt3, HiX } from 'react-icons/hi';
 import { GiLotusFlower } from 'react-icons/gi';
 import {
@@ -21,8 +22,8 @@ const hind = Hind({
   display: 'swap',
 });
 
-// ─── 🌟 PREMIUM MEGA MENU DATA STRUCTURE ────────────────────────────────────
-const NAV_ITEMS = [
+// ─── 🌟 DEFAULT FALLBACK NAV DATA ────────
+const DEFAULT_NAV_ITEMS = [
   { name: 'Home', href: '/' },
   {
     name: 'Deities',
@@ -63,7 +64,8 @@ const NAV_ITEMS = [
       ]
     }
   },
-  { name: 'Gyan Hub', href: '/gyan' },
+  { name: 'A-Z Directory', href: '/bhajans' }, 
+  { name: 'Gyan Hub', href: '/gyan' }, 
 ];
 
 const SOCIAL_LINKS = [
@@ -113,6 +115,8 @@ const UtilityBar = memo(function UtilityBar() {
 });
 
 export default function Header() {
+  const [navItems, setNavItems] = useState<any[]>(DEFAULT_NAV_ITEMS);
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [expandedMobileMenu, setExpandedMobileMenu] = useState<string | null>(null);
@@ -120,42 +124,88 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
   
-  // 🌟 Desktop Hover Animation States
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
   const [pillStyle, setPillStyle] = useState({ left: 0, width: 0, opacity: 0 });
   const navRefs = useRef<{ [key: string]: HTMLElement | null }>({});
   const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  // 🌟 PWA Install Logic State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   const lastScrollY = useRef(0);
   const pathname = usePathname();
   const lenis = useLenis();
 
-  // 🌟 Capture PWA Install Event
+  // 🌟 DYNAMIC FETCHING LOGIC (Using Supabase Views)
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault(); // Prevent the default mini-infobar
-      setDeferredPrompt(e); // Stash the event so it can be triggered later
+    const fetchDynamicNav = async () => {
+      try {
+        const { data: topDeities } = await supabase
+          .from('top_deities')
+          .select('name, slug, icon, description') 
+          .limit(6);
+
+        const { data: topCategories } = await supabase
+          .from('top_categories')
+          .select('name, slug, icon, description')
+          .limit(5);
+
+        if (topDeities && topCategories) {
+          const dynamicNav = [
+            { name: 'Home', href: '/' },
+            {
+              name: 'Deities',
+              megaMenu: {
+                // 🌟 FIX: Added ! to tell TS megaMenu exists here
+                featured: DEFAULT_NAV_ITEMS[1].megaMenu!.featured, 
+                links: topDeities.map((d: any) => ({
+                  name: d.name,
+                  href: `/deity/${d.slug}`,
+                  icon: d.icon || '🙏', 
+                  desc: d.description || 'Divine Collection'
+                }))
+              }
+            },
+            {
+              name: 'Categories',
+              megaMenu: {
+                // 🌟 FIX: Added ! to tell TS megaMenu exists here
+                featured: DEFAULT_NAV_ITEMS[2].megaMenu!.featured, 
+                links: topCategories.map((c: any) => ({
+                  name: c.name,
+                  href: `/category/${c.slug}`,
+                  icon: c.icon || <FaMusic />, 
+                  desc: c.description || 'Spiritual Categories'
+                }))
+              }
+            },
+            { name: 'A-Z Directory', href: '/bhajans' }, 
+            { name: 'Gyan Hub', href: '/gyan' },
+          ];
+          setNavItems(dynamicNav);
+        }
+      } catch (error) {
+        console.error("Failed to fetch dynamic nav items, using fallback:", error);
+      }
     };
 
+    fetchDynamicNav();
+  }, []);
+
+  // PWA Logic
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
-    
-    // Show the install prompt
     deferredPrompt.prompt();
-    
-    // Wait for the user to respond to the prompt
     const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null); // Hide button if they accepted
-    }
+    if (outcome === 'accepted') setDeferredPrompt(null);
   };
 
   // Scroll logic
@@ -194,12 +244,10 @@ export default function Header() {
     [pathname],
   );
 
-  // 🌟 Mouse Handlers for Desktop Shared Animation
   const handleNavMouseEnter = (name: string) => {
     if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
     setHoveredMenu(name);
     
-    // Update sliding pill background
     const el = navRefs.current[name];
     if (el) {
       setPillStyle({
@@ -214,10 +262,10 @@ export default function Header() {
     hoverTimeout.current = setTimeout(() => {
       setHoveredMenu(null);
       setPillStyle((prev) => ({ ...prev, opacity: 0 }));
-    }, 200); // 200ms delay gives user time to move mouse diagonally into the dropdown
+    }, 200); 
   };
 
-  const hasActiveMegaMenu = hoveredMenu && NAV_ITEMS.find(i => i.name === hoveredMenu)?.megaMenu;
+  const hasActiveMegaMenu = hoveredMenu && navItems.find(i => i.name === hoveredMenu)?.megaMenu;
 
   return (
     <> 
@@ -254,12 +302,11 @@ export default function Header() {
               </div>
             </Link>
 
-            {/* 🌟 PREMIUM DESKTOP NAV WITH SHARED ANIMATION */}
+            {/* 🌟 PREMIUM DESKTOP NAV WITH DYNAMIC DATA */}
             <nav 
               className="hidden lg:flex items-center gap-1 mx-6 relative h-full"
               onMouseLeave={handleNavMouseLeave}
             >
-              {/* Magic Hover Pill Background */}
               <div 
                 className="absolute h-10 bg-orange-50 rounded-full transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] pointer-events-none"
                 style={{
@@ -270,8 +317,8 @@ export default function Header() {
                 }}
               />
 
-              {NAV_ITEMS.map((item) => {
-                const isItemActive = item.href ? isActive(item.href) : item.megaMenu?.links.some(d => isActive(d.href));
+              {navItems.map((item) => {
+                const isItemActive = item.href ? isActive(item.href) : item.megaMenu?.links.some((d: any) => isActive(d.href));
                 const isHovered = hoveredMenu === item.name;
                 
                 return (
@@ -299,17 +346,16 @@ export default function Header() {
                 );
               })}
 
-              {/* 🌟 SHARED MEGA MENU DROPDOWN CONTAINER */}
+              {/* SHARED MEGA MENU DROPDOWN CONTAINER */}
               <div 
                 className={`absolute top-full left-1/2 -translate-x-1/2 pt-4 transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] origin-top z-50 ${
                   hasActiveMegaMenu ? 'opacity-100 visible translate-y-0 scale-100' : 'opacity-0 invisible translate-y-3 scale-95 pointer-events-none'
                 }`}
-                onMouseEnter={() => { if (hoverTimeout.current) clearTimeout(hoverTimeout.current); }} // Keep open if mouse moves into the box
+                onMouseEnter={() => { if (hoverTimeout.current) clearTimeout(hoverTimeout.current); }}
               >
                 <div className="w-[720px] bg-white/95 backdrop-blur-2xl rounded-[2rem] shadow-[0_25px_70px_-15px_rgba(234,88,12,0.2)] border border-white ring-1 ring-black/5 p-2 grid relative overflow-hidden transition-colors duration-300">
                   
-                  {/* Render content based on active hovered menu. CSS Grid allows overlap for cross-fade */}
-                  {NAV_ITEMS.filter(i => i.megaMenu).map((item) => {
+                  {navItems.filter(i => i.megaMenu).map((item) => {
                     const isContentActive = hoveredMenu === item.name;
                     return (
                       <div 
@@ -337,7 +383,7 @@ export default function Header() {
 
                         {/* Right Grid Column */}
                         <div className="flex-1 p-6 grid grid-cols-2 gap-x-4 gap-y-3 content-start">
-                          {item.megaMenu!.links.map((subItem) => (
+                          {item.megaMenu!.links.map((subItem: any) => (
                             <Link 
                               key={subItem.name} 
                               href={subItem.href}
@@ -351,7 +397,7 @@ export default function Header() {
                                 <p className={`font-bold text-[15px] leading-tight mb-0.5 transition-colors ${isActive(subItem.href) ? 'text-orange-800' : 'text-gray-900 group-hover/link:text-orange-600'}`}>
                                   {subItem.name}
                                 </p>
-                                <p className="text-[12px] text-gray-500 font-medium leading-snug">
+                                <p className="text-[12px] text-gray-500 font-medium leading-snug truncate w-32">
                                   {subItem.desc}
                                 </p>
                               </div>
@@ -370,7 +416,7 @@ export default function Header() {
             <div className="hidden lg:flex items-center gap-2 shrink-0 z-10">
               <Link 
                 href="/donate" 
-                className="mr-2 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white text-sm font-bold rounded-full shadow-[0_4px_15px_rgba(234,88,12,0.3)] hover:shadow-[0_6px_20px_rgba(234,88,12,0.4)] hover:-translate-y-0.5 transition-all outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                className="mr-2 flex items-center gap-2 px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold rounded-full transition-all shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-orange-400 active:scale-95"
               >
                 <FaHandHoldingHeart size={16} /> Support Us
               </Link>
@@ -388,13 +434,9 @@ export default function Header() {
             <div className="lg:hidden flex items-center gap-1 z-10 relative">
               <Link 
                 href="/donate" 
-                className="w-10 h-10 flex items-center justify-center rounded-full text-orange-500 hover:bg-orange-50 transition-colors relative"
+                className="w-10 h-10 flex items-center justify-center rounded-full text-orange-600 hover:bg-orange-50 transition-colors relative"
                 aria-label="Support Us"
               >
-                <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>
-                </span>
                 <FaHandHoldingHeart size={20} />
               </Link>
               
@@ -444,7 +486,7 @@ export default function Header() {
         </div>
 
         <nav data-lenis-prevent="true" className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-2 bg-gray-50/50">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <div key={item.name}>
               {item.megaMenu ? (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-colors duration-300">
@@ -458,7 +500,7 @@ export default function Header() {
                   <div className={`grid transition-all duration-300 ease-in-out ${expandedMobileMenu === item.name ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                     <div className="overflow-hidden bg-gray-50/50">
                       <div className="px-3 pb-4 pt-1 flex flex-col gap-1">
-                        {item.megaMenu.links.map(subItem => (
+                        {item.megaMenu.links.map((subItem: any) => (
                           <Link 
                             key={subItem.name} 
                             href={subItem.href}
@@ -490,7 +532,6 @@ export default function Header() {
           
           <div className="my-4 border-t border-gray-200/60 mx-2" />
 
-          {/* 🌟 NEW PWA INSTALL BUTTON (Only shows if browser allows it) */}
           {deferredPrompt && (
             <button
               onClick={handleInstallClick}

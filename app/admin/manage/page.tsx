@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase'; // Adjust path if needed
-import { FaTrash, FaEdit, FaPlus, FaHands, FaTags, FaSearch, FaSyncAlt, FaImage, FaUserCircle } from 'react-icons/fa';
+import { FaTrash, FaEdit, FaPlus, FaHands, FaTags, FaSearch, FaSyncAlt, FaImage, FaUserCircle, FaBookOpen, FaTimes } from 'react-icons/fa';
 import { deleteItem } from '@/app/actions/manage'; // Adjust path if needed
 import Link from 'next/link';
 import Image from 'next/image';
@@ -17,6 +17,12 @@ export default function MetadataManagePage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // 🌟 State for Quick Edit Modal (SEO Content)
+  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [richDesc, setRichDesc] = useState("");
+  const [faqs, setFaqs] = useState<{question: string, answer: string}[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -54,6 +60,47 @@ export default function MetadataManagePage() {
     }
   };
 
+  // 🌟 Open Modal & Safely Parse FAQs
+  const openSeoEditModal = (category: any) => {
+    setEditingCategory(category);
+    setRichDesc(category.rich_description || "");
+    
+    let parsedFaqs = [];
+    if (Array.isArray(category.dynamic_faqs)) {
+      parsedFaqs = category.dynamic_faqs;
+    } else if (typeof category.dynamic_faqs === 'string') {
+      try { parsedFaqs = JSON.parse(category.dynamic_faqs); } catch(e){}
+    }
+    
+    if (parsedFaqs.length === 0) {
+      parsedFaqs = [{question: "", answer: ""}]; // Give at least one empty row
+    }
+    setFaqs(parsedFaqs);
+  };
+
+  // 🌟 Save changes directly to DB
+  const handleSaveSeoContent = async () => {
+    setIsSaving(true);
+    // Clean up empty FAQs before saving
+    const cleanFaqs = faqs.filter(f => f.question.trim() !== "" && f.answer.trim() !== "");
+    
+    const { error } = await supabase
+      .from('categories')
+      .update({
+        rich_description: richDesc,
+        dynamic_faqs: cleanFaqs.length > 0 ? cleanFaqs : null
+      })
+      .eq('id', editingCategory.id);
+
+    if (!error) {
+      setEditingCategory(null);
+      fetchData(); // Refresh list to show new data implicitly
+    } else {
+      alert("Error saving data: " + error.message);
+    }
+    setIsSaving(false);
+  };
+
   const filteredData = data.filter((item) => {
     const query = searchQuery.toLowerCase();
     return (
@@ -64,7 +111,7 @@ export default function MetadataManagePage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50/30 p-6 md:p-10 font-sans">
+    <div className="min-h-screen bg-gray-50/30 p-6 md:p-10 font-sans relative">
       <div className="max-w-7xl mx-auto pb-20">
         
         {/* --- HEADER SECTION --- */}
@@ -84,7 +131,6 @@ export default function MetadataManagePage() {
 
         {/* --- ACTION BAR: TABS & SEARCH --- */}
         <div className="flex flex-col lg:flex-row justify-between items-center gap-6 mb-8">
-          
           {/* Tabs */}
           <div className="flex bg-white p-2 rounded-2xl shadow-sm border border-gray-100 w-full lg:w-auto overflow-x-auto">
             <button
@@ -137,7 +183,6 @@ export default function MetadataManagePage() {
 
         {/* --- DATA TABLE --- */}
         <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl shadow-gray-900/5 overflow-hidden flex flex-col">
-          
           <div className="bg-gray-50/50 border-b border-gray-100 px-8 py-5 flex justify-between items-center">
             <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">
               {activeTab} Directory
@@ -196,12 +241,16 @@ export default function MetadataManagePage() {
                       )}
 
                       <td className="px-8 py-5">
-                        <div className="font-bold text-gray-900 text-lg mb-1">{item.name_hinglish}</div>
-                        {/* 🌟 FIX: Applied font-hindi for crisp rendering */}
+                        <div className="font-bold text-gray-900 text-lg mb-1 flex items-center gap-2">
+                          {item.name_hinglish}
+                          {/* 🌟 Indicator that SEO Content exists */}
+                          {activeTab === 'categories' && (item.rich_description || item.dynamic_faqs) && (
+                            <span className="bg-green-100 text-green-700 text-[9px] px-2 py-0.5 rounded-full uppercase tracking-widest">SEO Active</span>
+                          )}
+                        </div>
                         <div className="text-sm text-orange-600 font-bold font-hindi leading-tight">{item.name_hindi}</div>
                       </td>
                       
-                      {/* Extra column just for Artists */}
                       {activeTab === 'artists' && (
                         <td className="px-8 py-5 text-sm text-gray-600 font-medium">
                            {item.phone ? <div>{item.phone}</div> : <span className="text-gray-300 italic">No Phone</span>}
@@ -216,13 +265,26 @@ export default function MetadataManagePage() {
 
                       <td className="px-8 py-5 text-right">
                         <div className="flex items-center justify-end gap-3">
+                          
+                          {/* 🌟 NEW: Quick Edit Content Button (Only for Categories) */}
+                          {activeTab === 'categories' && (
+                            <button 
+                              onClick={() => openSeoEditModal(item)}
+                              className="p-3 bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-md"
+                              title="Quick Edit SEO/Content"
+                            >
+                              <FaBookOpen size={16} />
+                            </button>
+                          )}
+
                           <button 
                             onClick={() => router.push(`/admin/edit/${activeTab}/${item.id}`)}
                             className="p-3 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-md"
-                            title="Edit Details"
+                            title="Edit Basic Details"
                           >
                             <FaEdit size={16} />
                           </button>
+
                           <button 
                             onClick={() => handleDelete(item.id, item.name_hinglish)}
                             className="p-3 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-md"
@@ -230,6 +292,7 @@ export default function MetadataManagePage() {
                           >
                             <FaTrash size={16} />
                           </button>
+
                         </div>
                       </td>
                     </tr>
@@ -240,6 +303,115 @@ export default function MetadataManagePage() {
           )}
         </div>
       </div>
+
+      {/* ========================================== */}
+      {/* 🌟 QUICK EDIT MODAL FOR CATEGORY CONTENT */}
+      {/* ========================================== */}
+      {editingCategory && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditingCategory(null)}></div>
+          
+          <div className="bg-white rounded-[2rem] w-full max-w-3xl max-h-[90vh] overflow-y-auto relative z-10 shadow-2xl flex flex-col">
+            
+            <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-gray-100 px-8 py-6 flex justify-between items-center z-20">
+              <div>
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight">Edit SEO Content</h2>
+                <p className="text-orange-600 font-bold font-hindi">{editingCategory.name_hindi} ({editingCategory.name_hinglish})</p>
+              </div>
+              <button onClick={() => setEditingCategory(null)} className="w-10 h-10 bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500 flex items-center justify-center rounded-full transition-colors">
+                <FaTimes size={18} />
+              </button>
+            </div>
+
+            <div className="p-8 space-y-8">
+              
+              {/* Rich Description Field */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Rich Description (SEO Paragraph)</label>
+                <textarea 
+                  rows={4}
+                  value={richDesc}
+                  onChange={(e) => setRichDesc(e.target.value)}
+                  placeholder="Enter a highly detailed, SEO optimized paragraph about this category..."
+                  className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-400 outline-none transition-all font-medium font-hindi text-gray-900"
+                />
+              </div>
+
+              <hr className="border-gray-100" />
+
+              {/* Dynamic FAQs Builder */}
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest">Dynamic FAQs</label>
+                  <button 
+                    onClick={() => setFaqs([...faqs, {question: "", answer: ""}])}
+                    className="text-xs font-bold bg-orange-50 text-orange-600 px-3 py-1.5 rounded-lg hover:bg-orange-100 transition-colors flex items-center gap-2"
+                  >
+                    <FaPlus size={10} /> Add FAQ
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  {faqs.map((faq, index) => (
+                    <div key={index} className="bg-gray-50 p-4 rounded-2xl border border-gray-200 relative group">
+                      <button 
+                        onClick={() => setFaqs(faqs.filter((_, i) => i !== index))}
+                        className="absolute -top-3 -right-3 w-8 h-8 bg-white border border-gray-200 text-red-500 rounded-full flex items-center justify-center shadow-sm hover:bg-red-500 hover:text-white hover:border-red-500 transition-all opacity-0 group-hover:opacity-100"
+                        title="Remove FAQ"
+                      >
+                        <FaTimes size={12} />
+                      </button>
+                      <input 
+                        type="text" 
+                        placeholder={`Question ${index + 1}`}
+                        value={faq.question}
+                        onChange={(e) => {
+                          const newFaqs = [...faqs];
+                          newFaqs[index].question = e.target.value;
+                          setFaqs(newFaqs);
+                        }}
+                        className="w-full p-3 bg-white border border-gray-200 rounded-xl mb-3 focus:ring-2 focus:ring-orange-400 outline-none font-bold font-hindi text-gray-900"
+                      />
+                      <textarea 
+                        rows={2}
+                        placeholder={`Answer ${index + 1}`}
+                        value={faq.answer}
+                        onChange={(e) => {
+                          const newFaqs = [...faqs];
+                          newFaqs[index].answer = e.target.value;
+                          setFaqs(newFaqs);
+                        }}
+                        className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-400 outline-none font-medium font-hindi text-gray-700 resize-none"
+                      />
+                    </div>
+                  ))}
+                  {faqs.length === 0 && (
+                    <p className="text-gray-400 italic text-sm text-center py-4">No FAQs added yet.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="sticky bottom-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-8 py-5 flex justify-end gap-4 z-20">
+              <button 
+                onClick={() => setEditingCategory(null)}
+                className="px-6 py-3 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSaveSeoContent}
+                disabled={isSaving}
+                className="bg-orange-600 text-white px-8 py-3 rounded-xl font-black flex items-center gap-2 hover:bg-orange-700 transition-all shadow-md active:scale-95 disabled:bg-gray-400"
+              >
+                {isSaving ? <FaSyncAlt className="animate-spin" /> : "Save Content"}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

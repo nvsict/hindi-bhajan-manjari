@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+
 // 🌟 1. All 5 Devotional Fonts + Base Fonts Imported
 import { 
   Geist, 
@@ -10,12 +11,13 @@ import {
   Kalam 
 } from "next/font/google";
 import "./globals.css";
+
+// 🌟 Components
 import ConditionalHeader from "../components/ConditionalHeader";
 import ConditionalFooter from "../components/ConditionalFooter";
 import SmoothScrolling from "../components/SmoothScrolling";
 import AnalyticsWrapper from '@/components/AnalyticsWrapper';
 import NextTopLoader from 'nextjs-toploader';
-import { SpeedInsights } from "@vercel/speed-insights/next"
 import PushPrompt from '@/components/PushPrompt';
 
 // 🌟 PWA & GLOBAL FEATURE IMPORTS
@@ -27,15 +29,17 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  // Preload remains true by default
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  // Preload remains true by default
 });
 
 // --- THE 5 DEVOTIONAL PERSONALITIES ---
-// 1. Standard
+// 1. Standard (Main Theme Font - Let it preload)
 const hindFont = Hind({
   weight: ['400', '500', '600', '700'],
   subsets: ['devanagari', 'latin'],
@@ -49,6 +53,7 @@ const notoSerifDeva = Noto_Serif_Devanagari({
   subsets: ['devanagari'],
   variable: "--font-noto-serif",
   display: 'swap',
+  preload: false, // 🌟 THE FIX: Stops unnecessary preloading warning
 });
 
 // 3. Calligraphy
@@ -57,6 +62,7 @@ const amitaFont = Amita({
   subsets: ['devanagari'],
   variable: "--font-amita",
   display: 'swap',
+  preload: false, // 🌟 THE FIX
 });
 
 // 4. Modern (Sans-Serif)
@@ -65,6 +71,7 @@ const poppinsFont = Poppins({
   subsets: ['devanagari', 'latin'],
   variable: "--font-poppins",
   display: 'swap',
+  preload: false, // 🌟 THE FIX
 });
 
 // 5. Diary (Handwritten)
@@ -73,9 +80,10 @@ const kalamFont = Kalam({
   subsets: ['devanagari'],
   variable: "--font-kalam",
   display: 'swap',
+  preload: false, // 🌟 THE FIX
 });
 
-const baseUrl = "https://www.hindibhajanmanjari.com";
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.hindibhajanmanjari.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
@@ -123,7 +131,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="hi" suppressHydrationWarning>
       {/* 🌟 All font variables are safely injected here */}
       <body 
         suppressHydrationWarning
@@ -131,6 +139,7 @@ export default function RootLayout({
       >
         {/* 🌟 ThemeProvider wraps the entire application */}
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          
           <NextTopLoader 
             color="#ea580c"
             initialPosition={0.65}
@@ -153,13 +162,13 @@ export default function RootLayout({
             <ConditionalFooter />
           </SmoothScrolling>
           
-          <SpeedInsights/>
           <AnalyticsWrapper gaId="G-LVXN7TD3JB" />
           
           {/* 🌟 PWA & Engagement UI */}
           <PushPrompt />
           <InstallPwaPrompt />
           <PwaRegistration />
+
         </ThemeProvider>
       </body>
     </html>
