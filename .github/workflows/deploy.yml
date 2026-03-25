@@ -1,0 +1,22 @@
+name: Auto Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main # अगर आपकी ब्रांच का नाम 'master' है, तो इसे 'master' कर दें
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Trigger Deployment Script on VPS
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        port: 22
+        script: |
+          cd /root/hindi-bhajan-manjari
+          ./deploy.sh
