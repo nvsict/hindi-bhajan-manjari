@@ -9,6 +9,10 @@ import {
 import PdfDownloadButton from './PdfDownloadButton';
 import FeatureHighlight from './FeatureHighlight';
 
+// 🌟 THE FIX: Imported directly so the Service Worker cannot block it!
+// @ts-ignore
+import Sanscript from 'sanscript';
+
 interface LyricsViewerProps {
   title: string;
   lyricsHindi: string;
@@ -37,7 +41,7 @@ const FONT_OPTIONS = [
   { id: 'font-kalam', name: 'Kalam (Diary)', className: 'font-kalam' },
 ];
 
-// 🌟 OPTIMIZED INSTAGRAM EMBED (Lazy Loaded)
+// 🌟 OPTIMIZED INSTAGRAM EMBED (Safe Lazy Load)
 const InstagramEmbed = ({ embedId }: { embedId: string }) => {
   const [isIntersecting, setIntersecting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -98,23 +102,11 @@ export default function LyricsViewer({
   const [wakeLockActive, setWakeLockActive] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showBigHeart, setShowBigHeart] = useState(false);
-  const [sanscriptLib, setSanscriptLib] = useState<any>(null);
 
   const videoRef = useRef<HTMLDivElement>(null);
   const scriptDropdownRef = useRef<HTMLDivElement>(null);
   const fontDropdownRef = useRef<HTMLDivElement>(null);
   const wakeLockRef = useRef<any>(null);
-
-  // 🌟 PRE-FETCH SANSCRIPT
-  useEffect(() => {
-    const loadSanscript = async () => {
-      try {
-        const lib = await import('sanscript');
-        setSanscriptLib(lib.default || lib);
-      } catch (e) { console.error("Sanscript failed to load", e); }
-    };
-    loadSanscript();
-  }, []);
 
   useEffect(() => {
     setFontSize(window.innerWidth < 768 ? 18 : 22);
@@ -128,19 +120,25 @@ export default function LyricsViewer({
     if (typeof window !== 'undefined' && navigator.vibrate) navigator.vibrate(30); 
   }, []);
 
+  // 🌟 BULLETPROOF TRANSLITERATION LOGIC (No Promises, No Waiting)
   const displayLyrics = useMemo(() => {
+    // 1. If original Hindi, show immediately
     if (activeScript === 'devanagari') return lyricsHindi;
+    
+    // 2. If Hinglish and we have a custom translation from database, use it
     if (activeScript === 'hinglish' && lyricsHinglish) return lyricsHinglish;
     
-    if (sanscriptLib) {
-      try {
-        const from = 'devanagari';
-        const to = activeScript === 'hinglish' ? 'iast' : activeScript;
-        return sanscriptLib.t(lyricsHindi, from, to);
-      } catch (e) { return lyricsHindi; }
+    // 3. Convert dynamically using the static Sanscript library
+    try {
+      const from = 'devanagari';
+      const to = activeScript === 'hinglish' ? 'iast' : activeScript;
+      return Sanscript.t(lyricsHindi, from, to);
+    } catch (e) { 
+      // 🌟 IF anything fails, NEVER show "Loading Script...", just show Hindi safely
+      console.error("Transliteration Error:", e);
+      return lyricsHindi; 
     }
-    return activeScript === 'hinglish' ? (lyricsHinglish || "Loading...") : "Loading Script...";
-  }, [activeScript, lyricsHindi, lyricsHinglish, sanscriptLib]);
+  }, [activeScript, lyricsHindi, lyricsHinglish]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -349,7 +347,7 @@ export default function LyricsViewer({
         {embedType === 'instagram' && embedId && <InstagramEmbed embedId={embedId} />}
       </div>
 
-      {/* 🌟 FLOATING TOOLBAR WITH FULL ARIA-LABELS & CSS */}
+      {/* FLOATING TOOLBAR */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw]">
         <div className="relative px-4 py-2.5 bg-white/90 backdrop-blur-xl border border-gray-200 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full">
           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-0">
