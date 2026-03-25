@@ -256,7 +256,7 @@ export default async function BhajanDetails({ params }: Props) {
                 {bhajan.title_hindi}
               </h1>
               <p className="text-xs md:text-sm text-gray-500 font-bold uppercase tracking-[0.2em] mb-8">
-                {bhajan.title_hinglish} Lyrics
+                {bhajan.title_hinglish}
               </p>
               
               {/* Artist Details Box */}
