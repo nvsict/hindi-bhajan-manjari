@@ -178,7 +178,7 @@ export default function Header() {
                 }))
               }
             },
-            { name: 'A-Z Directory', href: '/bhajans' }, 
+            { name: 'A-Z Bhajans', href: '/bhajan' }, 
             { name: 'Gyan Hub', href: '/gyan' },
           ];
           setNavItems(dynamicNav);
