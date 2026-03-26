@@ -1,7 +1,8 @@
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 
-export const runtime = 'edge';
+// 🛑 VERCEL ONLY: यह लाइन VPS पर 502 Error देती है, इसलिए इसे हटा दिया गया है।
+// export const runtime = 'edge'; 
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,8 +11,9 @@ export async function GET(req: NextRequest) {
     // 1. DYNAMIC PARAMETER (Hinglish Title Only)
     const title = searchParams.get('title') || 'Hindi Bhajan Manjari';
 
-    // 2. Fetch Logo
-    const logoUrl = new URL('/logo.png', req.url).toString();
+    // 🌟 VPS FIX: प्रॉक्सी के पीछे req.url क्रैश हो सकता है, इसलिए असली डोमेन यूज़ करें
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
+    const logoUrl = `${baseUrl}/logo.png`;
 
     return new ImageResponse(
       (
@@ -151,7 +153,7 @@ export async function GET(req: NextRequest) {
       }
     );
   } catch (e: any) {
-    console.error(e.message);
+    console.error("OG Image Error:", e.message);
     return new Response('Failed to generate OG image', { status: 500 });
   }
 }

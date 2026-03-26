@@ -1,9 +1,8 @@
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
-// You can't use react-icons here, but you can paste the SVG path
-import { FaBookOpen } from 'react-icons/fa';
 
-export const runtime = 'edge';
+// 🛑 VERCEL ONLY: यह लाइन VPS पर 502 Error देती है, इसलिए इसे हटा दिया गया है।
+// export const runtime = 'edge';
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,8 +12,9 @@ export async function GET(req: NextRequest) {
     // We fall back to a generic title if none is provided via query params.
     const title = searchParams.get('title') || 'हिंदी भजन मंजरी - ज्ञान संग्रह';
 
-    // 2. Fetch Logo
-    const logoUrl = new URL('/logo.png', req.url).toString();
+    // 🌟 VPS FIX: प्रॉक्सी के पीछे req.url क्रैश हो सकता है, इसलिए असली डोमेन यूज़ करें
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
+    const logoUrl = `${baseUrl}/logo.png`;
 
     // Re-create the FaBookOpen icon path for use in the SVG
     const bookOpenIconPath = "M21.5 3h-5.5a1.5 1.5 0 0 0 -1.5 1.5v13.5a1.5 1.5 0 0 0 1.5 1.5h5.5a1.5 1.5 0 0 0 1.5 -1.5v-13.5a1.5 1.5 0 0 0 -1.5 -1.5zM8.5 3h-5.5a1.5 1.5 0 0 0 -1.5 1.5v13.5a1.5 1.5 0 0 0 1.5 1.5h5.5a1.5 1.5 0 0 0 1.5 -1.5v-13.5a1.5 1.5 0 0 0 -1.5 -1.5zM12 22a1.5 1.5 0 0 0 -1.5 -1.5h-9a1.5 1.5 0 0 0 -1.5 1.5zM12 22a1.5 1.5 0 0 1 1.5 -1.5h9a1.5 1.5 0 0 1 1.5 1.5z"
@@ -136,7 +136,7 @@ export async function GET(req: NextRequest) {
       }
     );
   } catch (e: any) {
-    console.error(e.message);
+    console.error("OG Image Error:", e.message);
     return new Response('Failed to generate OG image', { status: 500 });
   }
 }

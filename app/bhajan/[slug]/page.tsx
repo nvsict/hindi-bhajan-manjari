@@ -12,11 +12,12 @@ import AuthorBox from '@/components/AuthorBox';
 import RelatedContent from '@/components/RelatedContent';
 
 export const revalidate = 3600;
+
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
-// 🌟 DYNAMIC SEO METADATA & WHATSAPP PREVIEW
+// 🌟 DYNAMIC SEO METADATA & WHATSAPP PREVIEW (FIXED FOR VPS)
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
   const { data: bhajan } = await supabase
@@ -27,19 +28,20 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   if (!bhajan) return { title: 'Bhajan Not Found' };
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
+  // 🌟 FIX 1: Clean Base URL to prevent double slashes
+  const rawBaseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
+  const baseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
   const pageUrl = `${baseUrl}/bhajan/${bhajan.slug}`;
   
   const categoryNames = bhajan.bhajan_category_map?.map((map: any) => map.categories?.name_hinglish).filter(Boolean) || ['Bhajans'];
   const tagNames = bhajan.bhajan_tag_map?.map((map: any) => map.tags?.name).filter(Boolean) || [];
   
-  const ogImageUrl = new URL(`${baseUrl}/api/og`);
-  ogImageUrl.searchParams.set('title', bhajan.title_hinglish);
+  // 🌟 FIX 2: Bulletproof URL string for OG Image (Better than new URL() for Next.js Metadata)
+  const ogImageUrl = `${baseUrl}/api/og?title=${encodeURIComponent(bhajan.title_hinglish)}`;
 
   const hasMeaning = bhajan.explanation ? "Includes spiritual Bhavarth (Meaning). " : "";
   const dynamicMetaDescription = `Read complete ${bhajan.title_hindi} (${bhajan.title_hinglish}) lyrics. ${hasMeaning}Available in 8+ Indian languages with free PDF download for daily Puja.`;
 
-  // 🌟 Dynamic Keywords for better ranking
   const dynamicKeywords = [
     `${bhajan.title_hinglish} lyrics`,
     `${bhajan.title_hindi} लिरिक्स`,
@@ -51,6 +53,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   ].filter(Boolean).join(', ');
 
   return {
+    // 🌟 FIX 3: metadataBase is MANDATORY in Next.js 14+ for OG Images to work on WhatsApp
+    metadataBase: new URL(baseUrl),
     title: `${bhajan.title_hindi} - ${bhajan.title_hinglish} Lyrics | Bhajan Sangrah`,
     description: dynamicMetaDescription,
     keywords: dynamicKeywords,
@@ -64,7 +68,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       type: 'article',
       images: [
         {
-          url: ogImageUrl.toString(), 
+          url: ogImageUrl, // Clean string URL
           width: 1200,
           height: 630,
           alt: `${bhajan.title_hinglish} Lyrics Preview`,
@@ -75,7 +79,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       card: 'summary_large_image',
       title: `${bhajan.title_hindi} Lyrics`,
       description: dynamicMetaDescription,
-      images: [ogImageUrl.toString()],
+      images: [ogImageUrl], // Clean string URL
     },
   };
 } 
@@ -121,7 +125,8 @@ export default async function BhajanDetails({ params }: Props) {
     { label: bhajan.title_hindi }
   ];
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
+  const rawBaseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
+  const baseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
   const pageUrl = `${baseUrl}/bhajan/${bhajan.slug}`;
 
   // ==========================================
@@ -130,7 +135,6 @@ export default async function BhajanDetails({ params }: Props) {
   
   const graphNodes: any[] = [];
 
-  // 1. Breadcrumb Node
   graphNodes.push({
     "@type": "BreadcrumbList",
     "@id": `${pageUrl}#breadcrumb`,
@@ -141,7 +145,6 @@ export default async function BhajanDetails({ params }: Props) {
     ]
   });
 
-  // 2. Video Node (If exists)
   if (bhajan.video_embed_url) {
     graphNodes.push({
       "@type": "VideoObject",
@@ -149,12 +152,11 @@ export default async function BhajanDetails({ params }: Props) {
       "name": `${bhajan.title_hinglish} Video`,
       "description": `Watch the divine video for ${bhajan.title_hindi}`,
       "thumbnailUrl": `https://img.youtube.com/vi/${bhajan.video_embed_url.split('v=')[1]?.split('&')[0]}/maxresdefault.jpg`,
-      "uploadDate": bhajan.created_at, // Consider updating this to actual video date if available in future
+      "uploadDate": bhajan.created_at, 
       "embedUrl": bhajan.video_embed_url
     });
   }
 
-  // 3. Music Composition Node (The Core Entity)
   graphNodes.push({
     "@type": "MusicComposition",
     "@id": `${pageUrl}#composition`,
@@ -165,7 +167,6 @@ export default async function BhajanDetails({ params }: Props) {
       "@type": "Thing",
       "name": bhajan.deities?.name_hinglish || "Hindu Deity"
     },
-    // 🌟 Transliterator Hack: Telling Google we support these languages!
     "inLanguage": ["hi", "en-IN", "gu", "bn", "te", "kn", "ml", "or"],
     "lyricist": {
       "@type": "Person",
@@ -186,7 +187,6 @@ export default async function BhajanDetails({ params }: Props) {
     ...(bhajan.video_embed_url && { "video": { "@id": `${pageUrl}#video` } })
   });
 
-  // 4. FAQ Node (If exists)
   if (bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0) {
     graphNodes.push({
       "@type": "FAQPage",
@@ -202,7 +202,6 @@ export default async function BhajanDetails({ params }: Props) {
     });
   }
 
-  // 5. WebPage Node (Ties everything together)
   graphNodes.push({
     "@type": "WebPage",
     "@id": pageUrl,
@@ -217,7 +216,6 @@ export default async function BhajanDetails({ params }: Props) {
     "mainEntity": { "@id": `${pageUrl}#composition` }
   });
 
-  // The final wrapped Graph
   const advancedSchemaGraph = {
     "@context": "https://schema.org",
     "@graph": graphNodes
@@ -225,8 +223,6 @@ export default async function BhajanDetails({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-orange-50/30">
-      
-      {/* 🌟 INJECTING THE ADVANCED GRAPH SCHEMA ONCE */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(advancedSchemaGraph) }} />
       
       <ViewCounter slug={bhajan.slug} />
@@ -266,7 +262,7 @@ export default async function BhajanDetails({ params }: Props) {
                   {/* Singers */}
                   {(singers.length > 0 || bhajan.singer_details?.name) && (
                     <div className="flex items-center gap-2 text-gray-700">
-                      <FaMicrophoneAlt className="text-orange-500" />
+                      <FaMicrophoneAlt className="text-orange-500" aria-hidden="true" />
                       <span className="text-[11px] uppercase tracking-widest font-bold text-gray-400">Singer: </span>
                       {singers.length > 0 ? (
                         <div className="flex gap-1 text-sm font-bold">
@@ -288,7 +284,7 @@ export default async function BhajanDetails({ params }: Props) {
                   {/* Lyricists */}
                   {(lyricists.length > 0 || bhajan.singer_details?.lyricist) && (
                     <div className="flex items-center gap-2 text-gray-700">
-                      <FaPenNib className="text-orange-500" />
+                      <FaPenNib className="text-orange-500" aria-hidden="true" />
                       <span className="text-[11px] uppercase tracking-widest font-bold text-gray-400">Writer: </span>
                       {lyricists.length > 0 ? (
                         <div className="flex gap-1 text-sm font-bold">
@@ -310,7 +306,7 @@ export default async function BhajanDetails({ params }: Props) {
                   {/* Contact Number */}
                   {displayPhone && (
                     <div className="flex items-center gap-2 text-gray-700">
-                      <FaPhoneAlt className="text-orange-500" />
+                      <FaPhoneAlt className="text-orange-500" aria-hidden="true" />
                       <span className="text-[11px] uppercase tracking-widest font-bold text-gray-400">Contact: </span>
                       <a href={`tel:${displayPhone}`} className="text-sm font-bold text-orange-600 hover:text-orange-800 transition-colors">
                         {displayPhone}
@@ -321,7 +317,7 @@ export default async function BhajanDetails({ params }: Props) {
                   {/* Address */}
                   {displayAddress && (
                     <div className="flex items-center gap-2 text-gray-700">
-                      <FaMapMarkerAlt className="text-orange-500" />
+                      <FaMapMarkerAlt className="text-orange-500" aria-hidden="true" />
                       <span className="text-[11px] uppercase tracking-widest font-bold text-gray-400">Location: </span>
                       <span className="font-bold text-sm text-gray-800">{displayAddress}</span>
                     </div>
@@ -354,7 +350,6 @@ export default async function BhajanDetails({ params }: Props) {
 
               {/* DYNAMIC SEO INTRO PARAGRAPH */}
               <div className="mt-12 bg-gray-50/50 border border-gray-100 rounded-3xl p-6 md:p-8 shadow-sm">
-                {/* English SEO Text */}
                 <p className="text-sm md:text-base text-gray-700 leading-relaxed mb-6">
                   Read the most authentic and complete <strong>{bhajan.title_hinglish} ({bhajan.title_hindi})</strong> lyrics. 
                   {displaySingerName ? ` Popularized by ${displaySingerName}, this` : ' This'} divine {categories.length > 0 ? categories[0].name_hinglish.toLowerCase() : 'bhajan'} {bhajan.deities ? `dedicated to ${bhajan.deities.name_hinglish}` : ''} is presented in pristine Devanagari and English (Romanized) scripts. 
@@ -365,7 +360,6 @@ export default async function BhajanDetails({ params }: Props) {
 
                 <div className="w-full h-px bg-gray-200/60 my-6"></div>
 
-                {/* Hindi SEO Text */}
                 <p className="text-base md:text-lg text-gray-800 leading-[1.8] font-hindi">
                   यहाँ आप <strong>{bhajan.title_hindi}</strong> के संपूर्ण और शुद्ध पाठ का आनंद ले सकते हैं। 
                   हमारी वेबसाइट पर आप इस {categories.length > 0 && categories[0].name_hindi ? categories[0].name_hindi : 'भजन'} को हिंदी और अंग्रेजी के साथ-साथ <strong>गुजराती, बंगाली और अन्य 6 भारतीय भाषाओं</strong> में पढ़ सकते हैं। 
@@ -377,7 +371,7 @@ export default async function BhajanDetails({ params }: Props) {
               {bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0 && (
                 <div className="mt-12">
                   <h3 className="text-2xl font-black text-gray-900 tracking-tighter mb-6 flex items-center gap-2">
-                    <FaQuestionCircle className="text-orange-500" />
+                    <FaQuestionCircle className="text-orange-500" aria-hidden="true" />
                     Frequently Asked Questions
                   </h3>
                   <div className="space-y-4">
@@ -412,7 +406,6 @@ export default async function BhajanDetails({ params }: Props) {
                 </div>
               )}
 
-              {/* Internal Breadcrumb Footer */}
               <div className="mt-10 pt-6 border-t border-gray-100 flex flex-wrap gap-4 justify-center">
                 {categories.length > 0 && (
                   <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest">
@@ -446,7 +439,6 @@ export default async function BhajanDetails({ params }: Props) {
             </div>
           </main>
 
-          {/* Desktop Sidebar */}
           <aside className="hidden lg:block w-[320px] sticky top-24 shrink-0">
             <Sidebar 
               topicName={bhajan.deities?.name_hinglish}
