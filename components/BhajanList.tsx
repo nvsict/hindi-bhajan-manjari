@@ -54,12 +54,12 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
           {thumbnailUrl ? (
             <div className="relative w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl overflow-hidden bg-gray-100 group-hover:shadow-md transition-all border border-gray-100/50">
               <Image 
-  src={thumbnailUrl} 
-  alt={bhajan.title_hinglish} 
-  fill /* 🌟 Parent div relative है, इसलिए यह उसे परफेक्टली भर देगा */
-  sizes="(max-width: 640px) 100vw, (max-width: 768px) 192px, 224px" /* 🌟 मोबाइल के लिए छोटी, डेस्कटॉप के लिए बड़ी इमेज */
-  className="object-cover group-hover:scale-105 transition-transform duration-700" 
-/>
+                src={thumbnailUrl} 
+                alt={bhajan.title_hinglish} 
+                fill 
+                sizes="(max-width: 640px) 100vw, (max-width: 768px) 192px, 224px" 
+                className="object-cover group-hover:scale-105 transition-transform duration-700" 
+              />
               <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/10 transition-colors duration-500">
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-white/95 rounded-full flex items-center justify-center text-orange-600 shadow-xl backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
                   <FaPlay className="ml-1 text-sm md:text-base" />
@@ -67,9 +67,48 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
               </div>
             </div>
           ) : (
-            /* Placeholder for Bhajans without YouTube links - Also matching 16:9 */
-            <div className="hidden sm:flex w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100/50 items-center justify-center border border-orange-100 text-orange-200/60">
-              <FaMusic size={32} />
+            /* 🌟 THE HIGH-PREMIUM PLACEHOLDER (Zero Server Load) */
+            <div className="hidden sm:flex w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl bg-gradient-to-br from-[#1a0500] via-[#431407] to-[#882b0f] items-center justify-center border border-[#301108] shadow-inner relative overflow-hidden group-hover:shadow-xl transition-all duration-300">
+              
+              {/* 1. Watermark Texture: Large Logo with very low opacity */}
+              <div className="absolute inset-0 z-0 flex items-center justify-center opacity-[0.04]">
+                <Image 
+                  src="/logo.png" /* 🌟 आपका असली लोगो */
+                  alt="Watermark pattern" 
+                  fill
+                  className="object-cover scale-150" 
+                />
+              </div>
+
+              {/* 2. Top Accent Bar: Beautiful saffron glow */}
+              <div style={{ position: 'absolute', top: 0, left: '20%', right: '20%', height: '4px', backgroundImage: 'linear-gradient(90deg, transparent, #ea580c, transparent)', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px', opacity: 0.8 }} />
+
+              {/* 3. CENTER CONTENT SAFE ZONE */}
+              <div className="relative z-10 flex flex-col items-center justify-center px-4 w-full h-full">
+                
+                {/* Visible Main Logo */}
+                <div className="relative w-12 h-12 md:w-14 md:h-14 mb-3 drop-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+                  <Image 
+                    src="/logo.png" 
+                    alt="Logo"
+                    fill
+                    className="object-contain" 
+                  />
+                </div>
+                
+                {/* Icon Pill */}
+                <div className="flex items-center gap-1.5 bg-black/20 text-white/70 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm shadow-sm mb-2.5">
+                  <FaMusic size={10} className="text-orange-300" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
+                    {bhajan.deities?.name_hinglish || 'Bhajan'}
+                  </span>
+                </div>
+
+                 {/* 4. Large Deity Text at the bottom right, like a watermark */}
+                 <span className="absolute bottom-2.5 right-4 text-3xl font-black text-white/5 uppercase tracking-tighter leading-none font-serif">
+                   {bhajan.deities?.name_hinglish || 'BHANJANI'}
+                 </span>
+              </div>
             </div>
           )}
 
