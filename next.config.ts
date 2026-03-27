@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // 🌟 NEW: React Icons Optimization (Lighthouse JavaScript Size Fix)
+  experimental: {
+    optimizePackageImports: ['react-icons'],
+  },
+
   images: {
     // 🌟 Next.js को AVIF और WebP सपोर्ट करने का निर्देश
     formats: ['image/avif', 'image/webp'],

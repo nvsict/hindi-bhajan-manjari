@@ -213,13 +213,15 @@ export default async function ArticlePage({ params }: Props) {
             {article.featured_image_url && (
               <div className="relative w-full aspect-[16/9] md:aspect-[21/9] rounded-2xl overflow-hidden shadow-lg border border-gray-100">
                 <Image 
-                  src={article.featured_image_url} 
-                  alt={article.title_hinglish}
-                  fill
-                  priority 
-                  className="object-cover hover:scale-105 transition-transform duration-700"
-                  sizes="(max-width: 768px) 100vw, 800px"
-                />
+      src={article.featured_image_url} 
+      alt={article.title_hinglish}
+      fill
+      priority={true}             
+      fetchPriority="high"         
+      quality={75}                
+      className="object-cover hover:scale-105 transition-transform duration-700"
+      sizes="(max-width: 768px) 100vw, 800px"
+    />
               </div>
             )}
           </div>

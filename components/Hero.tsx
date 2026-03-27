@@ -24,6 +24,7 @@ export default function Hero() {
   const router = useRouter();
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
+  // 🌟 Debounced Search API Call
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
       if (query.trim().length >= 2) {
@@ -49,6 +50,7 @@ export default function Hero() {
     return () => clearTimeout(timeoutId);
   }, [query]);
 
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
@@ -76,24 +78,29 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative w-full min-h-[100svh] flex flex-col justify-center px-6 sm:px-12 lg:px-24 overflow-hidden bg-[#1a0500]">
+    // 🛑 THE FIX: Removed `overflow-hidden` from here so the dropdown can escape!
+    <section className="relative w-full min-h-[100svh] flex flex-col justify-center px-6 sm:px-12 lg:px-24 bg-[#1a0500]">
 
-      {/* 🌟 FIXED THE QUALITY WARNING */}
-      <Image 
-        src={heroBg} 
-        alt="Hindi Bhajan Manjari Devotional Background"
-        fill
-        priority 
-        loading="eager" 
-        quality={90} // 👈 इसे 85 से बदलकर 90 कर दें
-        className="object-cover object-[center_30%] z-0 pointer-events-none"
-        sizes="100vw"
-      />
+      {/* 🌟 THE NEW BACKGROUND WRAPPER (Keeps image contained but lets dropdown overflow) */}
+      <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
+        <Image 
+          src={heroBg} 
+          alt="Hindi Bhajan Manjari Devotional Background"
+          fill
+          priority={true}            
+          fetchPriority="high"        
+          placeholder="blur"
+          quality={85} 
+          className="object-cover object-[center_30%]"
+          // 👈 Tells browser to download a smaller, lighter image for mobile (max-width: 768px), and full size for desktop
+          sizes="(max-width: 768px) 100vw, 100vw" 
+        />
+        {/* Overlays */}
+        <div className="absolute inset-0 bg-[#1a0500]/40 backdrop-blur-[1px]"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1a0500] via-[#1a0500]/70 to-transparent"></div>
+      </div>
 
-      {/* Overlays */}
-      <div className="absolute inset-0 z-10 pointer-events-none bg-[#1a0500]/40 backdrop-blur-[1px]"></div>
-      <div className="absolute inset-0 z-15 pointer-events-none bg-gradient-to-r from-[#1a0500] via-[#1a0500]/70 to-transparent"></div>
-
+      {/* 🌟 MAIN CONTENT */}
       <div className="relative z-30 w-full max-w-3xl text-left text-white -mt-10">
         
         {/* Subtitle */}
@@ -120,7 +127,7 @@ export default function Hero() {
         {/* Search Container */}
         <div className="max-w-2xl relative z-50 opacity-0 animate-[fade-in-up_0.8s_ease-out_0.6s_forwards]" ref={searchContainerRef}>
           <form 
-            role="search" // 🌟 A11y: Explicitly defines this as a search region
+            role="search" 
             onSubmit={handleSearchSubmit}
             className="bg-white/95 rounded-full p-1.5 md:p-2 flex items-center shadow-[0_10px_40px_rgba(0,0,0,0.4)] ring-4 ring-orange-500/20 focus-within:ring-orange-500/60 transition-all duration-300"
           >
@@ -136,9 +143,12 @@ export default function Hero() {
               placeholder="Search e.g. Hanuman Chalisa..." 
               className="flex-1 w-full bg-transparent px-5 md:px-4 py-3 md:py-4 text-gray-900 font-bold text-base md:text-lg placeholder:text-gray-400 focus:outline-none"
               aria-label="Search for bhajans, aartis, or chalisa"
+              aria-expanded={isDropdownOpen} // 🌟 A11y update
+              aria-controls="search-dropdown-results" // 🌟 A11y update
+              autoComplete="off" // 🌟 Prevents browser's default ugly dropdown from clashing
             />
 
-            {/* 🌟 HERO SEARCH CLEAR BUTTON FIX */}
+            {/* Clear Button */}
             {query.length > 0 && (
               <button 
                 type="button"
@@ -164,6 +174,8 @@ export default function Hero() {
           {/* INSTANT SEARCH DROPDOWN */}
           {isDropdownOpen && (
             <div 
+              id="search-dropdown-results"
+              // 🌟 FIX: Made sure the dropdown breaks out naturally
               className="absolute top-full left-0 right-0 mt-3 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-orange-100 overflow-hidden text-left z-[100] flex flex-col"
             >
               {searchResults.length > 0 ? (
