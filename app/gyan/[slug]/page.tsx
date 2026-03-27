@@ -2,10 +2,13 @@ import { supabase } from '../../../utils/supabase';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import Image from 'next/image';
-import Script from 'next/script'; // 🌟 NEW: Imported Next.js Script component
+import Script from 'next/script';
 import Breadcrumbs from '../../../components/Breadcrumbs';
 import AuthorBox from '../../../components/AuthorBox';
 import { FaClock, FaCalendarAlt, FaBookOpen } from 'react-icons/fa';
+
+// 🌟 IMPORT THE AD COMPONENT
+import ManualAdUnit from '@/components/ManualAdUnit';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -19,7 +22,6 @@ export const revalidate = 3600;
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   
-  // 🌟 Fetching the 'featured_image_url'
   const { data: article } = await supabase
     .from('articles')
     .select('title_hindi, title_hinglish, meta_description, author_name, featured_image_url')
@@ -32,11 +34,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
   const pageUrl = `${siteUrl}/gyan/${slug}`;
 
-  // Dynamic OG Image Fallback
   const ogImageUrl = new URL(`${siteUrl}/api/og/articles`);
   ogImageUrl.searchParams.set('title', article.title_hinglish);
 
-  // 🌟 The Final Image to show to Google (Priority to Featured Image)
   const finalImageUrl = article.featured_image_url || ogImageUrl.toString();
   const keywords = `${article.title_hinglish}, ${article.title_hindi}, Sanatan Gyan, Hindu mythology, ${article.author_name ? article.author_name + ' articles' : ''}, Hindi Bhajan Manjari blogs`;
 
@@ -46,7 +46,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     keywords: keywords,
     authors: article.author_name ? [{ name: article.author_name }] : undefined,
     alternates: { canonical: pageUrl },
-    // 🌟 CRITICAL FOR GOOGLE DISCOVER: max-image-preview: large
     robots: {
       index: true,
       follow: true,
@@ -135,7 +134,7 @@ export default async function ArticlePage({ params }: Props) {
   });
 
   graphNodes.push({
-    "@type": "NewsArticle", // Using NewsArticle as requested by Google SWG
+    "@type": "NewsArticle", 
     "@id": `${pageUrl}#article`,
     "headline": article.title_hindi,
     "alternativeHeadline": article.title_hinglish,
@@ -156,13 +155,15 @@ export default async function ArticlePage({ params }: Props) {
     "@graph": graphNodes
   };
 
+  // 🌟 THE HTML SPLITTING LOGIC
+  // We safely split the raw HTML by paragraph closing tags (</p>)
+  const htmlChunks = article.content_html ? article.content_html.split(/<\/p>/i) : [];
+
   return (
     <div className="min-h-screen bg-orange-50/30 pb-20">
       
-      {/* 🌟 THE SEO SCHEMA */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(advancedArticleSchema) }} />
 
-      {/* 🌟 NEW: GOOGLE PUBLISHER CENTER / SWG SYNC SCRIPT */}
       <Script 
         src="https://news.google.com/swg/js/v1/swg-basic.js" 
         strategy="afterInteractive" 
@@ -209,7 +210,6 @@ export default async function ArticlePage({ params }: Props) {
               {article.title_hinglish}
             </h2>
 
-            {/* 🌟 GOOGLE DISCOVER HERO IMAGE */}
             {article.featured_image_url && (
               <div className="relative w-full aspect-[16/9] md:aspect-[21/9] rounded-2xl overflow-hidden shadow-lg border border-gray-100">
                 <Image 
@@ -224,22 +224,45 @@ export default async function ArticlePage({ params }: Props) {
             )}
           </div>
 
-          {/* --- ARTICLE BODY --- */}
+          {/* --- ARTICLE BODY (SMART AD INJECTION) --- */}
           <div className="p-8 md:p-12">
             <article 
               className="
                 font-hindi text-lg md:text-xl text-gray-800 leading-[2.2] tracking-wide
-                [&>p]:mb-6 [&>p:last-child]:mb-0
-                [&>h2]:text-3xl [&>h2]:font-black [&>h2]:text-gray-900 [&>h2]:mt-12 [&>h2]:mb-6 [&>h2]:border-b [&>h2]:border-orange-100 [&>h2]:pb-2
-                [&>h3]:text-2xl [&>h3]:font-bold [&>h3]:text-gray-900 [&>h3]:mt-8 [&>h3]:mb-4
-                [&>ul]:list-disc [&>ul]:pl-6 [&>ul]:mb-6 [&>ul>li]:mb-2 [&>ul>li::marker]:text-orange-500
-                [&>ol]:list-decimal [&>ol]:pl-6 [&>ol]:mb-6 [&>ol>li]:mb-2 [&>ol>li::marker]:font-bold [&>ol>li::marker]:text-orange-600
-                [&>strong]:text-gray-900 [&>strong]:bg-orange-50/50 [&>strong]:px-1 [&>strong]:rounded
-                [&>blockquote]:border-l-4 [&>blockquote]:border-orange-500 [&>blockquote]:pl-6 [&>blockquote]:py-2 [&>blockquote]:bg-orange-50/30 [&>blockquote]:italic [&>blockquote]:text-gray-700 [&>blockquote]:mb-6 [&>blockquote]:rounded-r-xl
-                [&>img]:rounded-xl [&>img]:shadow-md [&>img]:my-8 [&>img]:w-full
+                [&_p]:mb-6 [&_p:last-child]:mb-0
+                [&_h2]:text-3xl [&_h2]:font-black [&_h2]:text-gray-900 [&_h2]:mt-12 [&_h2]:mb-6 [&_h2]:border-b [&_h2]:border-orange-100 [&_h2]:pb-2
+                [&_h3]:text-2xl [&_h3]:font-bold [&_h3]:text-gray-900 [&_h3]:mt-8 [&_h3]:mb-4
+                [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-6 [&_ul>li]:mb-2 [&_ul>li::marker]:text-orange-500
+                [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-6 [&_ol>li]:mb-2 [&_ol>li::marker]:font-bold [&_ol>li::marker]:text-orange-600
+                [&_strong]:text-gray-900 [&_strong]:bg-orange-50/50 [&_strong]:px-1 [&_strong]:rounded
+                [&_blockquote]:border-l-4 [&_blockquote]:border-orange-500 [&_blockquote]:pl-6 [&_blockquote]:py-2 [&_blockquote]:bg-orange-50/30 [&_blockquote]:italic [&_blockquote]:text-gray-700 [&_blockquote]:mb-6 [&_blockquote]:rounded-r-xl
+                [&_img]:rounded-xl [&_img]:shadow-md [&_img]:my-8 [&_img]:w-full
               "
-              dangerouslySetInnerHTML={{ __html: article.content_html }}
-            />
+            >
+              {htmlChunks.map((chunk: string, index: number) => {
+                // Ignore empty strings at the very end caused by the split
+                if (!chunk.trim() && index === htmlChunks.length - 1) return null;
+
+                // 🌟 AD LOGIC: First ad after 2nd paragraph, then every 4 paragraphs
+                const shouldShowAd = index === 1 || (index > 2 && (index - 1) % 4 === 0);
+                const adCount = Math.floor((index - 1) / 4) + 1;
+                const isAllowedAd = shouldShowAd && adCount <= 3;
+
+                return (
+                  <div key={index} className="contents">
+                    {/* Render the chunk and append the closing </p> back */}
+                    <div dangerouslySetInnerHTML={{ __html: chunk + (index < htmlChunks.length - 1 ? '</p>' : '') }} />
+                    
+                    {/* INJECT AD SAFELY BETWEEN CHUNKS */}
+                    {isAllowedAd && index < htmlChunks.length - 1 && (
+                      <div className="py-2 my-8 md:my-12 border-y border-gray-100/50">
+                        <ManualAdUnit />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </article>
           </div>
 
           {/* --- THE AUTHOR BOX --- */}

@@ -12,7 +12,7 @@ import FeatureHighlight from './FeatureHighlight';
 // 🌟 THE FIX: Imported directly so the Service Worker cannot block it!
 // @ts-ignore
 import Sanscript from 'sanscript';
-import ManualAdUnit from './ManualAdUnit.tsx';
+import ManualAdUnit from './ManualAdUnit';
 
 interface LyricsViewerProps {
   title: string;
