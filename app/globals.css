@@ -37,6 +37,11 @@ body {
   /* 🌟 Force the body to use your custom Geist font, NOT Arial */
   font-family: var(--font-sans);
   scrollbar-gutter: stable;
+  
+  /* 🌟 PERFORMANCE FIXES FOR MOBILE SCROLLING */
+  overscroll-behavior-y: none; /* Prevents native bounce effect fighting with Lenis */
+  -webkit-font-smoothing: antialiased; /* Renders text faster and smoother on mobile GPUs */
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* globals.css */
@@ -57,10 +62,13 @@ a {
   cursor: pointer;
 }
 
-/* Optional: Slight hover lift to signal "Clickability" */
-a:hover {
-  filter: brightness(1.1);
-  transition: filter 0.1s ease-in;
+/* 🌟 SCROLL LAG FIX: Only apply hover effects on devices with a real mouse. 
+   Prevents mobile GPU from calculating expensive filters when tapping/scrolling. */
+@media (hover: hover) and (pointer: fine) {
+  a:hover {
+    filter: brightness(1.1);
+    transition: filter 0.1s ease-in;
+  }
 }
 
 /* --- SEAMLESS CUSTOM SCROLLBAR --- */
@@ -151,6 +159,7 @@ html {
      from the invisible bounding box of overflow-hidden containers */
   padding-top: 0.15em !important;
   padding-bottom: 0.1em !important;
+  flex-shrink: 0;
 }
 
 /* Ensure that when we use 'truncate' on Hindi text, it doesn't squash it */
@@ -159,14 +168,11 @@ html {
   padding-top: 0.15em !important;
 }
 
-/* If a Hindi title is inside a flex container, ensure it doesn't get squished */
-.font-hindi {
-  flex-shrink: 0;
-}
 
 /* --- LENIS SMOOTH SCROLL ESSENTIALS --- */
 html.lenis, html.lenis body {
   height: auto;
+  /* width: 100vw और overflow-x: hidden हटा दिए गए हैं ताकि Sticky Sidebar काम कर सके! */
 }
 
 .lenis.lenis-smooth {
@@ -188,5 +194,6 @@ html.lenis, html.lenis body {
 /* 🌟 GPU Acceleration Helper */
 .will-change-transform {
   will-change: transform;
-  transform: translateZ(0);
+  transform: translateZ(0); /* Forces hardware acceleration */
+  backface-visibility: hidden; /* Prevents flickering on mobile */
 }

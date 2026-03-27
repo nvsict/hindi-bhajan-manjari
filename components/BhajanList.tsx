@@ -36,8 +36,6 @@ const getYouTubeId = (url?: string) => {
 // ==========================================
 // 🌟 OPTIMIZATION: Memoized Card Component
 // ==========================================
-// This ensures that already rendered cards DO NOT re-render when the parent's state changes 
-// (e.g., when clicking "Load More" or when 'loading' state toggles).
 const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, index: number, itemsPerPage: number }) => {
   const ytId = getYouTubeId(bhajan.video_embed_url);
   const thumbnailUrl = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
@@ -67,13 +65,14 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
               </div>
             </div>
           ) : (
-            /* 🌟 THE HIGH-PREMIUM PLACEHOLDER (Zero Server Load) */
-            <div className="hidden sm:flex w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl bg-gradient-to-br from-[#1a0500] via-[#431407] to-[#882b0f] items-center justify-center border border-[#301108] shadow-inner relative overflow-hidden group-hover:shadow-xl transition-all duration-300">
+            /* 🌟 THE HIGH-PREMIUM PLACEHOLDER (FIXED FOR MOBILE) */
+            /* Removed 'hidden sm:flex', now it's just 'relative flex w-full ...' so it works beautifully on all devices */
+            <div className="relative flex w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl bg-gradient-to-br from-[#1a0500] via-[#431407] to-[#882b0f] items-center justify-center border border-[#301108] shadow-inner overflow-hidden group-hover:shadow-xl transition-all duration-300">
               
               {/* 1. Watermark Texture: Large Logo with very low opacity */}
               <div className="absolute inset-0 z-0 flex items-center justify-center opacity-[0.04]">
                 <Image 
-                  src="/logo.png" /* 🌟 आपका असली लोगो */
+                  src="/logo.png" 
                   alt="Watermark pattern" 
                   fill
                   className="object-cover scale-150" 
@@ -87,7 +86,7 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
               <div className="relative z-10 flex flex-col items-center justify-center px-4 w-full h-full">
                 
                 {/* Visible Main Logo */}
-                <div className="relative w-12 h-12 md:w-14 md:h-14 mb-3 drop-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+                <div className="relative w-12 h-12 md:w-14 md:h-14 mb-2 md:mb-3 drop-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
                   <Image 
                     src="/logo.png" 
                     alt="Logo"
@@ -97,15 +96,15 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
                 </div>
                 
                 {/* Icon Pill */}
-                <div className="flex items-center gap-1.5 bg-black/20 text-white/70 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm shadow-sm mb-2.5">
+                <div className="flex items-center gap-1.5 bg-black/20 text-white/70 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm shadow-sm mb-1 md:mb-2.5">
                   <FaMusic size={10} className="text-orange-300" />
-                  <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] truncate max-w-[120px]">
                     {bhajan.deities?.name_hinglish || 'Bhajan'}
                   </span>
                 </div>
 
                  {/* 4. Large Deity Text at the bottom right, like a watermark */}
-                 <span className="absolute bottom-2.5 right-4 text-3xl font-black text-white/5 uppercase tracking-tighter leading-none font-serif">
+                 <span className="absolute bottom-2 md:bottom-2.5 right-3 md:right-4 text-2xl md:text-3xl font-black text-white/5 uppercase tracking-tighter leading-none font-serif truncate max-w-[80%]">
                    {bhajan.deities?.name_hinglish || 'BHANJANI'}
                  </span>
               </div>

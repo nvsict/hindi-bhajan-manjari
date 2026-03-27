@@ -14,6 +14,9 @@ export default function SmoothScrolling({ children }: { children: React.ReactNod
         
         // 🌟 THE FIX FOR MOBILE
         syncTouch: false, // 👈 Setting this to false lets iOS/Android use their native hardware momentum!
+        
+        // 🌟 EXTRA FIX FOR DYNAMIC CONTENT (Load More / Lazy Images)
+        autoResize: true, 
       }}
     >
       {children}
