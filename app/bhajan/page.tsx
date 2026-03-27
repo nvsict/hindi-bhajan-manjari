@@ -114,12 +114,11 @@ export default async function AToZBhajansPage() {
           </div>
 
           {/* ==========================================
-              🔤 THE FIX: STICKY ALPHABET BAR WITH SCROLL SHIELD
+              🔤 ALPHABET BAR (Now Normal & Non-Sticky)
               ========================================== */}
-          <div className="sticky top-[72px] md:top-[85px] z-40 bg-[#f9fafb] pt-2 pb-6 md:pt-4 md:pb-8 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
+          <div className="relative bg-[#f9fafb] pb-6 md:pb-8 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
             
-            {/* The Floating Panel (Now safely inside a solid background shield) */}
-            <div className="bg-white/95 backdrop-blur-xl px-4 py-3 md:p-5 rounded-2xl md:rounded-[2rem] border border-orange-100 shadow-[0_10px_30px_-10px_rgba(234,88,12,0.15)] transition-all relative z-10">
+            <div className="bg-white/95 px-4 py-3 md:p-5 rounded-2xl md:rounded-[2rem] border border-orange-100 shadow-[0_4px_20px_-10px_rgba(234,88,12,0.1)] transition-all">
               <div className="flex items-center md:flex-wrap md:justify-center gap-2 overflow-x-auto md:overflow-visible pb-1 md:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                 {alphabets.map((letter) => {
                   const isAvailable = availableLetters.includes(letter);
@@ -143,9 +142,6 @@ export default async function AToZBhajansPage() {
                 })}
               </div>
             </div>
-
-            {/* Premium Touch: A subtle gradient fade-out below the sticky bar */}
-            <div className="absolute left-0 right-0 -bottom-6 h-6 bg-gradient-to-b from-[#f9fafb] to-transparent pointer-events-none z-0"></div>
           </div>
 
           {/* ==========================================
@@ -157,8 +153,8 @@ export default async function AToZBhajansPage() {
                 <section 
                   key={letter} 
                   id={`letter-${letter}`} 
-                  // 🌟 SCROLL FIX: Ensures heading doesn't hide behind the sticky bar
-                  className="scroll-mt-[220px] md:scroll-mt-[240px]" 
+                  // 🌟 Reduced scroll-margin because the keyboard is no longer sticky!
+                  className="scroll-mt-[100px] md:scroll-mt-[120px]" 
                 >
                   
                   {/* Letter Header */}
