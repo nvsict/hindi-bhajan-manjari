@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     
     // 🌟 FIXED: Added qualities to stop the terminal warnings for quality="60"
-    qualities: [60, 75, 90, 100], 
+    qualities: [50, 60, 75, 90, 100], 
     
     remotePatterns: [
       {

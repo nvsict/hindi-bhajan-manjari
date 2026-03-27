@@ -90,7 +90,7 @@ export default function Hero() {
           priority={true}            
           fetchPriority="high"        
           placeholder="blur"
-          quality={85} 
+          quality={50} 
           className="object-cover object-[center_30%]"
           // 👈 Tells browser to download a smaller, lighter image for mobile (max-width: 768px), and full size for desktop
           sizes="(max-width: 768px) 100vw, 100vw" 
