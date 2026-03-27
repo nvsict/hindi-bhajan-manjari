@@ -129,6 +129,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="hi" suppressHydrationWarning>
+      
+      {/* 🌟 NEW: Preconnects for Lighthouse LCP & Faster Ads */}
+      <head>
+        {/* Supabase API */}
+        <link rel="preconnect" href="https://vjylssvpxjhzjkmqzvjz.supabase.co" crossOrigin="anonymous" />
+        {/* YouTube Thumbnails */}
+        <link rel="preconnect" href="https://img.youtube.com" crossOrigin="anonymous" />
+        {/* Google AdSense Servers */}
+        <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://googleads.g.doubleclick.net" crossOrigin="anonymous" />
+      </head>
+
       <body 
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} ${hindFont.variable} ${notoSerifDeva.variable} ${amitaFont.variable} ${poppinsFont.variable} ${kalamFont.variable} antialiased bg-orange-50/30 dark:bg-[#0c0804] flex flex-col min-h-screen selection:bg-orange-500 selection:text-white transition-colors duration-300`}
