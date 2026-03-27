@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script"; // 🌟 THE FIX: Next.js Script Optimization
 
 // 🌟 1. All 5 Devotional Fonts + Base Fonts Imported
 import { 
@@ -29,17 +30,14 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-  // Preload remains true by default
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-  // Preload remains true by default
 });
 
 // --- THE 5 DEVOTIONAL PERSONALITIES ---
-// 1. Standard (Main Theme Font - Let it preload)
 const hindFont = Hind({
   weight: ['400', '500', '600', '700'],
   subsets: ['devanagari', 'latin'],
@@ -47,40 +45,36 @@ const hindFont = Hind({
   display: 'swap',
 });
 
-// 2. Granth (Serif)
 const notoSerifDeva = Noto_Serif_Devanagari({
   weight: ['400', '500', '600', '700'],
   subsets: ['devanagari'],
   variable: "--font-noto-serif",
   display: 'swap',
-  preload: false, // 🌟 THE FIX: Stops unnecessary preloading warning
+  preload: false, 
 });
 
-// 3. Calligraphy
 const amitaFont = Amita({
   weight: ['400', '700'],
   subsets: ['devanagari'],
   variable: "--font-amita",
   display: 'swap',
-  preload: false, // 🌟 THE FIX
+  preload: false, 
 });
 
-// 4. Modern (Sans-Serif)
 const poppinsFont = Poppins({
   weight: ['400', '500', '600', '700'],
   subsets: ['devanagari', 'latin'],
   variable: "--font-poppins",
   display: 'swap',
-  preload: false, // 🌟 THE FIX
+  preload: false, 
 });
 
-// 5. Diary (Handwritten)
 const kalamFont = Kalam({
   weight: ['400', '700'],
   subsets: ['devanagari'],
   variable: "--font-kalam",
   display: 'swap',
-  preload: false, // 🌟 THE FIX
+  preload: false, 
 });
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.hindibhajanmanjari.com";
@@ -103,10 +97,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: '/favicon.ico',
-    apple: '/logo.png', // PWA Apple Touch Icon fallback
+    apple: '/logo.png', 
   },
-  manifest: '/manifest.json', // Points to the PWA manifest route
+  manifest: '/manifest.json', 
   other: {
+    // 🌟 Google Verification for AdSense ownership
     "google-adsense-account": "ca-pub-5565563905050993",
   },
   openGraph: {
@@ -132,12 +127,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="hi" suppressHydrationWarning>
-      {/* 🌟 All font variables are safely injected here */}
       <body 
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} ${hindFont.variable} ${notoSerifDeva.variable} ${amitaFont.variable} ${poppinsFont.variable} ${kalamFont.variable} antialiased bg-orange-50/30 dark:bg-[#0c0804] flex flex-col min-h-screen selection:bg-orange-500 selection:text-white transition-colors duration-300`}
       >
-        {/* 🌟 ThemeProvider wraps the entire application */}
+        {/* 🌟 GOOGLE ADSENSE AUTO ADS SCRIPT */}
+        <Script
+          id="adsbygoogle-init"
+          strategy="afterInteractive"
+          crossOrigin="anonymous"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5565563905050993"
+        />
+
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           
           <NextTopLoader 
