@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script"; // 🌟 THE FIX: Next.js Script Optimization
 
 // 🌟 1. All 5 Devotional Fonts + Base Fonts Imported
 import { 
@@ -20,6 +19,9 @@ import SmoothScrolling from "../components/SmoothScrolling";
 import AnalyticsWrapper from '@/components/AnalyticsWrapper';
 import NextTopLoader from 'nextjs-toploader';
 import PushPrompt from '@/components/PushPrompt';
+
+// 🌟 THE NEW SMART ADSENSE COMPONENT
+import AdSense from '@/components/AdSense';
 
 // 🌟 PWA & GLOBAL FEATURE IMPORTS
 import InstallPwaPrompt from '@/components/InstallPwaPrompt';
@@ -131,13 +133,8 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} ${hindFont.variable} ${notoSerifDeva.variable} ${amitaFont.variable} ${poppinsFont.variable} ${kalamFont.variable} antialiased bg-orange-50/30 dark:bg-[#0c0804] flex flex-col min-h-screen selection:bg-orange-500 selection:text-white transition-colors duration-300`}
       >
-        {/* 🌟 GOOGLE ADSENSE AUTO ADS SCRIPT */}
-        <Script
-          id="adsbygoogle-init"
-          strategy="afterInteractive"
-          crossOrigin="anonymous"
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5565563905050993"
-        />
+        {/* 🌟 SMART ADSENSE: Admin panel पर अपने आप छुप जाएगा */}
+        <AdSense />
 
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           
