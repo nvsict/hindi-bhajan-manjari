@@ -12,6 +12,7 @@ import FeatureHighlight from './FeatureHighlight';
 // 🌟 THE FIX: Imported directly so the Service Worker cannot block it!
 // @ts-ignore
 import Sanscript from 'sanscript';
+import ManualAdUnit from './ManualAdUnit.tsx';
 
 interface LyricsViewerProps {
   title: string;
@@ -308,23 +309,49 @@ export default function LyricsViewer({
 
       {/* LYRICS CONTAINER */}
       <div className="bg-orange-50/30 rounded-3xl p-6 md:p-12 border border-orange-100/50 relative overflow-hidden shadow-sm select-none transition-all duration-300 hover:shadow-md" onDoubleClick={handleDoubleTap}>
+        
+        {/* Background Watermark & Heart */}
         <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none select-none">
           <span className="text-6xl md:text-9xl font-black rotate-[-45deg] whitespace-nowrap uppercase tracking-tighter">Hindi Bhajan Manjari</span>
         </div>
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none transition-all duration-300 z-50 ${showBigHeart ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>
           <FaHeart className="text-red-500 text-[120px] md:text-[180px] drop-shadow-[0_0_40px_rgba(239,68,68,0.5)]" />
         </div>
+        
         <div className={`relative z-10 text-center font-bold tracking-normal text-gray-900 antialiased leading-relaxed ${selectedFont}`} style={{ fontSize: `${fontSize}px` }}>
-          {String(displayLyrics).split(/\n\s*\n/).map((stanza: string, index: number, array: string[]) => (
-            <div key={index}>
-              <p className="whitespace-pre-wrap">{stanza.trim()}</p>
-              {index < array.length - 1 && (
-                <div className="flex items-center justify-center py-6 md:py-8 opacity-60">
-                  <div className="w-3/4 md:w-1/2 max-w-md h-[1px] bg-gradient-to-r from-transparent via-orange-300 to-transparent"></div>
-                </div>
-              )}
-            </div>
-          ))}
+          
+          {String(displayLyrics).split(/\n\s*\n/).map((stanza: string, index: number, array: string[]) => {
+            
+            // 🌟 THE SMART AD LOGIC (Google Policy + UX)
+            // 1. Google की सलाह: "2 पैराग्राफ के बाद लगाओ" -> index === 1
+            // 2. UX की सलाह: उसके बाद हर 5 पैराग्राफ के गैप में लगाओ -> (index - 1) % 5 === 0
+            const shouldShowAd = index === 1 || (index > 2 && (index - 1) % 5 === 0);
+            
+            // 3. Maximum Limit: एक भजन में 3 से ज़्यादा ऐड नहीं दिखाएंगे ताकि यूज़र परेशान न हो
+            const adCount = Math.floor((index - 1) / 5) + 1;
+            const isAllowedAd = shouldShowAd && adCount <= 3;
+
+            return (
+              <div key={index}>
+                <p className="whitespace-pre-wrap">{stanza.trim()}</p>
+                
+                {/* अगर ऐड नहीं दिखाना है, तो आपका पुराना सुंदर Divider दिखाएं */}
+                {index < array.length - 1 && !isAllowedAd && (
+                  <div className="flex items-center justify-center py-6 md:py-8 opacity-60">
+                    <div className="w-3/4 md:w-1/2 max-w-md h-[1px] bg-gradient-to-r from-transparent via-orange-300 to-transparent"></div>
+                  </div>
+                )}
+
+                {/* 🌟 अगर ऐड दिखाना है, तो Divider की जगह AdSense दिखाएं */}
+                {isAllowedAd && index < array.length - 1 && (
+                  <div className="py-2">
+                    <ManualAdUnit />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
         </div>
       </div>
 
