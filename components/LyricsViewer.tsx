@@ -123,19 +123,14 @@ export default function LyricsViewer({
 
   // 🌟 BULLETPROOF TRANSLITERATION LOGIC (No Promises, No Waiting)
   const displayLyrics = useMemo(() => {
-    // 1. If original Hindi, show immediately
     if (activeScript === 'devanagari') return lyricsHindi;
-    
-    // 2. If Hinglish and we have a custom translation from database, use it
     if (activeScript === 'hinglish' && lyricsHinglish) return lyricsHinglish;
     
-    // 3. Convert dynamically using the static Sanscript library
     try {
       const from = 'devanagari';
       const to = activeScript === 'hinglish' ? 'iast' : activeScript;
       return Sanscript.t(lyricsHindi, from, to);
     } catch (e) { 
-      // 🌟 IF anything fails, NEVER show "Loading Script...", just show Hindi safely
       console.error("Transliteration Error:", e);
       return lyricsHindi; 
     }
@@ -322,29 +317,27 @@ export default function LyricsViewer({
           
           {String(displayLyrics).split(/\n\s*\n/).map((stanza: string, index: number, array: string[]) => {
             
-            // 🌟 THE SMART AD LOGIC (Google Policy + UX)
-            // 1. Google की सलाह: "2 पैराग्राफ के बाद लगाओ" -> index === 1
-            // 2. UX की सलाह: उसके बाद हर 5 पैराग्राफ के गैप में लगाओ -> (index - 1) % 5 === 0
             const shouldShowAd = index === 1 || (index > 2 && (index - 1) % 5 === 0);
-            
-            // 3. Maximum Limit: एक भजन में 3 से ज़्यादा ऐड नहीं दिखाएंगे ताकि यूज़र परेशान न हो
             const adCount = Math.floor((index - 1) / 5) + 1;
             const isAllowedAd = shouldShowAd && adCount <= 3;
 
             return (
-              <div key={index}>
-                <p className="whitespace-pre-wrap">{stanza.trim()}</p>
+              <div key={index} className="flex flex-col items-center w-full">
+                <p className="whitespace-pre-wrap w-full">{stanza.trim()}</p>
                 
-                {/* अगर ऐड नहीं दिखाना है, तो आपका पुराना सुंदर Divider दिखाएं */}
-                {index < array.length - 1 && !isAllowedAd && (
-                  <div className="flex items-center justify-center py-6 md:py-8 opacity-60">
+                {/* 🌟 THE BULLETPROOF FORMATTING FIX 🌟 */}
+                {/* हम इस सॉफ्ट लाइन को हमेशा रेंडर करेंगे ताकि लेआउट कभी न टूटे */}
+                {index < array.length - 1 && (
+                  <div className={`flex items-center justify-center opacity-60 w-full ${isAllowedAd ? 'pt-6 md:pt-8 pb-2' : 'py-6 md:py-8'}`}>
                     <div className="w-3/4 md:w-1/2 max-w-md h-[1px] bg-gradient-to-r from-transparent via-orange-300 to-transparent"></div>
                   </div>
                 )}
 
-                {/* 🌟 अगर ऐड दिखाना है, तो Divider की जगह AdSense दिखाएं */}
+                {/* 🌟 AD UNIT 🌟 */}
+                {/* अगर ऐड आएगा, तो वह लाइन के ठीक नीचे एक प्रोफेशनल स्पॉन्सर ब्रेक की तरह दिखेगा।
+                    अगर ऐड खाली रहता है, तो यह गायब हो जाएगा और हमारी ऊपर वाली लाइन फॉर्मेटिंग को बचा लेगी! */}
                 {isAllowedAd && index < array.length - 1 && (
-                  <div className="py-2">
+                  <div className="w-full mb-4 md:mb-6">
                     <ManualAdUnit />
                   </div>
                 )}
