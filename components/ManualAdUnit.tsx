@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-export default function SmartManualAdUnit() {
+export default function ManualAdUnit() {
   const pathname = usePathname();
   const adLoaded = useRef(false);
   const insRef = useRef<HTMLModElement>(null);
@@ -75,11 +75,10 @@ export default function SmartManualAdUnit() {
         <ins
           ref={insRef} // जासूस को यहाँ कनेक्ट किया
           className="adsbygoogle"
-          style={{ display: "block", textAlign: "center", width: "100%" }}
-          data-ad-layout="in-article"
-          data-ad-format="fluid, auto"
+          style={{ display: "block", width: "100%" }}
           data-ad-client="ca-pub-5565563905050993"
-          data-ad-slot="1920154812"
+          data-ad-slot="1922873836"
+          data-ad-format="auto"
           data-full-width-responsive="true"
         />
       </div>
