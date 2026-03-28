@@ -33,7 +33,22 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() => {
         // Serve from cache if offline
-        return caches.match(event.request);
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse; // 1. कैश में मिला, तो दिखा दो
+          }
+          
+          // 🌟 THE BULLETPROOF FIX: Prevent "TypeError: Failed to convert value to 'Response'"
+          // 2. अगर इंटरनेट बंद है और पेज कैश में भी नहीं है, तो क्रैश होने के बजाय यह ऑफलाइन पेज दिखाओ।
+          return new Response(
+            "<html><body style='background:#fffaf0;color:#ea580c;text-align:center;padding:50px;font-family:sans-serif;'><h2>🙏 जय श्री राम!</h2><p>आप अभी ऑफ़लाइन हैं। कृपया अपना इंटरनेट कनेक्शन जांचें।</p></body></html>",
+            {
+              status: 503,
+              statusText: "Service Unavailable",
+              headers: new Headers({ 'Content-Type': 'text/html; charset=utf-8' })
+            }
+          );
+        });
       })
   );
 });
