@@ -53,8 +53,8 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
             <div className="relative w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl overflow-hidden bg-gray-100 group-hover:shadow-md transition-all border border-gray-100/50">
               <Image 
                 src={thumbnailUrl} 
-                alt=""
-                fill 
+                alt={`Thumbnail for ${bhajan.title_hinglish}`} /* 🌟 Hydration + A11y Fix: अब यह खाली नहीं है और टेक्स्ट भी रिपीट नहीं हो रहा */
+                fill
                 quality={50} /* 🌟 THE FIX: Saves 20-30 KB per image without losing visible quality on small cards */
                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 250px" /* 🌟 THE FIX: Perfect responsive sizing */
                 className="object-cover group-hover:scale-105 transition-transform duration-700" 
