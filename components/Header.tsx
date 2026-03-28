@@ -414,7 +414,7 @@ export default function Header() {
             <div className="hidden lg:flex items-center gap-2 shrink-0 z-10">
               <Link 
                 href="/donate" 
-                className="mr-2 flex items-center gap-2 px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold rounded-full transition-all shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-orange-400 active:scale-95"
+                className="mr-2 flex items-center gap-2 px-5 py-2.5 bg-orange-700 hover:bg-orange-800 text-white text-sm font-bold rounded-full transition-all shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-orange-400 active:scale-95"
               >
                 <FaHandHoldingHeart size={16} /> Support Us
               </Link>
