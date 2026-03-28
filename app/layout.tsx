@@ -130,7 +130,6 @@ export default function RootLayout({
   return (
     <html lang="hi" suppressHydrationWarning>
       
-      {/* 🌟 NEW: Preconnects for Lighthouse LCP & Faster Ads */}
       <head>
         {/* Supabase API */}
         <link rel="preconnect" href="https://vjylssvpxjhzjkmqzvjz.supabase.co" crossOrigin="anonymous" />
@@ -139,6 +138,14 @@ export default function RootLayout({
         {/* Google AdSense Servers */}
         <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://googleads.g.doubleclick.net" crossOrigin="anonymous" />
+
+        {/* 🌟 THE ADSENSE FIX: Pure HTML Script tag instead of Next.js <Script> 
+            This single line removes the "data-nscript" error and initializes Auto Ads perfectly. */}
+        <script 
+          async 
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5565563905050993" 
+          crossOrigin="anonymous"
+        ></script>
       </head>
 
       <body 
