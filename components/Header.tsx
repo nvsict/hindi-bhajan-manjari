@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { supabase } from '@/utils/supabase'; // 🌟 Ensure this path is correct for your project
+import { supabase } from '@/utils/supabase'; 
 import { HiMenuAlt3, HiX } from 'react-icons/hi';
 import { GiLotusFlower } from 'react-icons/gi';
 import {
@@ -31,7 +31,7 @@ const DEFAULT_NAV_ITEMS = [
       featured: {
         title: 'Divine Darshan',
         desc: 'Explore our sacred collection of deity-specific Bhajans, Aartis, and Mantras.',
-        icon: <FaOm className="text-4xl text-orange-200 mb-4 opacity-80" />,
+        icon: <FaOm className="text-4xl text-orange-600 mb-4 opacity-80" />,
         href: '/deity',
         bg: 'from-orange-500 to-red-600',
       },
@@ -104,7 +104,7 @@ const UtilityBar = memo(function UtilityBar() {
         </nav>
         <div className="flex items-center gap-4">
           {SOCIAL_LINKS.map(({ Icon, href, label, hoverColor }) => (
-            <a key={label} href={href} aria-label={label} className={`text-orange-200 ${hoverColor} transition-transform hover:scale-110`} target="_blank" rel="noopener noreferrer">
+            <a key={label} href={href} aria-label={label} className={`text-orange-600 ${hoverColor} transition-transform hover:scale-110`} target="_blank" rel="noopener noreferrer">
               <Icon size={14} />
             </a>
           ))}
@@ -155,7 +155,6 @@ export default function Header() {
             {
               name: 'Deities',
               megaMenu: {
-                // 🌟 FIX: Added ! to tell TS megaMenu exists here
                 featured: DEFAULT_NAV_ITEMS[1].megaMenu!.featured, 
                 links: topDeities.map((d: any) => ({
                   name: d.name,
@@ -168,7 +167,6 @@ export default function Header() {
             {
               name: 'Categories',
               megaMenu: {
-                // 🌟 FIX: Added ! to tell TS megaMenu exists here
                 featured: DEFAULT_NAV_ITEMS[2].megaMenu!.featured, 
                 links: topCategories.map((c: any) => ({
                   name: c.name,
@@ -421,11 +419,23 @@ export default function Header() {
                 <FaHandHoldingHeart size={16} /> Support Us
               </Link>
               
-              <button onClick={openSearch} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors">
+              {/* 🌟 FIX 1: Added aria-label to Desktop Search Button */}
+              <button 
+                onClick={openSearch} 
+                aria-label="Open search"
+                className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors"
+              >
                 <FaSearch size={16} />
               </button>
+              
               <div className="w-px h-5 bg-gray-200 mx-1" />
-              <Link href="/saved" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:text-red-500 hover:bg-red-50 transition-colors">
+              
+              {/* 🌟 FIX 2: Added aria-label to Desktop Saved Link */}
+              <Link 
+                href="/saved" 
+                aria-label="View saved bhajans"
+                className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:text-red-500 hover:bg-red-50 transition-colors"
+              >
                 <FaHeart size={16} />
               </Link>
             </div>
@@ -440,10 +450,21 @@ export default function Header() {
                 <FaHandHoldingHeart size={20} />
               </Link>
               
-              <button onClick={openSearch} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:bg-orange-50 transition-colors">
+              {/* 🌟 FIX 3: Added aria-label to Mobile Search Button */}
+              <button 
+                onClick={openSearch} 
+                aria-label="Open search"
+                className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:bg-orange-50 transition-colors"
+              >
                 <FaSearch size={18} />
               </button>
-              <button onClick={openMenu} className="w-10 h-10 flex items-center justify-center rounded-xl bg-orange-600 text-white hover:bg-orange-700 transition-colors shadow-md ml-1 active:scale-95">
+
+              {/* 🌟 FIX 4: Added aria-label to Mobile Menu Button */}
+              <button 
+                onClick={openMenu} 
+                aria-label="Open mobile menu"
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-orange-600 text-white hover:bg-orange-700 transition-colors shadow-md ml-1 active:scale-95"
+              >
                 <HiMenuAlt3 size={24} />
               </button>
             </div>
@@ -455,7 +476,13 @@ export default function Header() {
           <div className="max-w-3xl mx-auto px-4 py-6">
             <div className="relative">
               {isSearchOpen && <SearchBar onClose={closeSearch} />}
-              <button onClick={closeSearch} className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+              
+              {/* 🌟 FIX 5: Added aria-label to Close Search Button */}
+              <button 
+                onClick={closeSearch} 
+                aria-label="Close search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+              >
                 <HiX size={18} />
               </button>
             </div>
@@ -480,7 +507,13 @@ export default function Header() {
             />
             <span className="font-black text-gray-900 tracking-widest text-sm uppercase">Menu</span>
           </div>
-          <button onClick={closeMenu} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+
+          {/* 🌟 FIX 6: Added aria-label to Close Menu Button */}
+          <button 
+            onClick={closeMenu} 
+            aria-label="Close menu"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+          >
             <HiX size={20} />
           </button>
         </div>
@@ -495,7 +528,7 @@ export default function Header() {
                     className="w-full flex items-center justify-between px-5 py-4 font-bold text-[15px] text-gray-800 active:bg-gray-50 transition-colors"
                   >
                     {item.name}
-                    <FaChevronDown size={12} className={`text-gray-400 transition-transform duration-300 ${expandedMobileMenu === item.name ? 'rotate-180' : ''}`} />
+                    <FaChevronDown size={12} className={`text-gray-500 transition-transform duration-300 ${expandedMobileMenu === item.name ? 'rotate-180' : ''}`} />
                   </button>
                   <div className={`grid transition-all duration-300 ease-in-out ${expandedMobileMenu === item.name ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                     <div className="overflow-hidden bg-gray-50/50">
@@ -524,7 +557,7 @@ export default function Header() {
                   className={`flex items-center justify-between px-5 py-4 rounded-2xl font-bold text-[15px] transition-all duration-200 ${isActive(item.href!) ? 'bg-orange-100 text-orange-700 shadow-sm border border-orange-200/50' : 'bg-white text-gray-700 hover:shadow-sm border border-gray-100'}`}
                 >
                   <span>{item.name}</span>
-                  {isActive(item.href!) ? <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-sm" /> : <FaChevronRight size={14} className="text-gray-400" />}
+                  {isActive(item.href!) ? <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-sm" /> : <FaChevronRight size={14} className="text-gray-500" />}
                 </Link>
               )}
             </div>

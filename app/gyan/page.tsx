@@ -95,7 +95,7 @@ export default async function GyanIndexPage() {
                       <span className="flex items-center gap-1.5 bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100/50 group-hover:bg-orange-100 transition-colors">
                         <FaClock className="mb-0.5" /> {article.read_time_minutes} Min
                       </span>
-                      <span className="flex items-center gap-1.5 text-gray-400">
+                      <span className="flex items-center gap-1.5 text-gray-500">
                         <FaCalendarAlt className="mb-0.5" /> {publishDate}
                       </span>
                     </div>
@@ -104,7 +104,7 @@ export default async function GyanIndexPage() {
                     <h2 className="font-hindi text-2xl font-black text-gray-900 mb-2 leading-tight group-hover:text-orange-600 transition-colors line-clamp-3">
                       {article.title_hindi}
                     </h2>
-                    <h3 className="text-sm font-medium text-gray-400 mb-4 line-clamp-1">
+                    <h3 className="text-sm font-medium text-gray-500 mb-4 line-clamp-1">
                       {article.title_hinglish}
                     </h3>
 

@@ -29,7 +29,7 @@ export default function DeleteButton({ slug, title }: { slug: string, title: str
       disabled={isDeleting}
       className={`inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
         isDeleting 
-          ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+          ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
           : 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white'
       }`}
       title="Delete Bhajan"

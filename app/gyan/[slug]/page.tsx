@@ -197,7 +197,7 @@ export default async function ArticlePage({ params }: Props) {
               <span className="flex items-center gap-1.5">
                 <FaClock className="mb-0.5" /> {article.read_time_minutes} Min Read
               </span>
-              <span className="flex items-center gap-1.5 text-gray-400">&bull;</span>
+              <span className="flex items-center gap-1.5 text-gray-500">&bull;</span>
               <span className="flex items-center gap-1.5 text-gray-500">
                 <FaCalendarAlt className="mb-0.5" /> {publishDateStr}
               </span>
@@ -269,7 +269,7 @@ export default async function ArticlePage({ params }: Props) {
 
           {/* --- THE AUTHOR BOX --- */}
           <div className="p-8 md:p-12 bg-gray-50 border-t border-gray-100">
-            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6 text-center">
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6 text-center">
               Written & Verified By
             </h3>
             <AuthorBox authorName={article.author_name} authorSlug={article.author_slug} />

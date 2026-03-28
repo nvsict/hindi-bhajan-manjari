@@ -49,7 +49,7 @@ export default async function RelatedContent({ deityId, currentSlug }: Props) {
             key={bhajan.slug}
             className="flex flex-col p-5 bg-gray-50 rounded-2xl border border-gray-100 hover:border-orange-300 hover:shadow-md hover:-translate-y-1 transition-all duration-300 group"
           >
-            <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">
               <FaMusic className="text-orange-400" /> Bhajan
             </div>
             <h4 className="font-hindi text-xl font-bold text-gray-900 mb-1 group-hover:text-orange-600 transition-colors line-clamp-2">

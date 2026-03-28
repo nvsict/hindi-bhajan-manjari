@@ -32,7 +32,7 @@ export default function AboutPage() {
             <HiSparkles /> हमारी आध्यात्मिक यात्रा (Our Mission)
           </div>
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white mb-6 drop-shadow-sm tracking-tighter leading-tight">
-            Preserving Devotion <br /> For the <span className="text-orange-200">Digital Age</span>
+            Preserving Devotion <br /> For the <span className="text-orange-600">Digital Age</span>
           </h1>
           <p className="text-orange-50 max-w-2xl mx-auto text-lg md:text-xl leading-relaxed opacity-95 font-medium">
             Hindi Bhajan Manjari is a carefully curated digital temple. We focus on quality, accurate meanings (Bhavarth), and a distraction-free environment for devotees worldwide.

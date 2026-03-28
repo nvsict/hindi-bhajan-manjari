@@ -255,7 +255,7 @@ export default function AddBhajanPage() {
               <textarea required rows={8} value={formData.lyrics_hindi} onChange={(e) => setFormData({...formData, lyrics_hindi: e.target.value})} className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:outline-orange-500 font-sans"></textarea>
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Lyrics (Hinglish) <span className="text-gray-400 font-normal">Optional</span></label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Lyrics (Hinglish) <span className="text-gray-500 font-normal">Optional</span></label>
               <textarea rows={8} value={formData.lyrics_hinglish} onChange={(e) => setFormData({...formData, lyrics_hinglish: e.target.value})} className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:outline-orange-500 font-sans"></textarea>
             </div>
           </div>

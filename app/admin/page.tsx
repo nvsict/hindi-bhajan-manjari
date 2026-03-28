@@ -98,7 +98,7 @@ export default async function AdminDashboard({
             <FaMusic size={24} className="group-hover:scale-110 transition-transform duration-500" />
           </div>
           <div className="relative z-10">
-            <p className="text-gray-400 font-bold text-[11px] uppercase tracking-widest mb-1">Total Bhajans</p>
+            <p className="text-gray-500 font-bold text-[11px] uppercase tracking-widest mb-1">Total Bhajans</p>
             <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter">{bhajanCount || 0}</h2>
           </div>
         </div>
@@ -112,7 +112,7 @@ export default async function AdminDashboard({
             <FaPrayingHands size={24} className="group-hover:scale-110 transition-transform duration-500" />
           </div>
           <div className="relative z-10">
-            <p className="text-gray-400 font-bold text-[11px] uppercase tracking-widest mb-1">Deities Master</p>
+            <p className="text-gray-500 font-bold text-[11px] uppercase tracking-widest mb-1">Deities Master</p>
             <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter">{deityCount || 0}</h2>
           </div>
         </div>
@@ -126,7 +126,7 @@ export default async function AdminDashboard({
             <FaFolderOpen size={24} className="group-hover:scale-110 transition-transform duration-500" />
           </div>
           <div className="relative z-10">
-            <p className="text-gray-400 font-bold text-[11px] uppercase tracking-widest mb-1">Categories</p>
+            <p className="text-gray-500 font-bold text-[11px] uppercase tracking-widest mb-1">Categories</p>
             <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter">{categoryCount || 0}</h2>
           </div>
         </div>
@@ -147,12 +147,12 @@ export default async function AdminDashboard({
             </>
           ) : null}
           
-          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-500 shadow-sm relative z-10 mb-6 ${pendingCount && pendingCount > 0 ? 'bg-red-500 text-white' : 'bg-gray-50 text-gray-400 group-hover:bg-gray-100 group-hover:text-gray-600'}`}>
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-500 shadow-sm relative z-10 mb-6 ${pendingCount && pendingCount > 0 ? 'bg-red-500 text-white' : 'bg-gray-50 text-gray-500 group-hover:bg-gray-100 group-hover:text-gray-600'}`}>
             <FaInbox size={24} className="group-hover:scale-110 transition-transform duration-500" />
           </div>
           
           <div className="relative z-10">
-            <p className={`font-bold text-[11px] uppercase tracking-widest mb-1 ${pendingCount && pendingCount > 0 ? 'text-red-600' : 'text-gray-400'}`}>Pending Submissions</p>
+            <p className={`font-bold text-[11px] uppercase tracking-widest mb-1 ${pendingCount && pendingCount > 0 ? 'text-red-600' : 'text-gray-500'}`}>Pending Submissions</p>
             <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter flex items-center gap-3">
               {pendingCount || 0}
               {pendingCount && pendingCount > 0 ? (
@@ -194,7 +194,7 @@ export default async function AdminDashboard({
         <div className="w-full overflow-x-auto custom-scrollbar relative z-0">
           <table className="w-full text-left border-collapse table-auto min-w-[800px]">
             <thead>
-              <tr className="bg-gray-50/50 text-gray-400 text-[11px] uppercase tracking-widest border-b border-gray-100">
+              <tr className="bg-gray-50/50 text-gray-500 text-[11px] uppercase tracking-widest border-b border-gray-100">
                 <th className="p-6 font-bold pl-8 md:pl-10 w-1/3">Bhajan Title</th>
                 <th className="p-6 font-bold w-1/3">URL Slug</th>
                 <th className="p-6 font-bold text-right">Views</th>
@@ -210,7 +210,7 @@ export default async function AdminDashboard({
                     <div className="font-bold text-gray-900 text-lg font-hindi leading-tight mb-1 truncate max-w-[300px] group-hover:text-orange-600 transition-colors">
                       {bhajan.title_hindi}
                     </div>
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 truncate max-w-[300px]">
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 truncate max-w-[300px]">
                       {bhajan.title_hinglish}
                     </div>
                   </td>
@@ -223,7 +223,7 @@ export default async function AdminDashboard({
                   
                   <td className="p-5 text-right">
                     <div className="inline-flex items-center justify-end gap-2 text-gray-600 font-bold text-sm bg-gray-50 px-3 py-1.5 rounded-lg group-hover:bg-white transition-colors shadow-sm border border-gray-100">
-                      <FaEye className="text-gray-400 group-hover:text-blue-500 transition-colors" /> 
+                      <FaEye className="text-gray-500 group-hover:text-blue-500 transition-colors" /> 
                       {bhajan.view_count?.toLocaleString() || 0}
                     </div>
                   </td>
@@ -259,7 +259,7 @@ export default async function AdminDashboard({
               {(!recentBhajans || recentBhajans.length === 0) && (
                 <tr>
                   <td colSpan={5} className="p-20 text-center">
-                    <div className="inline-flex flex-col items-center justify-center text-gray-400 max-w-md mx-auto">
+                    <div className="inline-flex flex-col items-center justify-center text-gray-500 max-w-md mx-auto">
                       
                       {/* Animated SVG Illustration */}
                       <div className="relative w-32 h-32 mb-8 flex justify-center items-center">

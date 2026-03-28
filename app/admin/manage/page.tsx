@@ -162,7 +162,7 @@ export default function MetadataManagePage() {
           {/* Search & Refresh */}
           <div className="flex items-center gap-3 w-full lg:w-[400px]">
             <div className="relative flex-1">
-              <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500" />
               <input 
                 type="text"
                 placeholder={`Search ${activeTab}...`}
@@ -193,7 +193,7 @@ export default function MetadataManagePage() {
           </div>
 
           {loading ? (
-            <div className="p-32 flex flex-col items-center justify-center text-gray-400">
+            <div className="p-32 flex flex-col items-center justify-center text-gray-500">
               <FaSyncAlt className="animate-spin text-4xl mb-4 text-orange-400" />
               <span className="font-bold tracking-widest uppercase text-xs">Fetching records...</span>
             </div>
@@ -211,10 +211,10 @@ export default function MetadataManagePage() {
                 <thead className="bg-white border-b border-gray-100">
                   <tr>
                     {(activeTab === 'deities' || activeTab === 'artists') && <th className="px-8 py-5 w-24"></th>}
-                    <th className="px-8 py-5 text-[11px] font-bold uppercase text-gray-400 tracking-widest">Name (Hinglish & Hindi)</th>
-                    {activeTab === 'artists' && <th className="px-8 py-5 text-[11px] font-bold uppercase text-gray-400 tracking-widest">Contact</th>}
-                    <th className="px-8 py-5 text-[11px] font-bold uppercase text-gray-400 tracking-widest">URL Slug</th>
-                    <th className="px-8 py-5 text-right text-[11px] font-bold uppercase text-gray-400 tracking-widest">Actions</th>
+                    <th className="px-8 py-5 text-[11px] font-bold uppercase text-gray-500 tracking-widest">Name (Hinglish & Hindi)</th>
+                    {activeTab === 'artists' && <th className="px-8 py-5 text-[11px] font-bold uppercase text-gray-500 tracking-widest">Contact</th>}
+                    <th className="px-8 py-5 text-[11px] font-bold uppercase text-gray-500 tracking-widest">URL Slug</th>
+                    <th className="px-8 py-5 text-right text-[11px] font-bold uppercase text-gray-500 tracking-widest">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -386,7 +386,7 @@ export default function MetadataManagePage() {
                     </div>
                   ))}
                   {faqs.length === 0 && (
-                    <p className="text-gray-400 italic text-sm text-center py-4">No FAQs added yet.</p>
+                    <p className="text-gray-500 italic text-sm text-center py-4">No FAQs added yet.</p>
                   )}
                 </div>
               </div>

@@ -90,7 +90,7 @@ export default async function Sidebar({
                   className="group/item flex items-center gap-4 p-3 -mx-2 rounded-2xl hover:bg-white hover:shadow-md border border-transparent hover:border-orange-50 transition-all duration-300"
                 >
                   <div className={`w-10 h-10 rounded-full text-base font-black flex items-center justify-center shrink-0 shadow-sm transition-transform duration-300 group-hover/item:scale-110 ${
-                    index === 0 ? 'bg-gradient-to-br from-orange-400 to-amber-500 text-white' : 'bg-gray-50 text-gray-400 group-hover/item:text-orange-500'
+                    index === 0 ? 'bg-gradient-to-br from-orange-400 to-amber-500 text-white' : 'bg-gray-50 text-gray-500 group-hover/item:text-orange-500'
                   }`}>
                     {index === 0 ? <FaStar size={14} /> : index + 1}
                   </div>
@@ -100,7 +100,7 @@ export default async function Sidebar({
                       {bhajan.title_hindi}
                     </h4>
                     <div className="flex items-center gap-2">
-                      <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold line-clamp-1">
+                      <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold line-clamp-1">
                         {bhajan.title_hinglish}
                       </p>
                     </div>

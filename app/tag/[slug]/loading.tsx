@@ -17,7 +17,7 @@ export default function Loading() {
             <div className="bg-white rounded-3xl p-8 border border-orange-100 shadow-sm mb-8 animate-pulse">
               <div className="flex items-center gap-4 mb-2">
                 <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center">
-                  <FaHashtag className="text-orange-300 text-2xl" />
+                  <FaHashtag className="text-orange-600 text-2xl" />
                 </div>
                 {/* Fake Title */}
                 <div className="h-10 bg-gray-200 rounded-xl w-64"></div>

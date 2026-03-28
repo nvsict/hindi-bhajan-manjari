@@ -179,7 +179,7 @@ export default async function AuthorPage({ params }: PageProps) {
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 tracking-tighter leading-none">
                 {author.name}
               </h1>
-              <span className="text-xl md:text-2xl font-hindi text-gray-400 font-bold mb-1">
+              <span className="text-xl md:text-2xl font-hindi text-gray-500 font-bold mb-1">
                 ({author.nameHindi})
               </span>
             </div>
@@ -288,7 +288,7 @@ export default async function AuthorPage({ params }: PageProps) {
                       <h3 className="font-hindi text-xl md:text-2xl font-bold text-gray-900 group-hover:text-orange-600 transition-colors mb-3 leading-tight">
                         {article.title_hindi}
                       </h3>
-                      <div className="flex items-center gap-4 text-[11px] font-bold uppercase tracking-widest text-gray-400">
+                      <div className="flex items-center gap-4 text-[11px] font-bold uppercase tracking-widest text-gray-500">
                         <span className="flex items-center gap-1.5"><FaHandsPraying className="text-orange-400"/> {article.read_time_minutes} Min Read</span>
                         <span className="w-1 h-1 rounded-full bg-gray-300"></span>
                         <span>{new Date(article.created_at).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</span>
@@ -324,14 +324,14 @@ export default async function AuthorPage({ params }: PageProps) {
                     href={`/bhajan/${bhajan.slug}`}
                     className="flex items-center gap-5 bg-white p-4 pr-6 rounded-[1.5rem] border border-gray-100/80 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-blue-200 transition-all duration-300 group"
                   >
-                    <div className="w-14 h-14 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors shrink-0">
+                    <div className="w-14 h-14 bg-gray-50 rounded-xl flex items-center justify-center text-gray-500 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors shrink-0">
                       <FaMusic size={20} />
                     </div>
                     <div className="flex-1">
                       <h3 className="font-hindi text-lg md:text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors mb-1 leading-tight line-clamp-1">
                         {bhajan.title_hindi}
                       </h3>
-                      <div className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-gray-400 line-clamp-1">
+                      <div className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-gray-500 line-clamp-1">
                         {bhajan.title_hinglish}
                       </div>
                     </div>

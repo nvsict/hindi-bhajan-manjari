@@ -25,7 +25,7 @@ export default function ManualAdUnit() {
     // 🌟 FIX: Removed complex flexbox. Using pure text-center and block for AdSense compatibility
     <div className="w-full my-8 text-center overflow-hidden clear-both">
       
-      <span className="text-[10px] text-gray-400 uppercase tracking-[0.2em] mb-3 block font-sans select-none">
+      <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-3 block font-sans select-none">
         Advertisement
       </span>
 

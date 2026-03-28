@@ -128,7 +128,7 @@ export default function CommentsSection({ bhajanSlug }: { bhajanSlug: string }) 
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
                   <h4 className="font-bold text-gray-900">{comment.user_name}</h4>
-                  <span className="text-xs text-gray-400 font-medium">{formatDate(comment.created_at)}</span>
+                  <span className="text-xs text-gray-500 font-medium">{formatDate(comment.created_at)}</span>
                 </div>
                 <p className="text-gray-700 leading-relaxed text-sm md:text-base">
                   {comment.content}

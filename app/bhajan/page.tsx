@@ -104,7 +104,7 @@ export default async function AToZBhajansPage() {
                 <p className="text-gray-600 text-base md:text-lg font-medium leading-relaxed max-w-2xl">
                   हमारी संपूर्ण डिजिटल लाइब्रेरी। अपने पसंदीदा पाठ को खोजने के लिए नीचे दिए गए अक्षरों का उपयोग करें।
                 </p>
-                <div className="mt-4 flex items-center gap-4 text-xs md:text-sm font-bold text-gray-400 uppercase tracking-widest">
+                <div className="mt-4 flex items-center gap-4 text-xs md:text-sm font-bold text-gray-500 uppercase tracking-widest">
                   <span className="flex items-center gap-1.5"><FaMusic className="text-orange-400"/> {bhajans.length} Bhajans</span>
                   <span>&bull;</span>
                   <span className="flex items-center gap-1.5"><FaBookOpen className="text-orange-400"/> Verified</span>
@@ -162,7 +162,7 @@ export default async function AToZBhajansPage() {
                     <h2 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-orange-400 to-orange-600 drop-shadow-sm leading-none">
                       {letter}
                     </h2>
-                    <span className="text-gray-400 font-bold uppercase tracking-widest text-[11px] md:text-xs mb-1.5">
+                    <span className="text-gray-500 font-bold uppercase tracking-widest text-[11px] md:text-xs mb-1.5">
                       {groupedBhajans[letter].length} Records
                     </span>
                   </div>
@@ -186,7 +186,7 @@ export default async function AToZBhajansPage() {
                             {bhajan.title_hinglish}
                           </p>
                         </div>
-                        <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-orange-100 group-hover:text-orange-600 transition-colors shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 group-hover:bg-orange-100 group-hover:text-orange-600 transition-colors shrink-0">
                           <FaChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
                         </div>
                       </Link>
@@ -199,7 +199,7 @@ export default async function AToZBhajansPage() {
           ) : (
             // Empty State Fallback
             <div className="bg-white p-12 md:p-24 rounded-[2.5rem] border border-dashed border-gray-300 text-center shadow-sm mt-8">
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-50 text-gray-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FaMusic size={24} className="md:text-3xl opacity-50" />
               </div>
               <h3 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">No Bhajans Found</h3>

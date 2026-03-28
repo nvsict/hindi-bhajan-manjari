@@ -78,7 +78,7 @@ export default function AuthorBox({
             <span className="text-lg md:text-2xl text-gray-700">{authorName}</span>
           </h3>
           <p className="text-sm font-bold text-gray-500 mt-1" itemProp="jobTitle">
-            <span className="font-hindi text-orange-700">{roleHindi}</span> <span className="text-gray-400 mx-1">•</span> <span className="uppercase tracking-widest text-[11px]">{role}</span>
+            <span className="font-hindi text-orange-700">{roleHindi}</span> <span className="text-gray-500 mx-1">•</span> <span className="uppercase tracking-widest text-[11px]">{role}</span>
           </p>
         </div>
         

@@ -263,7 +263,7 @@ export default async function BhajanDetails({ params }: Props) {
                   {(singers.length > 0 || bhajan.singer_details?.name) && (
                     <div className="flex items-center gap-2 text-gray-700">
                       <FaMicrophoneAlt className="text-orange-500" aria-hidden="true" />
-                      <span className="text-[11px] uppercase tracking-widest font-bold text-gray-400">Singer: </span>
+                      <span className="text-[11px] uppercase tracking-widest font-bold text-gray-500">Singer: </span>
                       {singers.length > 0 ? (
                         <div className="flex gap-1 text-sm font-bold">
                           {singers.map((s: any, i: number) => (
@@ -285,7 +285,7 @@ export default async function BhajanDetails({ params }: Props) {
                   {(lyricists.length > 0 || bhajan.singer_details?.lyricist) && (
                     <div className="flex items-center gap-2 text-gray-700">
                       <FaPenNib className="text-orange-500" aria-hidden="true" />
-                      <span className="text-[11px] uppercase tracking-widest font-bold text-gray-400">Writer: </span>
+                      <span className="text-[11px] uppercase tracking-widest font-bold text-gray-500">Writer: </span>
                       {lyricists.length > 0 ? (
                         <div className="flex gap-1 text-sm font-bold">
                           {lyricists.map((l: any, i: number) => (
@@ -307,7 +307,7 @@ export default async function BhajanDetails({ params }: Props) {
                   {displayPhone && (
                     <div className="flex items-center gap-2 text-gray-700">
                       <FaPhoneAlt className="text-orange-500" aria-hidden="true" />
-                      <span className="text-[11px] uppercase tracking-widest font-bold text-gray-400">Contact: </span>
+                      <span className="text-[11px] uppercase tracking-widest font-bold text-gray-500">Contact: </span>
                       <a href={`tel:${displayPhone}`} className="text-sm font-bold text-orange-600 hover:text-orange-800 transition-colors">
                         {displayPhone}
                       </a>
@@ -318,7 +318,7 @@ export default async function BhajanDetails({ params }: Props) {
                   {displayAddress && (
                     <div className="flex items-center gap-2 text-gray-700">
                       <FaMapMarkerAlt className="text-orange-500" aria-hidden="true" />
-                      <span className="text-[11px] uppercase tracking-widest font-bold text-gray-400">Location: </span>
+                      <span className="text-[11px] uppercase tracking-widest font-bold text-gray-500">Location: </span>
                       <span className="font-bold text-sm text-gray-800">{displayAddress}</span>
                     </div>
                   )}
@@ -391,7 +391,7 @@ export default async function BhajanDetails({ params }: Props) {
 
               {tags.length > 0 && (
                 <div className="mt-12 pt-8 border-t border-gray-100">
-                  <h4 className="text-[11px] font-bold text-gray-400 mb-4 uppercase tracking-widest">Related Tags</h4>
+                  <h4 className="text-[11px] font-bold text-gray-500 mb-4 uppercase tracking-widest">Related Tags</h4>
                   <div className="flex flex-wrap gap-2.5">
                     {tags.map((tag: any) => (
                       <a 
@@ -408,12 +408,12 @@ export default async function BhajanDetails({ params }: Props) {
 
               <div className="mt-10 pt-6 border-t border-gray-100 flex flex-wrap gap-4 justify-center">
                 {categories.length > 0 && (
-                  <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest">
+                  <p className="text-[11px] text-gray-500 font-bold uppercase tracking-widest">
                     Categories: <span className="text-gray-700">{categories.map((c:any) => c.name_hinglish).join(', ')}</span>
                   </p>
                 )}
                 {bhajan.deities && (
-                  <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest">
+                  <p className="text-[11px] text-gray-500 font-bold uppercase tracking-widest">
                     Deity: <span className="text-gray-700">{bhajan.deities.name_hinglish}</span>
                   </p>
                 )}

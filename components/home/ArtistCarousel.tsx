@@ -108,7 +108,7 @@ export default function ArtistCarousel({ artists }: { artists: any[] }) {
                       sizes="(max-width: 768px) 112px, 144px" 
                     />
                   ) : (
-                    <FaUserCircle className="text-orange-300/50 w-full h-full p-2 md:p-4 relative z-10 transition-transform duration-700 group-hover:scale-110" />
+                    <FaUserCircle className="text-orange-600/50 w-full h-full p-2 md:p-4 relative z-10 transition-transform duration-700 group-hover:scale-110" />
                   )}
                 </div>
                 

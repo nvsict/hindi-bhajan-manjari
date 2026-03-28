@@ -88,7 +88,7 @@ export default function AdminArticlesPage() {
                         
                         <div>
                           <p className="font-bold text-gray-900 font-hindi text-lg leading-tight mb-1 line-clamp-1">{article.title_hindi}</p>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest line-clamp-1">{article.title_hinglish}</p>
+                          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest line-clamp-1">{article.title_hinglish}</p>
                         </div>
                       </div>
                     </td>

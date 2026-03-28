@@ -40,7 +40,7 @@ export default async function AllCategoriesPage() {
           {/* Back Button */}
           <Link 
             href="/" 
-            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-orange-600 transition-colors mb-6"
+            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-orange-600 transition-colors mb-6"
           >
             <FaArrowLeft size={10} /> Back to Home
           </Link>
@@ -91,7 +91,7 @@ export default async function AllCategoriesPage() {
                     </h3>
                     
                     {/* Hinglish Name */}
-                    <p className="text-[10px] md:text-xs font-bold uppercase tracking-[0.1em] text-gray-400 group-hover:text-orange-500/80 mt-0.5 truncate transition-colors">
+                    <p className="text-[10px] md:text-xs font-bold uppercase tracking-[0.1em] text-gray-500 group-hover:text-orange-500/80 mt-0.5 truncate transition-colors">
                       {category.name_hinglish}
                     </p>
                   </div>

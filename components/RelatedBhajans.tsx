@@ -46,7 +46,7 @@ export default async function RelatedBhajans({ currentBhajanId, deitySlug }: Pro
             <h4 className="text-lg font-bold text-gray-900 line-clamp-1 group-hover:text-orange-600 transition-colors">
               {bhajan.title_hindi}
             </h4>
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mt-1 line-clamp-1 group-hover:text-orange-400 transition-colors">
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mt-1 line-clamp-1 group-hover:text-orange-400 transition-colors">
               {bhajan.title_hinglish}
             </p>
           </Link>

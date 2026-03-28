@@ -43,7 +43,7 @@ export default async function NotFound() {
           {/* 🌟 THE DIRECT SEARCH BAR */}
           <form action="/search" method="GET" className="max-w-lg mx-auto relative group mb-12">
             <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-              <FaSearch className="text-gray-400 group-focus-within:text-orange-500 transition-colors" />
+              <FaSearch className="text-gray-500 group-focus-within:text-orange-500 transition-colors" />
             </div>
             <input 
               type="text" 
@@ -93,7 +93,7 @@ export default async function NotFound() {
                         {bhajan.title_hindi}
                       </h4>
                     </div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
                       Read Now &rarr;
                     </p>
                   </Link>
@@ -105,7 +105,7 @@ export default async function NotFound() {
 
         {/* --- The Fallback Action Button --- */}
         <div className="flex flex-col items-center justify-center">
-          <Link href="/category" className="text-sm font-bold text-gray-400 hover:text-orange-600 transition-colors uppercase tracking-widest border-b border-transparent hover:border-orange-600 pb-1">
+          <Link href="/category" className="text-sm font-bold text-gray-500 hover:text-orange-600 transition-colors uppercase tracking-widest border-b border-transparent hover:border-orange-600 pb-1">
             Browse By Category Instead
           </Link>
         </div>

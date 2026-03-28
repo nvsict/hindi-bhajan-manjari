@@ -106,7 +106,7 @@ export default function EditPage() {
                 >
                   <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2 ml-1">
                     {key.replace(/_/g, ' ')}
-                    {isImage && <FaImage className="text-gray-400" />}
+                    {isImage && <FaImage className="text-gray-500" />}
                   </label>
 
                   {/* Smart Input Rendering */}

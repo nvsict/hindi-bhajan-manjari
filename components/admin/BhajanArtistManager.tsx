@@ -188,7 +188,7 @@ export default function BhajanArtistManager({ bhajanId, selectedArtists, onChang
         <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Current Credits</h4>
         
         {displayArtists.length === 0 ? (
-          <p className="text-gray-400 italic text-sm">No artists linked to this bhajan yet.</p>
+          <p className="text-gray-500 italic text-sm">No artists linked to this bhajan yet.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {displayArtists.map((link) => (

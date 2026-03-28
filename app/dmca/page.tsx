@@ -100,7 +100,7 @@ export default function DMCAPage() {
                 
                 <div className="bg-gray-900 rounded-[2rem] p-8 md:p-10 mt-8 relative overflow-hidden group shadow-2xl">
                   <div className="relative z-10">
-                    <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mb-3">Send Official Notice To:</p>
+                    <p className="text-gray-500 text-sm font-bold uppercase tracking-widest mb-3">Send Official Notice To:</p>
                     <a 
                       href={`mailto:${adminEmail}`} 
                       className="text-2xl md:text-3xl font-mono text-white hover:text-orange-400 transition-colors break-all relative z-20"

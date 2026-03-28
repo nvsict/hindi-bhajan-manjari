@@ -231,7 +231,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
               />
             ) : (
               <div className="bg-white p-16 md:p-24 rounded-[2.5rem] border border-dashed border-gray-300 text-center shadow-sm mb-8">
-                <div className="w-20 h-20 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-gray-50 text-gray-500 rounded-full flex items-center justify-center mx-auto mb-4">
                   <GiTempleGate size={40} opacity={0.5} />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-800 mb-2">No Content Found</h3>

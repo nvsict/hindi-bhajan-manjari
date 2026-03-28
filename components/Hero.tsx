@@ -141,7 +141,8 @@ export default function Hero() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search e.g. Hanuman Chalisa..." 
-              className="flex-1 w-full bg-transparent px-5 md:px-4 py-3 md:py-4 text-gray-900 font-bold text-base md:text-lg placeholder:text-gray-400 focus:outline-none"
+              className="flex-1 w-full bg-transparent px-5 md:px-4 py-3 md:py-4 text-gray-900 font-bold text-base md:text-lg placeholder:text-gray-500 focus:outline-none"
+              role="combobox"
               aria-label="Search for bhajans, aartis, or chalisa"
               aria-expanded={isDropdownOpen} // 🌟 A11y update
               aria-controls="search-dropdown-results" // 🌟 A11y update
@@ -153,7 +154,7 @@ export default function Hero() {
               <button 
                 type="button"
                 onClick={clearSearch}
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors mr-1 md:mr-2 outline-none rounded-full focus-visible:ring-2 focus-visible:ring-orange-400"
+                className="p-2 text-gray-500 hover:text-gray-600 transition-colors mr-1 md:mr-2 outline-none rounded-full focus-visible:ring-2 focus-visible:ring-orange-400"
                 aria-label="Clear search text"
                 title="Clear search"
               >
@@ -221,8 +222,8 @@ export default function Hero() {
 
       {/* Decorative Scroll Down Indicator - Hidden from Screen Readers */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center opacity-70" aria-hidden="true">
-        <span className="text-[10px] uppercase tracking-widest text-orange-200 font-bold mb-2">Explore</span>
-        <FaChevronDown className="text-orange-300 animate-bounce" size={16} />
+        <span className="text-[10px] uppercase tracking-widest text-orange-600 font-bold mb-2">Explore</span>
+        <FaChevronDown className="text-orange-600 animate-bounce" size={16} />
       </div>
 
     </section>

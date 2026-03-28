@@ -24,7 +24,7 @@ export default async function EmbedLyricsWidget({
 
   if (!bhajan) {
     return (
-      <div className={`flex h-full items-center justify-center p-4 font-sans border rounded-2xl ${isDark ? 'bg-gray-900 text-gray-400 border-gray-800' : 'bg-orange-50 text-gray-500 border-orange-200'}`}>
+      <div className={`flex h-full items-center justify-center p-4 font-sans border rounded-2xl ${isDark ? 'bg-gray-900 text-gray-500 border-gray-800' : 'bg-orange-50 text-gray-500 border-orange-200'}`}>
         Bhajan not found.
       </div>
     );

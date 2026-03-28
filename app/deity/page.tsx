@@ -39,7 +39,7 @@ export default async function DeitiesPage() {
       {/* Header Section */}
       <div className="bg-gradient-to-r from-orange-600 to-red-600 py-16 px-4">
         <div className="max-w-6xl mx-auto text-center text-white">
-          <FaPrayingHands className="mx-auto text-4xl mb-4 text-orange-200" />
+          <FaPrayingHands className="mx-auto text-4xl mb-4 text-orange-600" />
           <h1 className="text-4xl md:text-5xl font-extrabold mb-4">All Deities</h1>
           <p className="text-lg md:text-xl text-orange-100 max-w-2xl mx-auto">
             Browse our collection dedicated to Hindu Gods and Goddesses.
@@ -70,7 +70,7 @@ export default async function DeitiesPage() {
                 />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-100 to-orange-200 group-hover:scale-105 transition-transform duration-500">
-                    <span className="text-6xl font-black text-orange-300 opacity-50">
+                    <span className="text-6xl font-black text-orange-600 opacity-50">
                       {deity.name_hinglish[0]}
                     </span>
                   </div>

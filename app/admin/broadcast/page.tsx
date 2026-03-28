@@ -44,7 +44,7 @@ export default function BroadcastPage() {
                 <FaUsers size={24} />
              </div>
              <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Live Audience</p>
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Live Audience</p>
                 <p className="text-2xl font-black text-gray-900 leading-none mt-1">
                   {subCount !== null ? subCount.toLocaleString() : '...'}
                 </p>
@@ -64,7 +64,7 @@ export default function BroadcastPage() {
         <div className="space-y-8">
           <PushBroadcaster />
           
-          <p className="text-center text-[11px] font-bold text-gray-400 uppercase tracking-widest px-10 leading-loose">
+          <p className="text-center text-[11px] font-bold text-gray-500 uppercase tracking-widest px-10 leading-loose">
             Note: This system uses VAPID encryption. Messages are delivered directly via browser push engines. Use responsibly.
           </p>
         </div>

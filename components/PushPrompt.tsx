@@ -102,7 +102,7 @@ export default function PushPrompt() {
           
           <button 
             onClick={handleDecline} 
-            className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            className="p-2 text-gray-500 hover:text-gray-600 transition-colors"
           >
             <FaXmark size={16} />
           </button>

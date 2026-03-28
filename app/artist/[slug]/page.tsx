@@ -210,20 +210,20 @@ export default async function ArtistPage({ params }: Props) {
               {artist.name_hindi}
             </h1>
             
-            <h2 className="text-xs md:text-sm font-bold uppercase tracking-[0.2em] text-orange-200/90 mb-8">
+            <h2 className="text-xs md:text-sm font-bold uppercase tracking-[0.2em] text-orange-600/90 mb-8">
               {artist.name_hinglish}
             </h2>
 
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-sm font-medium">
               {artist.phone && (
                 <div className="flex items-center gap-2.5 bg-black/20 hover:bg-black/30 px-5 py-2.5 rounded-full backdrop-blur-md border border-white/10 transition-colors shadow-inner">
-                  <FaPhoneAlt className="text-orange-300" />
+                  <FaPhoneAlt className="text-orange-600" />
                   <a href={`tel:${artist.phone}`} className="hover:text-white transition-colors tracking-wide">{artist.phone}</a>
                 </div>
               )}
               {artist.address && (
                 <div className="flex items-center gap-2.5 bg-black/20 px-5 py-2.5 rounded-full backdrop-blur-md border border-white/10 shadow-inner">
-                  <FaMapMarkerAlt className="text-orange-300" />
+                  <FaMapMarkerAlt className="text-orange-600" />
                   <span className="tracking-wide text-white/90">{artist.address}</span>
                 </div>
               )}
@@ -236,9 +236,9 @@ export default async function ArtistPage({ params }: Props) {
       {artist.bio && (
         <div className="max-w-4xl mx-auto px-4 -mt-12 relative z-20">
           <div className="bg-white p-8 md:p-10 rounded-3xl shadow-xl shadow-orange-900/5 border border-orange-100 flex gap-6 items-start">
-            <FaQuoteLeft className="text-4xl text-orange-200 shrink-0 hidden sm:block mt-1" />
+            <FaQuoteLeft className="text-4xl text-orange-600 shrink-0 hidden sm:block mt-1" />
             <div>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">About the Artist</h3>
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">About the Artist</h3>
               <p className="text-gray-600 text-base md:text-lg leading-[1.8] font-medium">
                 {artist.bio}
               </p>

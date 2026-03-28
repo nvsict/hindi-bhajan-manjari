@@ -64,7 +64,7 @@ export default async function PendingSubmissionsPage() {
                     <FaUser className="text-orange-500" /> {bhajan.contributor_name || 'Anonymous User'}
                   </p>
                 </div>
-                <p className="text-xs text-gray-400 flex items-center gap-1 font-bold bg-gray-50 px-3 py-1.5 rounded-full shrink-0">
+                <p className="text-xs text-gray-500 flex items-center gap-1 font-bold bg-gray-50 px-3 py-1.5 rounded-full shrink-0">
                   <FaClock /> {new Date(bhajan.created_at).toLocaleDateString()}
                 </p>
               </div>

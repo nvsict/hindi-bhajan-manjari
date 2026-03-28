@@ -140,7 +140,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
           className="
           absolute left-4 md:left-5 top-1/2 -translate-y-1/2
           text-[16px] md:text-[18px]
-          text-gray-400 group-focus-within:text-orange-500
+          text-gray-500 group-focus-within:text-orange-500
           pointer-events-none transition
         "
         />

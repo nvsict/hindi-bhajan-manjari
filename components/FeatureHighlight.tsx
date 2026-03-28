@@ -122,7 +122,7 @@ export default function FeatureHighlight({
               </div>
               <button 
                 onClick={(e) => { e.stopPropagation(); dismissHighlight(); }}
-                className="text-gray-400 hover:text-orange-500 transition-colors p-0.5 outline-none"
+                className="text-gray-500 hover:text-orange-500 transition-colors p-0.5 outline-none"
                 aria-label="Dismiss"
               >
                 <FaTimes size={10} />

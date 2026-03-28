@@ -102,7 +102,7 @@ export default function FavoritesPage() {
                         <h3 className="font-bold text-gray-900 text-lg truncate group-hover:text-orange-600 transition-colors">
                           {fav.title}
                         </h3>
-                        <p className="text-xs text-gray-400 font-medium mt-0.5">
+                        <p className="text-xs text-gray-500 font-medium mt-0.5">
                           Saved on {new Date(fav.addedAt).toLocaleDateString()}
                         </p>
                       </div>
@@ -114,7 +114,7 @@ export default function FavoritesPage() {
                         e.preventDefault(); // Prevents the Link from clicking
                         removeFavorite(fav.slug);
                       }}
-                      className="w-10 h-10 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
+                      className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
                       title="Remove from favorites"
                     >
                       <FaHeartBroken size={18} />

@@ -72,14 +72,14 @@ export default async function WhatsAppStatusWidget({
       </div>
 
       <div className="relative mb-6 px-4">
-        <span className={`absolute -top-4 -left-2 text-4xl opacity-20 font-serif ${isDark ? 'text-gray-500' : 'text-orange-300'}`}>"</span>
+        <span className={`absolute -top-4 -left-2 text-4xl opacity-20 font-serif ${isDark ? 'text-gray-500' : 'text-orange-600'}`}>"</span>
         <h3 className={`text-lg md:text-xl font-bold leading-relaxed whitespace-pre-wrap ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
           {displayQuote}
         </h3>
-        <span className={`absolute -bottom-6 -right-2 text-4xl opacity-20 font-serif ${isDark ? 'text-gray-500' : 'text-orange-300'}`}>"</span>
+        <span className={`absolute -bottom-6 -right-2 text-4xl opacity-20 font-serif ${isDark ? 'text-gray-500' : 'text-orange-600'}`}>"</span>
       </div>
 
-      <p className={`text-xs font-bold uppercase tracking-widest mb-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+      <p className={`text-xs font-bold uppercase tracking-widest mb-8 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
         — {source}
       </p>
 
@@ -94,7 +94,7 @@ export default async function WhatsAppStatusWidget({
         Share to WhatsApp
       </a>
 
-      <p className={`mt-4 text-[10px] ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+      <p className={`mt-4 text-[10px] ${isDark ? 'text-gray-600' : 'text-gray-500'}`}>
         Click to share with family & friends
       </p>
     </div>

@@ -107,7 +107,7 @@ export default function ImageUploader({ currentImageUrl, onUploadSuccess, folder
               )}
             </div>
           </div>
-          <p className="text-xs text-gray-400 font-medium mt-2 ml-1">
+          <p className="text-xs text-gray-500 font-medium mt-2 ml-1">
             Supports JPG, PNG, and WebP. Max size: 2MB.
           </p>
         </div>

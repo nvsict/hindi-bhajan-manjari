@@ -78,7 +78,7 @@ export default async function PanchangWidget({
         <h3 className={`text-xl font-bold mb-2 line-clamp-2 ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
           {displayTitle}
         </h3>
-        <p className={`text-sm mb-4 line-clamp-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+        <p className={`text-sm mb-4 line-clamp-2 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
           Start your {currentDay} with auspicious blessings. Read the full lyrics and meaning.
         </p>
       </div>

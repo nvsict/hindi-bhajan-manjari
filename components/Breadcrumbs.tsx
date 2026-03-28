@@ -20,7 +20,7 @@ export default function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
 
         {items.map((item, index) => (
           <li key={index} className="flex items-center space-x-2">
-            <HiChevronRight className="text-gray-400 shrink-0" />
+            <HiChevronRight className="text-gray-500 shrink-0" />
             {item.href ? (
               <Link 
                 href={item.href} 

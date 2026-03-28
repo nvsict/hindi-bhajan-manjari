@@ -106,7 +106,7 @@ export default function SubmitBhajan() {
                   <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">
                     Jai Shri Ram! 🙏
                   </h2>
-                  <p className="text-gray-600 dark:text-gray-400 text-lg mb-8 leading-relaxed">
+                  <p className="text-gray-600 dark:text-gray-500 text-lg mb-8 leading-relaxed">
                     Your bhajan has been received successfully. Our editorial team will review and publish it shortly. Thank you for your service!
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -128,7 +128,7 @@ export default function SubmitBhajan() {
                 <>
                   <div className="mb-8 lg:hidden">
                     <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Add a Bhajan</h2>
-                    <p className="text-gray-500 dark:text-gray-400 mt-2">Fill out the details below to contribute.</p>
+                    <p className="text-gray-500 dark:text-gray-500 mt-2">Fill out the details below to contribute.</p>
                   </div>
 
                   <form onSubmit={handleSubmit} className="space-y-6">
@@ -143,7 +143,7 @@ export default function SubmitBhajan() {
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="e.g., Achyutam Keshavam..."
-                        className="w-full px-5 py-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-[#0c0804] focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 outline-none transition-all duration-300 shadow-sm placeholder:text-gray-400 font-medium"
+                        className="w-full px-5 py-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-[#0c0804] focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 outline-none transition-all duration-300 shadow-sm placeholder:text-gray-500 font-medium"
                       />
                     </div>
 
@@ -158,7 +158,7 @@ export default function SubmitBhajan() {
                         value={lyrics}
                         onChange={(e) => setLyrics(e.target.value)}
                         placeholder="Paste the full lyrics here. Don't worry about formatting, we'll clean it up! ✨"
-                        className="w-full px-5 py-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-[#0c0804] focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 outline-none transition-all duration-300 shadow-sm placeholder:text-gray-400 font-medium resize-y"
+                        className="w-full px-5 py-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-[#0c0804] focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 outline-none transition-all duration-300 shadow-sm placeholder:text-gray-500 font-medium resize-y"
                       />
                     </div>
 
@@ -172,7 +172,7 @@ export default function SubmitBhajan() {
                         value={contributor}
                         onChange={(e) => setContributor(e.target.value)}
                         placeholder="How should we credit you on the website?"
-                        className="w-full px-5 py-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-[#0c0804] focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 outline-none transition-all duration-300 shadow-sm placeholder:text-gray-400 font-medium"
+                        className="w-full px-5 py-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-[#0c0804] focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 outline-none transition-all duration-300 shadow-sm placeholder:text-gray-500 font-medium"
                       />
                     </div>
 
@@ -199,12 +199,12 @@ export default function SubmitBhajan() {
                         </>
                       ) : (
                         <>
-                          Submit Bhajan <FaHandSparkles className="text-orange-200 group-hover:scale-125 transition-transform" />
+                          Submit Bhajan <FaHandSparkles className="text-orange-600 group-hover:scale-125 transition-transform" />
                         </>
                       )}
                     </button>
                     
-                    <p className="text-center text-xs text-gray-500 dark:text-gray-400 font-medium mt-4">
+                    <p className="text-center text-xs text-gray-500 dark:text-gray-500 font-medium mt-4">
                       By submitting, you agree to our Terms of Service.
                     </p>
                   </form>

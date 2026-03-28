@@ -98,7 +98,7 @@ export default async function ArtistsDirectory() {
                       sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 20vw"
                     />
                   ) : (
-                    <FaUserCircle className="text-orange-200/70 w-20 h-20 transition-transform group-hover:scale-110 duration-500" />
+                    <FaUserCircle className="text-orange-600/70 w-20 h-20 transition-transform group-hover:scale-110 duration-500" />
                   )}
                   
                   {/* Subtle Image Overlay Gradient */}
@@ -131,7 +131,7 @@ export default async function ArtistsDirectory() {
           <ScrollReveal yOffset={30}>
             <div className="flex flex-col items-center justify-center bg-white p-16 rounded-3xl text-center border-2 border-dashed border-gray-200 mt-8 max-w-3xl mx-auto">
               <div className="bg-orange-50 p-6 rounded-full mb-6">
-                <FaMicrophoneAlt className="text-orange-300 text-5xl" />
+                <FaMicrophoneAlt className="text-orange-600 text-5xl" />
               </div>
               <h3 className="text-2xl font-bold text-gray-800 mb-2">No Artists Found</h3>
               <p className="text-gray-500 text-lg">Our directory is currently empty. Check back soon for new additions.</p>

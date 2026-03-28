@@ -74,7 +74,7 @@ function JaapMalaContent() {
           </a>
         </div>
       ) : (
-        <p className={`text-xs font-medium mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+        <p className={`text-xs font-medium mb-4 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
           Tap the bead to count your chant
         </p>
       )}
@@ -82,7 +82,7 @@ function JaapMalaContent() {
       {/* Reset Button */}
       <button 
         onClick={() => setCount(0)}
-        className={`mt-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-md transition-colors ${isDark ? 'text-gray-500 hover:bg-gray-800 hover:text-gray-300' : 'text-gray-400 hover:bg-orange-100 hover:text-orange-600'}`}
+        className={`mt-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-md transition-colors ${isDark ? 'text-gray-500 hover:bg-gray-800 hover:text-gray-300' : 'text-gray-500 hover:bg-orange-100 hover:text-orange-600'}`}
       >
         <FaRedo size={10} /> Reset
       </button>

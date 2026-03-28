@@ -53,7 +53,7 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
             <div className="relative w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl overflow-hidden bg-gray-100 group-hover:shadow-md transition-all border border-gray-100/50">
               <Image 
                 src={thumbnailUrl} 
-                alt={bhajan.title_hinglish} 
+                alt=""
                 fill 
                 quality={50} /* 🌟 THE FIX: Saves 20-30 KB per image without losing visible quality on small cards */
                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 250px" /* 🌟 THE FIX: Perfect responsive sizing */
@@ -98,7 +98,7 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
                 
                 {/* Icon Pill */}
                 <div className="flex items-center gap-1.5 bg-black/20 text-white/70 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm shadow-sm mb-1 md:mb-2.5">
-                  <FaMusic size={10} className="text-orange-300" />
+                  <FaMusic size={10} className="text-orange-600" />
                   <span className="text-[10px] font-bold uppercase tracking-[0.2em] truncate max-w-[120px]">
                     {bhajan.deities?.name_hinglish || 'Bhajan'}
                   </span>
@@ -284,7 +284,7 @@ export default function BhajanList({
               </Link>
             ) : <div></div>} 
 
-            <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">
+            <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">
               Page {currentPage} of {totalPages}
             </span>
 

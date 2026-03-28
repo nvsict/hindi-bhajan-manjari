@@ -99,7 +99,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Navigation Links */}
         <nav className="flex-1 px-5 py-8 md:py-6 space-y-2 overflow-y-auto custom-scrollbar">
-          <p className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 mt-4 md:mt-0">Main Menu</p>
+          <p className="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4 mt-4 md:mt-0">Main Menu</p>
           
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -120,7 +120,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 )}
                 
                 <div className={`p-2 rounded-xl transition-all duration-300 ${
-                  isActive ? 'bg-white/20 text-white shadow-inner' : 'bg-gray-50 text-gray-400 group-hover:bg-orange-100 group-hover:text-orange-600'
+                  isActive ? 'bg-white/20 text-white shadow-inner' : 'bg-gray-50 text-gray-500 group-hover:bg-orange-100 group-hover:text-orange-600'
                 }`}>
                   <item.icon size={16} />
                 </div>
@@ -137,7 +137,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             target="_blank"
             className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-gray-600 font-bold hover:bg-white hover:shadow-sm hover:text-orange-600 border border-transparent hover:border-gray-100 transition-all group"
           >
-            <div className="p-2 rounded-xl bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-orange-600 transition-colors">
+            <div className="p-2 rounded-xl bg-gray-100 text-gray-500 group-hover:bg-orange-100 group-hover:text-orange-600 transition-colors">
               <FaGlobe size={16} />
             </div>
             View Live Site
@@ -147,7 +147,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             onClick={() => setShowLogoutModal(true)}
             className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-gray-600 font-bold hover:bg-red-50 hover:text-red-600 hover:shadow-sm border border-transparent hover:border-red-100 transition-all text-left group"
           >
-            <div className="p-2 rounded-xl bg-gray-100 text-gray-400 group-hover:bg-red-100 group-hover:text-red-600 transition-colors">
+            <div className="p-2 rounded-xl bg-gray-100 text-gray-500 group-hover:bg-red-100 group-hover:text-red-600 transition-colors">
               <FaSignOutAlt size={16} />
             </div>
             Secure Logout

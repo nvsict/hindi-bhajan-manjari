@@ -94,7 +94,7 @@ async function LatestGyanSection() {
                   <FaBookOpen size={20} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+                  <div className="flex items-center gap-3 text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">
                     <span className="text-orange-500 flex items-center gap-1"><FaClock /> {article.read_time_minutes} Min</span>
                     <span>&bull;</span>
                     <span>{publishDate}</span>

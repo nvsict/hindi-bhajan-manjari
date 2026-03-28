@@ -27,7 +27,7 @@ export default async function DailyBhajanWidget({
 
   if (!bhajan) {
     return (
-      <div className={`flex h-full items-center justify-center p-4 font-sans ${isDark ? 'bg-gray-900 text-gray-400' : 'bg-orange-50 text-gray-500'}`}>
+      <div className={`flex h-full items-center justify-center p-4 font-sans ${isDark ? 'bg-gray-900 text-gray-500' : 'bg-orange-50 text-gray-500'}`}>
         Loading Today's Bhajan...
       </div>
     );
@@ -53,7 +53,7 @@ export default async function DailyBhajanWidget({
         <GiLotusFlower size={24} />
       </div>
 
-      <span className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+      <span className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
         Bhajan of the Day
       </span>
 

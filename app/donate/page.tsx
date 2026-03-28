@@ -95,10 +95,10 @@ function MonthlyGoal() {
       <BorderCorner className="bottom-2 right-2 scale-[-1]" />
 
       <div className="flex justify-between items-baseline mb-3 relative z-10">
-        <p className="text-orange-800 dark:text-orange-300 text-sm font-bold tracking-wide uppercase">
+        <p className="text-orange-800 dark:text-orange-600 text-sm font-bold tracking-wide uppercase">
           इस माह का सर्वर लक्ष्य
         </p>
-        <p className="text-orange-900 dark:text-orange-200 text-sm font-black">
+        <p className="text-orange-900 dark:text-orange-600 text-sm font-black">
           ₹{CURRENT_RAISED.toLocaleString('hi-IN')} / ₹{MONTHLY_GOAL.toLocaleString('hi-IN')}
         </p>
       </div>
@@ -263,7 +263,7 @@ export default function DonatePage() {
               <div className="flex items-center justify-center gap-3 mb-6">
                 <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 font-black flex items-center justify-center shrink-0">1</div>
                 <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg md:text-xl">सहयोग राशि चुनें</h2>
-                <span className="text-gray-500 dark:text-gray-400 text-sm font-medium hidden sm:inline">(शुभ शगुन)</span>
+                <span className="text-gray-500 dark:text-gray-500 text-sm font-medium hidden sm:inline">(शुभ शगुन)</span>
               </div>
 
               <div className="flex flex-wrap justify-center gap-3 mb-6">
@@ -290,7 +290,7 @@ export default function DonatePage() {
               {/* Custom Amount & Dedication */}
               <div className="max-w-md mx-auto space-y-4">
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 font-black text-lg pointer-events-none">₹</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 font-black text-lg pointer-events-none">₹</span>
                   <input
                     ref={inputRef}
                     type="number"
@@ -307,7 +307,7 @@ export default function DonatePage() {
                   placeholder="🙏 किसके नाम से दक्षिणा दे रहे हैं? (वैकल्पिक)"
                   value={dedication}
                   onChange={(e) => setDedication(e.target.value)}
-                  className="w-full px-4 py-3.5 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700/50 focus:border-orange-400 rounded-xl text-gray-900 dark:text-white text-sm transition-colors outline-none placeholder:text-gray-400"
+                  className="w-full px-4 py-3.5 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700/50 focus:border-orange-400 rounded-xl text-gray-900 dark:text-white text-sm transition-colors outline-none placeholder:text-gray-500"
                 />
               </div>
             </div>
@@ -329,7 +329,7 @@ export default function DonatePage() {
                 </div>
                 
                 <p className="mt-5 font-black text-2xl text-orange-600 dark:text-orange-400 text-center">
-                  {effectiveAmount > 0 ? `₹${effectiveAmount.toLocaleString('hi-IN')}` : <span className="text-gray-400 text-lg">राशि दर्ज करें</span>}
+                  {effectiveAmount > 0 ? `₹${effectiveAmount.toLocaleString('hi-IN')}` : <span className="text-gray-500 text-lg">राशि दर्ज करें</span>}
                 </p>
                 <p className="text-xs font-bold text-gray-500 mt-1">GPay · PhonePe · Paytm</p>
               </div>
@@ -356,7 +356,7 @@ export default function DonatePage() {
 
                 <div className="relative flex items-center py-2">
                   <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
-                  <span className="flex-shrink-0 mx-4 text-gray-400 text-xs font-bold uppercase tracking-widest">या मोबाइल पर</span>
+                  <span className="flex-shrink-0 mx-4 text-gray-500 text-xs font-bold uppercase tracking-widest">या मोबाइल पर</span>
                   <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
                 </div>
 
@@ -396,7 +396,7 @@ export default function DonatePage() {
                     {item.icon}
                   </div>
                   <h3 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">{item.title}</h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed font-medium">{item.text}</p>
+                  <p className="text-gray-600 dark:text-gray-500 text-sm leading-relaxed font-medium">{item.text}</p>
                 </div>
               ))}
             </div>

@@ -138,7 +138,7 @@ export default function AddArtistPage() {
                   className="w-full p-4 bg-orange-50/50 border border-orange-100 rounded-r-2xl focus:bg-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-400 outline-none transition-all font-mono text-gray-700 font-bold"
                 />
               </div>
-              <p className="text-xs text-gray-400 font-medium ml-1">This is the link Google uses. Keep it all lowercase with hyphens.</p>
+              <p className="text-xs text-gray-500 font-medium ml-1">This is the link Google uses. Keep it all lowercase with hyphens.</p>
             </div>
 
             {/* Row 3: Contact Details */}

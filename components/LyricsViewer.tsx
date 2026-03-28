@@ -76,11 +76,11 @@ const InstagramEmbed = ({ embedId }: { embedId: string }) => {
             data-instgrm-version="14"
             style={{ background: '#FFF', border: '0', borderRadius: '16px', margin: '0', maxWidth: '400px', minWidth: '300px', padding: '0', width: '100%' }}
           >
-            <div className="p-8 text-center text-gray-400 text-sm font-medium animate-pulse">Loading Instagram Post...</div>
+            <div className="p-8 text-center text-gray-500 text-sm font-medium animate-pulse">Loading Instagram Post...</div>
           </blockquote>
         </div>
       ) : (
-        <div className="w-full max-w-[400px] h-[450px] bg-gray-50 rounded-3xl border border-dashed border-gray-200 flex items-center justify-center text-gray-400 text-sm">
+        <div className="w-full max-w-[400px] h-[450px] bg-gray-50 rounded-3xl border border-dashed border-gray-200 flex items-center justify-center text-gray-500 text-sm">
           Scrolling to load video...
         </div>
       )}

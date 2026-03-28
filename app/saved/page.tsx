@@ -48,7 +48,7 @@ export default function SavedBhajansPage() {
 
         {savedBhajans.length === 0 ? (
           <div className="bg-white p-12 rounded-3xl border border-orange-100 shadow-sm text-center flex flex-col items-center">
-            <FaPrayingHands className="text-6xl text-orange-200 mb-6" />
+            <FaPrayingHands className="text-6xl text-orange-600 mb-6" />
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Your collection is empty</h2>
             <p className="text-gray-500 mb-8 max-w-md">
               When you find a bhajan you love, tap the heart icon to save it here for quick reading later.
@@ -71,7 +71,7 @@ export default function SavedBhajansPage() {
                   <h3 className="text-xl font-bold text-gray-900 mb-1 line-clamp-2">
                     {bhajan.title}
                   </h3>
-                  <p className="text-xs text-gray-400 font-medium">
+                  <p className="text-xs text-gray-500 font-medium">
                     Saved on {new Date(bhajan.addedAt).toLocaleDateString()}
                   </p>
                 </div>

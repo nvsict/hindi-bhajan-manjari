@@ -95,9 +95,9 @@ export default function AdminLoginPage() {
             
             {/* Username Input */}
             <div className="group">
-              <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-orange-500 transition-colors">Username</label>
+              <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-orange-500 transition-colors">Username</label>
               <div className="relative flex items-center">
-                <FaUser className="absolute left-5 text-gray-400 group-focus-within:text-orange-500 transition-colors z-10" />
+                <FaUser className="absolute left-5 text-gray-500 group-focus-within:text-orange-500 transition-colors z-10" />
                 <input 
                   type="text" 
                   required
@@ -113,9 +113,9 @@ export default function AdminLoginPage() {
 
             {/* Password Input */}
             <div className="group">
-              <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-orange-500 transition-colors">Password</label>
+              <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-orange-500 transition-colors">Password</label>
               <div className="relative flex items-center">
-                <FaLock className="absolute left-5 text-gray-400 group-focus-within:text-orange-500 transition-colors z-10" />
+                <FaLock className="absolute left-5 text-gray-500 group-focus-within:text-orange-500 transition-colors z-10" />
                 <input 
                   type={showPassword ? "text" : "password"} 
                   required
@@ -131,7 +131,7 @@ export default function AdminLoginPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   disabled={isLoading || loginSuccess}
-                  className="absolute right-4 p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all outline-none"
+                  className="absolute right-4 p-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all outline-none"
                   tabIndex={-1}
                 >
                   {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
@@ -162,7 +162,7 @@ export default function AdminLoginPage() {
         </div>
         
         {/* Footer Note */}
-        <p className="text-center text-gray-400 text-xs font-bold uppercase tracking-widest mt-8">
+        <p className="text-center text-gray-500 text-xs font-bold uppercase tracking-widest mt-8">
           Authorized Personnel Only
         </p>
       </div>
