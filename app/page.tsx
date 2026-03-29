@@ -199,7 +199,8 @@ export default function Home() {
       {/* 1. Hero Section */}
       <Hero />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16 flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
+      {/* 🌟 THE FIX 1: Container max-w-[1180px] and gap-8 (Reduced gap to give main content more space) */}
+      <div className="max-w-[1180px] mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16 flex flex-col lg:flex-row gap-8 items-start">
         
         {/* Main Content Area */}
         <main className="flex-1 w-full min-w-0">
@@ -240,10 +241,12 @@ export default function Home() {
         </main>
 
         {/* 6. Intelligent Global Sidebar */}
+        {/* 🌟 THE FIX 2: Reduced sidebar width from 340px to 300px. 
+            This is the magic move! It returns crucial width back to your Bhajan List thumbnails! */}
         <Suspense fallback={
-          <div className="hidden lg:block w-[340px] h-[800px] shrink-0 bg-gray-50/50 border border-gray-100 rounded-[2rem] animate-pulse sticky top-28"></div>
+          <div className="hidden lg:block w-[300px] h-[800px] shrink-0 bg-gray-50/50 border border-gray-100 rounded-[2rem] animate-pulse sticky top-28"></div>
         }>
-          <div className="hidden lg:block lg:sticky lg:top-28 h-fit w-[340px] shrink-0">
+          <div className="hidden lg:block lg:sticky lg:top-28 h-fit w-[300px] shrink-0">
             <Sidebar />
           </div>
         </Suspense>

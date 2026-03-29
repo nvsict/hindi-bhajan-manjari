@@ -5,7 +5,7 @@ import { supabase } from '../utils/supabase';
 import Link from 'next/link';
 import { FaArrowRight, FaArrowLeft, FaExclamationTriangle, FaPlay, FaMusic } from 'react-icons/fa';
 import ScrollReveal from './ScrollReveal'; 
-import Image from 'next/image'; // 🌟 Next.js का जादुई कंपोनेंट
+import Image from 'next/image';
 
 interface Bhajan {
   title_hinglish: string;
@@ -34,77 +34,52 @@ const getYouTubeId = (url?: string) => {
 };
 
 // ==========================================
-// 🌟 OPTIMIZATION: Memoized Card Component
+// 🌟 OPTIMIZED BHAJAN CARD (Perfect Aspect Ratio Fix)
 // ==========================================
 const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, index: number, itemsPerPage: number }) => {
   const ytId = getYouTubeId(bhajan.video_embed_url);
   const thumbnailUrl = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
 
   return (
-    <ScrollReveal 
-      delay={(index % itemsPerPage) * 0.05} 
-      yOffset={30}
-    >
+    <ScrollReveal delay={(index % itemsPerPage) * 0.05} yOffset={30}>
       <Link href={`/bhajan/${bhajan.slug}`}>
-        <div className="group bg-white p-5 md:p-6 rounded-3xl border border-gray-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-orange-200 transition-all duration-300 flex flex-col sm:flex-row sm:items-start justify-between gap-5 md:gap-6 relative overflow-hidden hover:-translate-y-0.5">
+        {/* 🌟 THE FIX: Added 'sm:items-center'. This prevents the image from stretching vertically to match the text height! */}
+        <div className="group bg-white p-4 md:p-5 rounded-[2rem] border border-gray-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-orange-200 transition-all duration-300 flex flex-col sm:flex-row sm:items-center gap-5 md:gap-6 relative overflow-hidden hover:-translate-y-1">
           
-          {/* 🌟 PERFECT 16:9 YOUTUBE THUMBNAIL UI */}
+          {/* 🌟 YOUTUBE THUMBNAIL (Strictly Locked at 16:9) */}
           {thumbnailUrl ? (
-            <div className="relative w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl overflow-hidden bg-gray-100 group-hover:shadow-md transition-all border border-gray-100/50">
+            <div className="relative w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl overflow-hidden bg-gray-900 group-hover:shadow-md transition-all border border-gray-100/50">
               <Image 
                 src={thumbnailUrl} 
-                alt={`Thumbnail for ${bhajan.title_hinglish}`} /* 🌟 Hydration + A11y Fix: अब यह खाली नहीं है और टेक्स्ट भी रिपीट नहीं हो रहा */
-                fill
-                quality={50} /* 🌟 THE FIX: Saves 20-30 KB per image without losing visible quality on small cards */
-                sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 250px" /* 🌟 THE FIX: Perfect responsive sizing */
-                className="object-cover group-hover:scale-105 transition-transform duration-700" 
+                alt={bhajan.title_hinglish}
+                fill 
+                quality={75}
+                sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 250px" 
+                // 🌟 THE FIX: scale-[1.02] perfectly trims out YouTube's native black borders, leaving a flawless 16:9 image
+                className="object-cover scale-[1.02] group-hover:scale-110 transition-transform duration-700" 
               />
-              <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/10 transition-colors duration-500">
+              <div className="absolute inset-0 bg-black/10 flex items-center justify-center group-hover:bg-black/20 transition-colors duration-500">
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-white/95 rounded-full flex items-center justify-center text-orange-600 shadow-xl backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
                   <FaPlay className="ml-1 text-sm md:text-base" />
                 </div>
               </div>
             </div>
           ) : (
-            /* 🌟 THE HIGH-PREMIUM PLACEHOLDER (FIXED FOR MOBILE) */
-            /* Removed 'hidden sm:flex', now it's just 'relative flex w-full ...' so it works beautifully on all devices */
             <div className="relative flex w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl bg-gradient-to-br from-[#1a0500] via-[#431407] to-[#882b0f] items-center justify-center border border-[#301108] shadow-inner overflow-hidden group-hover:shadow-xl transition-all duration-300">
-              
-              {/* 1. Watermark Texture: Large Logo with very low opacity */}
               <div className="absolute inset-0 z-0 flex items-center justify-center opacity-[0.04]">
-                <Image 
-                  src="/logo.png" 
-                  alt="Watermark pattern" 
-                  fill
-                  className="object-cover scale-150" 
-                />
+                <Image src="/logo.png" alt="Watermark pattern" fill className="object-cover scale-150" />
               </div>
-
-              {/* 2. Top Accent Bar: Beautiful saffron glow */}
               <div style={{ position: 'absolute', top: 0, left: '20%', right: '20%', height: '4px', backgroundImage: 'linear-gradient(90deg, transparent, #ea580c, transparent)', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px', opacity: 0.8 }} />
-
-              {/* 3. CENTER CONTENT SAFE ZONE */}
               <div className="relative z-10 flex flex-col items-center justify-center px-4 w-full h-full">
-                
-                {/* Visible Main Logo */}
                 <div className="relative w-12 h-12 md:w-14 md:h-14 mb-2 md:mb-3 drop-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
-                  <Image 
-                    src="/logo.png" 
-                    alt="Logo"
-                    fill
-                    className="object-contain" 
-                  />
+                  <Image src="/logo.png" alt="Logo" fill className="object-contain" />
                 </div>
-                
-                {/* Icon Pill */}
                 <div className="flex items-center gap-1.5 bg-black/20 text-white/70 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm shadow-sm mb-1 md:mb-2.5">
                   <FaMusic size={10} className="text-orange-600" />
                   <span className="text-[10px] font-bold uppercase tracking-[0.2em] truncate max-w-[120px]">
                     {bhajan.deities?.name_hinglish || 'Bhajan'}
                   </span>
                 </div>
-
-                 {/* 4. Large Deity Text at the bottom right, like a watermark */}
                  <span className="absolute bottom-2 md:bottom-2.5 right-3 md:right-4 text-2xl md:text-3xl font-black text-white/5 uppercase tracking-tighter leading-none font-serif truncate max-w-[80%]">
                    {bhajan.deities?.name_hinglish || 'BHANJANI'}
                  </span>
@@ -112,37 +87,38 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
             </div>
           )}
 
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-col-reverse md:flex-col gap-1.5 mb-3.5">
-              <h3 className="text-xl md:text-2xl font-black font-hindi text-gray-900 group-hover:text-orange-600 transition-colors leading-tight line-clamp-2">
+          {/* CONTENT AREA */}
+          <div className="flex flex-col flex-1 min-w-0 justify-center py-1">
+            <div className="flex flex-col-reverse md:flex-col gap-1 mb-2.5">
+              <h3 className="text-xl md:text-[22px] font-black font-hindi text-gray-900 group-hover:text-orange-600 transition-colors leading-tight line-clamp-2">
                 {bhajan.title_hindi}
               </h3>
-              <p className="text-[11px] md:text-xs font-bold uppercase tracking-widest text-gray-500 line-clamp-1">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 line-clamp-1">
                 {bhajan.title_hinglish}
               </p>
             </div>
             
-            <p className="text-sm md:text-base text-gray-600 italic font-hindi line-clamp-1 border-l-2 border-orange-200 pl-3 leading-relaxed">
+            <p className="text-sm text-gray-600 italic font-hindi line-clamp-1 border-l-2 border-orange-200 pl-3 leading-relaxed mb-4">
               "{bhajan.lyrics_hindi?.split('\n')[0] || 'View full lyrics inside'}"...
             </p>
-          </div>
 
-          <div className="flex items-center sm:flex-col sm:items-end justify-between sm:justify-center shrink-0 border-t border-gray-50 sm:border-t-0 pt-4 sm:pt-0 mt-auto sm:mt-0">
-            <div className="flex flex-wrap gap-2 mb-0 sm:mb-4">
-              {bhajan.deities && (
-                <span className="bg-orange-50 text-orange-700 border border-orange-100 px-3 py-1 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest">
-                  {bhajan.deities.name_hinglish}
-                </span>
-              )}
-              {bhajan.categories && (
-                <span className="bg-gray-50 text-gray-600 border border-gray-100 px-3 py-1 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest">
-                  {bhajan.categories.name_hinglish}
-                </span>
-              )}
-            </div>
+            <div className="mt-auto flex items-center justify-between pt-1">
+              <div className="flex flex-wrap gap-2">
+                {bhajan.deities && (
+                  <span className="bg-orange-50 text-orange-700 border border-orange-100 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">
+                    {bhajan.deities.name_hinglish}
+                  </span>
+                )}
+                {bhajan.categories && (
+                  <span className="bg-gray-50 text-gray-600 border border-gray-100 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">
+                    {bhajan.categories.name_hinglish}
+                  </span>
+                )}
+              </div>
 
-            <div className="flex items-center text-orange-600 text-sm font-bold group-hover:translate-x-1 transition-transform">
-              Read <FaArrowRight className="ml-1.5" size={12} />
+              <div className="flex items-center text-orange-600 text-sm font-bold group-hover:translate-x-1 transition-transform shrink-0">
+                Read <FaArrowRight className="ml-1.5" size={12} />
+              </div>
             </div>
           </div>
         </div>
@@ -151,7 +127,6 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
   );
 });
 
-// For debugging purposes in React DevTools
 BhajanCard.displayName = "BhajanCard";
 
 
@@ -258,11 +233,10 @@ export default function BhajanList({
   };
 
   return (
-    <div className="flex flex-col gap-8 max-w-4xl mx-auto">
+    <div className="flex flex-col gap-8 w-full">
       
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-5">
         {bhajans.map((bhajan, index) => (
-          /* 🌟 Using our highly optimized Memoized Component */
           <BhajanCard 
             key={bhajan.slug} 
             bhajan={bhajan} 
