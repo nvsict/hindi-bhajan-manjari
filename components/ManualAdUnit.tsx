@@ -34,7 +34,7 @@ export default function ManualAdUnit() {
                   // अगर AdSense ने कहा "unfilled" (ऐड नहीं है)
                   if (status === 'unfilled') {
                     console.log('AdSense: No ad inventory available. Collapsing space gracefully.');
-                    setIsUnfilled(true); // स्टेट अपडेट करो और जगह को सिकोड़ दो
+                    setIsUnfilled(true); // स्टेट अपडेट करो और जगह को सिकोड़ दो
                   }
                 }
               });
@@ -64,7 +64,7 @@ export default function ManualAdUnit() {
 
   return (
     // 🌟 CSS TRICK: Tailwind का `has-[]` क्लास भी लगाया है। 
-    // यह React के State अपडेट होने से पहले ही CSS के ज़रिए डब्बे को गायब कर देगा!
+    // यह React के State अपडेट होने से पहले ही CSS के ज़रिए डब्बे को गायब कर देगा!
     <div className="w-full my-8 flex flex-col items-center justify-center overflow-hidden clear-both min-h-[250px] transition-all duration-500 ease-in-out has-[ins[data-ad-status='unfilled']]:hidden has-[ins[data-ad-status='unfilled']]:h-0 has-[ins[data-ad-status='unfilled']]:min-h-0 has-[ins[data-ad-status='unfilled']]:my-0">
       
       <span className="text-[10px] text-gray-400 uppercase tracking-[0.2em] mb-3 font-sans select-none">
@@ -72,14 +72,15 @@ export default function ManualAdUnit() {
       </span>
 
       <div className="w-full max-w-[800px] overflow-hidden flex justify-center">
+        {/* 🌟 NEW IN-ARTICLE AD UNIT */}
         <ins
           ref={insRef} // जासूस को यहाँ कनेक्ट किया
           className="adsbygoogle"
-          style={{ display: "block", width: "100%" }}
+          style={{ display: "block", textAlign: "center", width: "100%" }}
+          data-ad-layout="in-article"
+          data-ad-format="fluid"
           data-ad-client="ca-pub-5565563905050993"
-          data-ad-slot="1922873836"
-          data-ad-format="auto"
-          data-full-width-responsive="true"
+          data-ad-slot="3700312750"
         />
       </div>
     </div>
