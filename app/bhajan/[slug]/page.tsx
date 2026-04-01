@@ -11,6 +11,9 @@ import CommentsSection from '@/components/CommentsSection';
 import AuthorBox from '@/components/AuthorBox';
 import RelatedContent from '@/components/RelatedContent';
 
+// 🌟 IMPORT THE NEW DISPLAY AD UNIT
+import DisplayAdUnit from '@/components/DisplayAdUnit';
+
 export const revalidate = 3600;
 
 interface Props {
@@ -328,6 +331,11 @@ export default async function BhajanDetails({ params }: Props) {
 
             <div className="p-4 md:p-8">
 
+              {/* 🌟 ZONE 1: THE PRE-LYRICS HOOK (Highest CTR for Desktop) */}
+              <div className="mb-8 md:mb-10 w-full flex justify-center">
+                <DisplayAdUnit />
+              </div>
+
               <LyricsViewer 
                 title={bhajan.title_hindi} 
                 lyricsHindi={bhajan.lyrics_hindi} 
@@ -337,8 +345,13 @@ export default async function BhajanDetails({ params }: Props) {
                 tarz={bhajan.tarj_parody}
               />
               
+              {/* 🌟 ZONE 3: THE ACTION TRANSITION (Highest CTR for Mobile) */}
+              <div className="mt-8 mb-6 md:mt-10 md:mb-8 w-full flex justify-center">
+                <DisplayAdUnit />
+              </div>
+              
               {bhajan.explanation && (
-                <div className="mt-12 bg-gradient-to-br from-orange-50 to-orange-100/50 p-6 md:p-8 rounded-2xl border border-orange-200 shadow-sm">
+                <div className="mt-6 bg-gradient-to-br from-orange-50 to-orange-100/50 p-6 md:p-8 rounded-2xl border border-orange-200 shadow-sm">
                   <h3 className="text-2xl font-black font-hindi text-gray-900 mb-4 flex items-center gap-2">
                     <span className="text-orange-600">अर्थ</span> (Bhavarth)
                   </h3>
@@ -446,6 +459,13 @@ export default async function BhajanDetails({ params }: Props) {
               filterValue={bhajan.deity_id}
               currentBhajanSlug={bhajan.slug}
             />
+            
+            {/* 🌟 OPTIONAL: ZONE 4 THE STICKY COMPANION */}
+            {/* अगर आप चाहें तो यहाँ Sidebar के सबसे नीचे भी एक <DisplayAdUnit /> लगा सकते हैं */}
+            <div className="mt-6">
+              <DisplayAdUnit />
+            </div>
+            
           </aside>
           
         </div>
