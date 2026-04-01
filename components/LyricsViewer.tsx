@@ -7,7 +7,6 @@ import {
   FaChevronDown, FaCheck, FaFont
 } from 'react-icons/fa6';
 import PdfDownloadButton from './PdfDownloadButton';
-import FeatureHighlight from './FeatureHighlight';
 
 // 🌟 THE FIX: Imported directly so the Service Worker cannot block it!
 // @ts-ignore
@@ -67,7 +66,7 @@ const InstagramEmbed = ({ embedId }: { embedId: string }) => {
   }, [isIntersecting]);
 
   return (
-    <div ref={containerRef} className="mt-10 flex justify-center w-full min-h-[450px]">
+    <div ref={containerRef} className="mt-6 flex justify-center w-full min-h-[450px]">
       {isIntersecting ? (
         <div className="bg-white p-2 rounded-3xl shadow-md border border-orange-100 w-full max-w-[400px] overflow-hidden flex justify-center">
           <blockquote
@@ -121,7 +120,7 @@ export default function LyricsViewer({
     if (typeof window !== 'undefined' && navigator.vibrate) navigator.vibrate(30); 
   }, []);
 
-  // 🌟 BULLETPROOF TRANSLITERATION LOGIC (No Promises, No Waiting)
+  // 🌟 BULLETPROOF TRANSLITERATION LOGIC
   const displayLyrics = useMemo(() => {
     if (activeScript === 'devanagari') return lyricsHindi;
     if (activeScript === 'hinglish' && lyricsHinglish) return lyricsHinglish;
@@ -245,7 +244,8 @@ export default function LyricsViewer({
   const cleanHinglishTitle = slug.replace(/-/g, ' ').toUpperCase();
 
   return (
-    <div className="relative pb-28">
+    // 🌟 THE FIX: Removed pb-28 to eliminate the huge extra space at the bottom!
+    <div className="relative w-full">
       {tarz && (
         <div className="mb-6 flex justify-center">
           <div className="inline-flex items-center gap-2.5 bg-orange-100/80 border border-orange-200 text-orange-900 px-6 py-3 rounded-full shadow-sm">
@@ -325,17 +325,12 @@ export default function LyricsViewer({
               <div key={index} className="flex flex-col items-center w-full">
                 <p className="whitespace-pre-wrap w-full">{stanza.trim()}</p>
                 
-                {/* 🌟 THE BULLETPROOF FORMATTING FIX 🌟 */}
-                {/* हम इस सॉफ्ट लाइन को हमेशा रेंडर करेंगे ताकि लेआउट कभी न टूटे */}
                 {index < array.length - 1 && (
                   <div className={`flex items-center justify-center opacity-60 w-full ${isAllowedAd ? 'pt-6 md:pt-8 pb-2' : 'py-6 md:py-8'}`}>
                     <div className="w-3/4 md:w-1/2 max-w-md h-[1px] bg-gradient-to-r from-transparent via-orange-300 to-transparent"></div>
                   </div>
                 )}
 
-                {/* 🌟 AD UNIT 🌟 */}
-                {/* अगर ऐड आएगा, तो वह लाइन के ठीक नीचे एक प्रोफेशनल स्पॉन्सर ब्रेक की तरह दिखेगा।
-                    अगर ऐड खाली रहता है, तो यह गायब हो जाएगा और हमारी ऊपर वाली लाइन फॉर्मेटिंग को बचा लेगी! */}
                 {isAllowedAd && index < array.length - 1 && (
                   <div className="w-full mb-4 md:mb-6">
                     <ManualAdUnit />
@@ -351,7 +346,8 @@ export default function LyricsViewer({
       {/* MEDIA PLAYERS */}
       <div ref={videoRef} className="scroll-mt-24">
         {embedType === 'youtube' && embedId && (
-          <div className="mt-10 rounded-3xl overflow-hidden shadow-md border border-orange-100 bg-white p-2">
+          // 🌟 THE FIX: Reduced mt-10 to mt-6 to tighten up the gap
+          <div className="mt-6 rounded-3xl overflow-hidden shadow-md border border-orange-100 bg-white p-2 w-full">
             <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-900 group">
               {!isVideoPlaying ? (
                 <div className="w-full h-full cursor-pointer relative" onClick={() => setIsVideoPlaying(true)}>
@@ -373,52 +369,46 @@ export default function LyricsViewer({
           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-0">
             <div className="absolute top-0 left-0 h-[3px] bg-orange-500 transition-all duration-150 ease-out opacity-80" style={{ width: `${scrollProgress}%` }}></div>
           </div>
+          
           <div className="relative z-10 flex items-center gap-2 sm:gap-4">
+            <button 
+              onClick={toggleWakeLock} 
+              className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors shrink-0 ${wakeLockActive ? 'bg-yellow-100' : 'hover:bg-yellow-50'}`}
+              aria-label={wakeLockActive ? "Disable Keep Screen On" : "Enable Keep Screen On"}
+              title={wakeLockActive ? "Disable Keep Screen On" : "Enable Keep Screen On"}
+            >
+              {wakeLockActive ? <FaLightbulb className="text-yellow-500 text-xl" /> : <FaRegLightbulb className="text-gray-500 text-xl hover:text-yellow-500" />}
+            </button>
             
-            <FeatureHighlight featureId="wake_lock" title="Keep Screen On" description="Stop your phone from sleeping while you sing." position="top" delay={20000}>
-              <button 
-                onClick={toggleWakeLock} 
-                className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors shrink-0 ${wakeLockActive ? 'bg-yellow-100' : 'hover:bg-yellow-50'}`}
-                aria-label={wakeLockActive ? "Disable Keep Screen On" : "Enable Keep Screen On"}
-                title={wakeLockActive ? "Disable Keep Screen On" : "Enable Keep Screen On"}
-              >
-                {wakeLockActive ? <FaLightbulb className="text-yellow-500 text-xl" /> : <FaRegLightbulb className="text-gray-500 text-xl hover:text-yellow-500" />}
-              </button>
-            </FeatureHighlight>
-            
-            <FeatureHighlight featureId="save_bhajan" title="Save to Sangrah" description="Bookmark this bhajan to easily find it later." position="top" delay={45000}>
-              <button 
-                onClick={() => toggleFavorite(true)} 
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors shrink-0"
-                aria-label={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-                title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-              >
-                {isFavorite ? <FaHeart className="text-red-500 text-xl transition-transform scale-110" /> : <FaRegHeart className="text-gray-500 text-xl hover:text-red-400" />}
-              </button>
-            </FeatureHighlight>
+            <button 
+              onClick={() => toggleFavorite(true)} 
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors shrink-0"
+              aria-label={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+              title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+            >
+              {isFavorite ? <FaHeart className="text-red-500 text-xl transition-transform scale-110" /> : <FaRegHeart className="text-gray-500 text-xl hover:text-red-400" />}
+            </button>
             
             <div className="w-[1px] h-6 bg-gray-300"></div>
             
-            <FeatureHighlight featureId="font_size" title="Adjust Text Size" description="Make the lyrics larger or smaller for easy reading." position="top" delay={80000}>
-              <div className="flex items-center gap-1 shrink-0">
-                <button 
-                  onClick={() => { triggerHaptic(); setFontSize(prev => Math.max(14, prev - 2)); }} 
-                  className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors rounded-full font-serif font-bold text-lg"
-                  aria-label="Decrease font size"
-                  title="Decrease font size"
-                >
-                  A-
-                </button>
-                <button 
-                  onClick={() => { triggerHaptic(); setFontSize(prev => Math.min(40, prev + 2)); }} 
-                  className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors rounded-full font-serif font-bold text-lg"
-                  aria-label="Increase font size"
-                  title="Increase font size"
-                >
-                  A+
-                </button>
-              </div>
-            </FeatureHighlight>
+            <div className="flex items-center gap-1 shrink-0">
+              <button 
+                onClick={() => { triggerHaptic(); setFontSize(prev => Math.max(14, prev - 2)); }} 
+                className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors rounded-full font-serif font-bold text-lg"
+                aria-label="Decrease font size"
+                title="Decrease font size"
+              >
+                A-
+              </button>
+              <button 
+                onClick={() => { triggerHaptic(); setFontSize(prev => Math.min(40, prev + 2)); }} 
+                className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors rounded-full font-serif font-bold text-lg"
+                aria-label="Increase font size"
+                title="Increase font size"
+              >
+                A+
+              </button>
+            </div>
             
             <div className="w-[1px] h-6 bg-gray-300 hidden sm:block"></div>
             
@@ -441,7 +431,6 @@ export default function LyricsViewer({
             >
               <FaWhatsapp size={20} /> <span className="hidden sm:inline ml-2">Share</span>
             </button>
-            
           </div>
         </div>
       </div>
