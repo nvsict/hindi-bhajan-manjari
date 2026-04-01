@@ -12,6 +12,7 @@ import PdfDownloadButton from './PdfDownloadButton';
 // @ts-ignore
 import Sanscript from 'sanscript';
 import ManualAdUnit from './ManualAdUnit';
+import PushPrompt from './PushPrompt';
 
 interface LyricsViewerProps {
   title: string;
@@ -370,7 +371,9 @@ export default function LyricsViewer({
             <div className="absolute top-0 left-0 h-[3px] bg-orange-500 transition-all duration-150 ease-out opacity-80" style={{ width: `${scrollProgress}%` }}></div>
           </div>
           
-          <div className="relative z-10 flex items-center gap-2 sm:gap-4">
+          {/* 🌟 THE FIX: gap-1.5 for mobile so everything fits perfectly */}
+          <div className="relative z-10 flex items-center gap-1.5 sm:gap-3">
+            <PushPrompt />
             <button 
               onClick={toggleWakeLock} 
               className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors shrink-0 ${wakeLockActive ? 'bg-yellow-100' : 'hover:bg-yellow-50'}`}

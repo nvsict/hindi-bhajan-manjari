@@ -18,7 +18,6 @@ import ConditionalFooter from "../components/ConditionalFooter";
 import SmoothScrolling from "../components/SmoothScrolling";
 import AnalyticsWrapper from '@/components/AnalyticsWrapper';
 import NextTopLoader from 'nextjs-toploader';
-import PushPrompt from '@/components/PushPrompt';
 
 // 🌟 THE NEW SMART ADSENSE COMPONENT
 import AdSense from '@/components/AdSense';
@@ -27,7 +26,6 @@ import AdSense from '@/components/AdSense';
 import ClarityAnalytics from '@/components/ClarityAnalytics';
 
 // 🌟 PWA & GLOBAL FEATURE IMPORTS
-import InstallPwaPrompt from '@/components/InstallPwaPrompt';
 import PwaRegistration from '@/components/PwaRegistration';
 import { ThemeProvider } from '@/components/ThemeProvider';
 
@@ -188,8 +186,6 @@ export default function RootLayout({
           <AnalyticsWrapper gaId="G-LVXN7TD3JB" />
           
           {/* 🌟 PWA & Engagement UI */}
-          <PushPrompt />
-          <InstallPwaPrompt />
           <PwaRegistration />
 
         </ThemeProvider>
