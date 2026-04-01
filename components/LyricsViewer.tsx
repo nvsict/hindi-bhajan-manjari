@@ -414,13 +414,9 @@ export default function LyricsViewer({
       </div>
 
       {/* FLOATING TOOLBAR */}
-      <div 
-        id="floating-toolbar" // 👈 जासूस को पहचानने के लिए ID दिया है
-        className="fixed left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw] transition-all duration-500 ease-in-out"
-        // 🌟 THE MAGIC: 24px (bottom-6) + Google Ad की ऊँचाई (adOffset)
-        style={{ bottom: `${24 + adOffset}px` }} 
-      >
-        <div className="relative px-4 py-2.5 bg-white/90 backdrop-blur-xl border border-gray-200 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full">
+      <div className="fixed bottom-[85px] md:bottom-8 left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw]">
+        
+        <div className="relative px-3 md:px-4 py-2 bg-white/90 backdrop-blur-xl border border-gray-200 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full">
           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-0">
             <div className="absolute top-0 left-0 h-[3px] bg-orange-500 transition-all duration-150 ease-out opacity-80" style={{ width: `${scrollProgress}%` }}></div>
           </div>
