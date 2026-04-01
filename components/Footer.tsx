@@ -143,7 +143,7 @@ export default function Footer() {
             <ul className="space-y-4 text-sm">
               <li><FooterLink href="/about" icon={<HiSparkles size={12} />}>हमारी यात्रा (About Us)</FooterLink></li>
               <li><FooterLink href="/submit" overrideColor="text-orange-400 font-bold">✍️ अपने भजन भेजें</FooterLink></li>
-              <li><FooterLink href="/contact" icon={<FaEnvelope size={12} />}>संपर्क करें (Contact)</FooterLink></li>
+              <li><FooterLink href="/contact" icon={<FaEnvelope size={12} />}>संपर्क करें (Contact Us)</FooterLink></li>
               <li><FooterLink href="/privacy" icon={<FaShieldAlt size={12} />}>गोपनीयता नीति (Privacy)</FooterLink></li>
               <li><FooterLink href="/dmca" icon={<FaGavel size={12} />}>कॉपीराइट (DMCA)</FooterLink></li>
               <li><FooterLink href="/terms" icon={<FaFileContract size={12} />}>नियम व शर्तें (Terms)</FooterLink></li>
