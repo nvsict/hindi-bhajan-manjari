@@ -141,17 +141,23 @@ export default function RootLayout({
         {/* Google AdSense Servers */}
         <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://googleads.g.doubleclick.net" crossOrigin="anonymous" />
-        {/* Note: Pure HTML AdSense script removed to prevent Vignette Ad bugs. 
-            AdSense is now safely handled by the <AdSense /> component below. */}
+
+        {/* 🌟 THE ADSENSE FIX: Pure HTML Script tag instead of Next.js <Script> 
+            This single line removes the "data-nscript" error and initializes Auto Ads perfectly. */}
+        <script 
+          async 
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5565563905050993" 
+          crossOrigin="anonymous"
+        ></script>
       </head>
 
       <body 
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} ${hindFont.variable} ${notoSerifDeva.variable} ${amitaFont.variable} ${poppinsFont.variable} ${kalamFont.variable} antialiased bg-orange-50/30 dark:bg-[#0c0804] flex flex-col min-h-screen selection:bg-orange-500 selection:text-white transition-colors duration-300`}
       >
-        {/* 🌟 SMART ADSENSE */}
+        {/* 🌟 SMART ADSENSE: Admin panel पर अपने आप छुप जाएगा */}
         <AdSense />
-        
+
         {/* 🌟 MICROSOFT CLARITY ANALYTICS */}
         <ClarityAnalytics />
 
