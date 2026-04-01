@@ -244,6 +244,55 @@ export default function LyricsViewer({
 
   const cleanHinglishTitle = slug.replace(/-/g, ' ').toUpperCase();
 
+  // 🌟 SMART AD DETECTOR STATE (Google Anchor Ad Tracker)
+  const [adOffset, setAdOffset] = useState(0);
+
+  useEffect(() => {
+    const checkAnchorAd = () => {
+      let bottomOffset = 0;
+      
+      // 🕵️ जासूस 1: Google AdSense के डिफॉल्ट एंकर ऐड की क्लास को चेक करो
+      const adWrapper = document.querySelector('.adsbygoogle-noablate') as HTMLElement;
+      
+      if (adWrapper) {
+        const style = window.getComputedStyle(adWrapper);
+        // अगर ऐड दिख रहा है, तो उसकी ऊँचाई नाप लो
+        if (style.display !== 'none' && style.visibility !== 'hidden' && parseInt(style.height) > 0) {
+          bottomOffset = adWrapper.offsetHeight;
+        }
+      } else {
+        // 🕵️ जासूस 2: अगर Google क्लास बदल दे, तो Body के अंदर कोई भी Bottom Fixed एलिमेंट ढूंढो
+        const elements = document.body.children;
+        for (let i = elements.length - 1; i >= 0; i--) {
+          const el = elements[i] as HTMLElement;
+          if (el.id === 'floating-toolbar') continue; // अपने टूलबार को इग्नोर करो
+          
+          const style = window.getComputedStyle(el);
+          if (style.position === 'fixed' && parseInt(style.bottom) <= 0 && el.offsetHeight > 20) {
+            bottomOffset = el.offsetHeight;
+            break;
+          }
+        }
+      }
+
+      // अगर ऊँचाई बदल गई है, तो State अपडेट करो
+      setAdOffset(prev => prev !== bottomOffset ? bottomOffset : prev);
+    };
+
+    // Body में होने वाले बदलावों पर नज़र रखो
+    const observer = new MutationObserver(() => checkAnchorAd());
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
+
+    // पहली बार और 2 सेकंड बाद (Fallback) चेक करो
+    checkAnchorAd();
+    const timeoutId = setTimeout(checkAnchorAd, 2000);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(timeoutId);
+    };
+  }, []);
+
   return (
     // 🌟 THE FIX: Removed pb-28 to eliminate the huge extra space at the bottom!
     <div className="relative w-full">
@@ -365,7 +414,12 @@ export default function LyricsViewer({
       </div>
 
       {/* FLOATING TOOLBAR */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw]">
+      <div 
+        id="floating-toolbar" // 👈 जासूस को पहचानने के लिए ID दिया है
+        className="fixed left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw] transition-all duration-500 ease-in-out"
+        // 🌟 THE MAGIC: 24px (bottom-6) + Google Ad की ऊँचाई (adOffset)
+        style={{ bottom: `${24 + adOffset}px` }} 
+      >
         <div className="relative px-4 py-2.5 bg-white/90 backdrop-blur-xl border border-gray-200 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full">
           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-0">
             <div className="absolute top-0 left-0 h-[3px] bg-orange-500 transition-all duration-150 ease-out opacity-80" style={{ width: `${scrollProgress}%` }}></div>
