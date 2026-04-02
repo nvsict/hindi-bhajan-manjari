@@ -3,12 +3,14 @@ import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import Image from 'next/image';
 import Script from 'next/script';
+import Link from 'next/link';
 import Breadcrumbs from '../../../components/Breadcrumbs';
 import AuthorBox from '../../../components/AuthorBox';
-import { FaClock, FaCalendarAlt, FaBookOpen } from 'react-icons/fa';
+import { FaClock, FaCalendarAlt, FaBookOpen, FaGlobe } from 'react-icons/fa';
 
-// 🌟 IMPORT THE AD COMPONENT
+// 🌟 IMPORT THE AD COMPONENT & VIEW COUNTER
 import ManualAdUnit from '@/components/ManualAdUnit';
+import ArticleViewCounter from '@/components/ArticleViewCounter';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -17,14 +19,15 @@ interface Props {
 export const revalidate = 3600;
 
 // ==========================================
-// 🌟 1. GOOGLE DISCOVER METADATA
+// 🌟 1. GOOGLE DISCOVER METADATA & HREFLANG
 // ==========================================
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   
   const { data: article } = await supabase
     .from('articles')
-    .select('title_hindi, title_hinglish, meta_description, author_name, featured_image_url')
+    // 🌟 ADDED ENGLISH COLUMNS FOR SEO HREFLANG
+    .select('title_hindi, title_hinglish, meta_description, author_name, featured_image_url, slug_english, is_published_english')
     .eq('slug', slug)
     .eq('is_published', true)
     .single();
@@ -40,12 +43,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const finalImageUrl = article.featured_image_url || ogImageUrl.toString();
   const keywords = `${article.title_hinglish}, ${article.title_hindi}, Sanatan Gyan, Hindu mythology, ${article.author_name ? article.author_name + ' articles' : ''}, Hindi Bhajan Manjari blogs`;
 
+  // 🌟 SEO MAGIC: Add hreflang tags if English version exists
+  const alternates: any = { canonical: pageUrl };
+  if (article.slug_english && article.is_published_english) {
+    alternates.languages = {
+      'hi': pageUrl,
+      'en': `${siteUrl}/en/gyan/${article.slug_english}`
+    };
+  }
+
   return {
     title: `${article.title_hindi} | ${article.title_hinglish} | Sanatan Gyan`,
     description: article.meta_description,
     keywords: keywords,
     authors: article.author_name ? [{ name: article.author_name }] : undefined,
-    alternates: { canonical: pageUrl },
+    alternates: alternates,
     robots: {
       index: true,
       follow: true,
@@ -162,6 +174,9 @@ export default async function ArticlePage({ params }: Props) {
   return (
     <div className="min-h-screen bg-orange-50/30 pb-20">
       
+      {/* 🌟 3. BACKGROUND VIEW TRACKER */}
+      <ArticleViewCounter slug={slug} />
+
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(advancedArticleSchema) }} />
 
       <Script 
@@ -190,17 +205,29 @@ export default async function ArticlePage({ params }: Props) {
           {/* --- ARTICLE HERO HEADER --- */}
           <div className="bg-gradient-to-br from-orange-50 to-white p-8 md:p-12 border-b border-orange-100">
             
-            <div className="flex flex-wrap items-center gap-4 text-sm font-bold text-orange-600/80 uppercase tracking-widest mb-6">
-              <span className="flex items-center gap-2 bg-orange-100/50 px-3 py-1.5 rounded-full border border-orange-200/50">
-                <FaBookOpen /> Sanatan Gyan
-              </span>
-              <span className="flex items-center gap-1.5">
-                <FaClock className="mb-0.5" /> {article.read_time_minutes} Min Read
-              </span>
-              <span className="flex items-center gap-1.5 text-gray-500">&bull;</span>
-              <span className="flex items-center gap-1.5 text-gray-500">
-                <FaCalendarAlt className="mb-0.5" /> {publishDateStr}
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+              <div className="flex flex-wrap items-center gap-4 text-sm font-bold text-orange-600/80 uppercase tracking-widest">
+                <span className="flex items-center gap-2 bg-orange-100/50 px-3 py-1.5 rounded-full border border-orange-200/50">
+                  <FaBookOpen /> Sanatan Gyan
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <FaClock className="mb-0.5" /> {article.read_time_minutes} Min Read
+                </span>
+                <span className="flex items-center gap-1.5 text-gray-500">&bull;</span>
+                <span className="flex items-center gap-1.5 text-gray-500">
+                  <FaCalendarAlt className="mb-0.5" /> {publishDateStr}
+                </span>
+              </div>
+
+              {/* 🌟 LANGUAGE SWITCHER BUTTON (Visible only if English version is published) */}
+              {article.slug_english && article.is_published_english && (
+                <Link 
+                  href={`/en/gyan/${article.slug_english}`}
+                  className="flex items-center gap-2 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white border border-blue-200 px-4 py-2 rounded-full font-bold text-sm transition-all duration-300 shadow-sm active:scale-95"
+                >
+                  <FaGlobe className="text-lg" /> Read in English
+                </Link>
+              )}
             </div>
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-4 tracking-tight font-hindi">
@@ -213,15 +240,15 @@ export default async function ArticlePage({ params }: Props) {
             {article.featured_image_url && (
               <div className="relative w-full aspect-[16/9] md:aspect-[21/9] rounded-2xl overflow-hidden shadow-lg border border-gray-100">
                 <Image 
-      src={article.featured_image_url} 
-      alt={article.title_hinglish}
-      fill
-      priority={true}             
-      fetchPriority="high"         
-      quality={75}                
-      className="object-cover hover:scale-105 transition-transform duration-700"
-      sizes="(max-width: 768px) 100vw, 800px"
-    />
+                  src={article.featured_image_url} 
+                  alt={article.title_hinglish}
+                  fill
+                  priority={true}             
+                  fetchPriority="high"         
+                  quality={75}                
+                  className="object-cover hover:scale-105 transition-transform duration-700"
+                  sizes="(max-width: 768px) 100vw, 800px"
+                />
               </div>
             )}
           </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
 import Link from 'next/link';
-import { FaPlus, FaEdit, FaTrash, FaBookOpen, FaImage } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaBookOpen, FaImage, FaEye, FaGlobe } from 'react-icons/fa';
 
 export default function AdminArticlesPage() {
   const [articles, setArticles] = useState<any[]>([]);
@@ -16,8 +16,8 @@ export default function AdminArticlesPage() {
   const fetchArticles = async () => {
     const { data, error } = await supabase
       .from('articles')
-      // 🌟 NEW: Added featured_image_url to the query
-      .select('id, title_hindi, title_hinglish, slug, is_published, read_time_minutes, published_at, featured_image_url')
+      // 🌟 UPGRADE: Added view_count, title_english, and is_published_english
+      .select('id, title_hindi, title_hinglish, title_english, slug, is_published, is_published_english, read_time_minutes, published_at, featured_image_url, view_count')
       .order('created_at', { ascending: false });
 
     if (!error && data) setArticles(data);
@@ -37,7 +37,7 @@ export default function AdminArticlesPage() {
           <h1 className="text-3xl font-black text-gray-900 flex items-center gap-3 tracking-tighter">
             <FaBookOpen className="text-orange-500" /> Manage Sanatan Gyan
           </h1>
-          <p className="text-gray-500 mt-1 font-medium">Write and publish deep-dive articles for your Knowledge Graph.</p>
+          <p className="text-gray-500 mt-1 font-medium">Write and publish multilingual deep-dive articles for your Knowledge Graph.</p>
         </div>
         <Link 
           href="/admin/articles/new"
@@ -58,11 +58,12 @@ export default function AdminArticlesPage() {
       ) : (
         <div className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[800px]">
+            <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 uppercase tracking-widest text-[11px] font-bold">
                   <th className="p-5">Article Details</th>
-                  <th className="p-5">Status</th>
+                  <th className="p-5">Language & Status</th>
+                  <th className="p-5">Views</th>
                   <th className="p-5">Read Time</th>
                   <th className="p-5 text-right">Actions</th>
                 </tr>
@@ -72,7 +73,7 @@ export default function AdminArticlesPage() {
                   <tr key={article.id} className="border-b border-gray-50 hover:bg-orange-50/30 transition-colors group">
                     <td className="p-5">
                       <div className="flex items-center gap-4">
-                        {/* 🌟 NEW: Image Thumbnail Preview */}
+                        {/* Image Thumbnail Preview */}
                         <div className="w-16 h-12 shrink-0 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center relative">
                           {article.featured_image_url ? (
                             <img 
@@ -88,18 +89,57 @@ export default function AdminArticlesPage() {
                         
                         <div>
                           <p className="font-bold text-gray-900 font-hindi text-lg leading-tight mb-1 line-clamp-1">{article.title_hindi}</p>
-                          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest line-clamp-1">{article.title_hinglish}</p>
+                          <div className="flex flex-col gap-0.5">
+                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest line-clamp-1">Hinglish: {article.title_hinglish}</p>
+                            {/* 🌟 UPGRADE: English Title Preview (If it exists) */}
+                            {article.title_english && (
+                              <p className="text-[10px] text-blue-500 font-bold uppercase tracking-widest line-clamp-1 flex items-center gap-1">
+                                <FaGlobe size={9} /> {article.title_english}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
+                    
+                    {/* 🌟 UPGRADE: Dual Language Status Badges */}
                     <td className="p-5">
-                      <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-black rounded-full ${article.is_published ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-yellow-100 text-yellow-700 border border-yellow-200'}`}>
-                        {article.is_published ? 'Published' : 'Draft'}
-                      </span>
+                      <div className="flex flex-col gap-2">
+                        {/* HINDI BADGE */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-black text-gray-400 w-4">HI:</span>
+                          <span className={`px-2 py-0.5 text-[9px] uppercase tracking-widest font-black rounded-md ${article.is_published ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-yellow-100 text-yellow-700 border border-yellow-200'}`}>
+                            {article.is_published ? 'Published' : 'Draft'}
+                          </span>
+                        </div>
+                        {/* ENGLISH BADGE */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-black text-gray-400 w-4">EN:</span>
+                          {!article.title_english ? (
+                            <span className="px-2 py-0.5 text-[9px] uppercase tracking-widest font-black rounded-md bg-gray-100 text-gray-500 border border-gray-200">
+                              Not Written
+                            </span>
+                          ) : (
+                            <span className={`px-2 py-0.5 text-[9px] uppercase tracking-widest font-black rounded-md ${article.is_published_english ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-yellow-100 text-yellow-700 border border-yellow-200'}`}>
+                              {article.is_published_english ? 'Published' : 'Draft'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </td>
+
+                    {/* 🌟 UPGRADE: Views Counter */}
+                    <td className="p-5 text-sm text-gray-700 font-black">
+                      <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 w-fit">
+                        <FaEye className="text-orange-400 text-lg" />
+                        {article.view_count?.toLocaleString('en-IN') || 0}
+                      </div>
+                    </td>
+
                     <td className="p-5 text-sm text-gray-600 font-bold whitespace-nowrap">
                       {article.read_time_minutes} Min
                     </td>
+
                     <td className="p-5 text-right">
                       <div className="flex items-center justify-end gap-3">
                         <Link 
@@ -122,7 +162,7 @@ export default function AdminArticlesPage() {
                 ))}
                 {articles.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="p-12 text-center text-gray-500 font-medium">
+                    <td colSpan={5} className="p-12 text-center text-gray-500 font-medium">
                       No articles found. Click "Write New Article" to start.
                     </td>
                   </tr>
@@ -135,3 +175,5 @@ export default function AdminArticlesPage() {
     </div>
   );
 }
+
+// 🌟 UPGRADE
