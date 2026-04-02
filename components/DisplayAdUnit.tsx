@@ -47,6 +47,8 @@ export default function DisplayAdUnit() {
     return () => {
       clearTimeout(timeoutId);
       if (observer) observer.disconnect();
+      // 🌟 THE FIX: Resetting ref for Next.js Client-Side Routing
+      adLoaded.current = false; 
     };
   }, [pathname]);
 
@@ -56,7 +58,7 @@ export default function DisplayAdUnit() {
   return (
     <div className="w-full flex flex-col items-center justify-center overflow-hidden clear-both min-h-[250px] transition-all duration-500 ease-in-out has-[ins[data-ad-status='unfilled']]:hidden has-[ins[data-ad-status='unfilled']]:h-0 has-[ins[data-ad-status='unfilled']]:min-h-0 has-[ins[data-ad-status='unfilled']]:my-0">
       <span className="text-[10px] text-gray-400 uppercase tracking-[0.2em] mb-2 font-sans select-none">
-        Sponsered
+        Sponsored
       </span>
       <div className="w-full max-w-[800px] overflow-hidden flex justify-center">
         {/* 🌟 OLD DISPLAY AD UNIT */}

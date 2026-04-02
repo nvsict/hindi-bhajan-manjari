@@ -251,39 +251,21 @@ export default function LyricsViewer({
     const checkAnchorAd = () => {
       let bottomOffset = 0;
       
-      // 🕵️ जासूस 1: Google AdSense के डिफॉल्ट एंकर ऐड की क्लास को चेक करो
       const adWrapper = document.querySelector('.adsbygoogle-noablate') as HTMLElement;
-      
       if (adWrapper) {
         const style = window.getComputedStyle(adWrapper);
-        // अगर ऐड दिख रहा है, तो उसकी ऊँचाई नाप लो
         if (style.display !== 'none' && style.visibility !== 'hidden' && parseInt(style.height) > 0) {
           bottomOffset = adWrapper.offsetHeight;
         }
-      } else {
-        // 🕵️ जासूस 2: अगर Google क्लास बदल दे, तो Body के अंदर कोई भी Bottom Fixed एलिमेंट ढूंढो
-        const elements = document.body.children;
-        for (let i = elements.length - 1; i >= 0; i--) {
-          const el = elements[i] as HTMLElement;
-          if (el.id === 'floating-toolbar') continue; // अपने टूलबार को इग्नोर करो
-          
-          const style = window.getComputedStyle(el);
-          if (style.position === 'fixed' && parseInt(style.bottom) <= 0 && el.offsetHeight > 20) {
-            bottomOffset = el.offsetHeight;
-            break;
-          }
-        }
       }
 
-      // अगर ऊँचाई बदल गई है, तो State अपडेट करो
       setAdOffset(prev => prev !== bottomOffset ? bottomOffset : prev);
     };
 
-    // Body में होने वाले बदलावों पर नज़र रखो
+    // 🛑 THE FIX: Only `childList: true` keeps the browser from freezing (No layout thrashing)
     const observer = new MutationObserver(() => checkAnchorAd());
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
+    observer.observe(document.body, { childList: true }); 
 
-    // पहली बार और 2 सेकंड बाद (Fallback) चेक करो
     checkAnchorAd();
     const timeoutId = setTimeout(checkAnchorAd, 2000);
 
@@ -294,7 +276,6 @@ export default function LyricsViewer({
   }, []);
 
   return (
-    // 🌟 THE FIX: Removed pb-28 to eliminate the huge extra space at the bottom!
     <div className="relative w-full">
       {tarz && (
         <div className="mb-6 flex justify-center">
@@ -396,7 +377,6 @@ export default function LyricsViewer({
       {/* MEDIA PLAYERS */}
       <div ref={videoRef} className="scroll-mt-24">
         {embedType === 'youtube' && embedId && (
-          // 🌟 THE FIX: Reduced mt-10 to mt-6 to tighten up the gap
           <div className="mt-6 rounded-3xl overflow-hidden shadow-md border border-orange-100 bg-white p-2 w-full">
             <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-900 group">
               {!isVideoPlaying ? (
@@ -413,15 +393,16 @@ export default function LyricsViewer({
         {embedType === 'instagram' && embedId && <InstagramEmbed embedId={embedId} />}
       </div>
 
-      {/* FLOATING TOOLBAR */}
-      <div className="fixed bottom-[85px] md:bottom-8 left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw]">
-        
+      {/* 🌟 SMART FLOATING TOOLBAR: Cleaned up wrapper and dynamics */}
+      <div 
+        className="fixed bottom-[85px] md:bottom-8 left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw] transition-all duration-300"
+        style={adOffset > 0 ? { bottom: `calc(${adOffset}px + 20px)` } : undefined}
+      >
         <div className="relative px-3 md:px-4 py-2 bg-white/90 backdrop-blur-xl border border-gray-200 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full">
           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-0">
             <div className="absolute top-0 left-0 h-[3px] bg-orange-500 transition-all duration-150 ease-out opacity-80" style={{ width: `${scrollProgress}%` }}></div>
           </div>
           
-          {/* 🌟 THE FIX: gap-1.5 for mobile so everything fits perfectly */}
           <div className="relative z-10 flex items-center gap-1.5 sm:gap-3">
             <PushPrompt />
             <button 

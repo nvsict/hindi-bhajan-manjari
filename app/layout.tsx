@@ -18,6 +18,7 @@ import ConditionalFooter from "../components/ConditionalFooter";
 import SmoothScrolling from "../components/SmoothScrolling";
 import AnalyticsWrapper from '@/components/AnalyticsWrapper';
 import NextTopLoader from 'nextjs-toploader';
+import ScrollToTop from '@/components/ScrollToTop';
 
 // 🌟 THE NEW SMART ADSENSE COMPONENT
 import AdSense from '@/components/AdSense';
@@ -160,7 +161,7 @@ export default function RootLayout({
         <ClarityAnalytics />
 
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          
+          <ScrollToTop />
           <NextTopLoader 
             color="#ea580c"
             initialPosition={0.65}

@@ -197,3 +197,8 @@ html.lenis, html.lenis body {
   transform: translateZ(0); /* Forces hardware acceleration */
   backface-visibility: hidden; /* Prevents flickering on mobile */
 }
+
+/* 🌟 GOOGLE ADS SCROLL JUMP FIX */
+ins.adsbygoogle {
+  overflow-anchor: none !important;
+}
