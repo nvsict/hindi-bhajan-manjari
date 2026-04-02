@@ -42,6 +42,20 @@ const FONT_OPTIONS = [
   { id: 'font-kalam', name: 'Kalam (Diary)', className: 'font-kalam' },
 ];
 
+// 🌟 HYDRATION FIX: Safe YouTube Thumbnail Component (Prevents Error 418)
+const YouTubeThumbnail = ({ embedId, title }: { embedId: string, title: string }) => {
+  const [imgSrc, setImgSrc] = useState(`https://img.youtube.com/vi/${embedId}/maxresdefault.jpg`);
+  
+  return (
+    <img 
+      src={imgSrc} 
+      alt={`${title} Video`} 
+      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 opacity-90" 
+      onError={() => setImgSrc(`https://img.youtube.com/vi/${embedId}/hqdefault.jpg`)} 
+    />
+  );
+};
+
 // 🌟 OPTIMIZED INSTAGRAM EMBED (Safe Lazy Load)
 const InstagramEmbed = ({ embedId }: { embedId: string }) => {
   const [isIntersecting, setIntersecting] = useState(false);
@@ -350,7 +364,10 @@ export default function LyricsViewer({
             <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-900 group">
               {!isVideoPlaying ? (
                 <div className="w-full h-full cursor-pointer relative" onClick={() => setIsVideoPlaying(true)}>
-                  <img src={`https://img.youtube.com/vi/${embedId}/maxresdefault.jpg`} alt={`${title} Video`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 opacity-90" onError={(e) => { (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${embedId}/hqdefault.jpg`; }} />
+                  
+                  {/* 🌟 HYDRATION SAFE IMAGE FALLBACK */}
+                  <YouTubeThumbnail key={embedId} embedId={embedId} title={title} />
+                  
                   <div className="absolute inset-0 flex items-center justify-center bg-black/10 transition-all"><FaYoutube className="text-red-600 text-6xl md:text-7xl drop-shadow-[0_4px_15px_rgba(0,0,0,0.6)] group-hover:scale-110 transition-transform" /></div>
                 </div>
               ) : (
@@ -363,7 +380,7 @@ export default function LyricsViewer({
       </div>
 
       {/* 🌟 ROCK SOLID FLOATING TOOLBAR: Fixed Position, No JS Overrides */}
-      <div className="fixed bottom-[85px] md:bottom-8 left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw]">
+      <div className="fixed bottom-[85px] md:bottom-8 left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw] transition-all duration-300">
         <div className="relative px-3 md:px-4 py-2 bg-white/90 backdrop-blur-xl border border-gray-200 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full">
           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-0">
             <div className="absolute top-0 left-0 h-[3px] bg-orange-500 transition-all duration-150 ease-out opacity-80" style={{ width: `${scrollProgress}%` }}></div>
