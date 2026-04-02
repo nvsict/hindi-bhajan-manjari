@@ -47,8 +47,7 @@ export default function DisplayAdUnit() {
     return () => {
       clearTimeout(timeoutId);
       if (observer) observer.disconnect();
-      // 🌟 THE FIX: Resetting ref for Next.js Client-Side Routing
-      adLoaded.current = false; 
+      // 🔥 THE FIX: Removed `adLoaded.current = false;` to stop the infinite unmount-loop crash!
     };
   }, [pathname]);
 

@@ -244,37 +244,6 @@ export default function LyricsViewer({
 
   const cleanHinglishTitle = slug.replace(/-/g, ' ').toUpperCase();
 
-  // 🌟 SMART AD DETECTOR STATE (Google Anchor Ad Tracker)
-  const [adOffset, setAdOffset] = useState(0);
-
-  useEffect(() => {
-    const checkAnchorAd = () => {
-      let bottomOffset = 0;
-      
-      const adWrapper = document.querySelector('.adsbygoogle-noablate') as HTMLElement;
-      if (adWrapper) {
-        const style = window.getComputedStyle(adWrapper);
-        if (style.display !== 'none' && style.visibility !== 'hidden' && parseInt(style.height) > 0) {
-          bottomOffset = adWrapper.offsetHeight;
-        }
-      }
-
-      setAdOffset(prev => prev !== bottomOffset ? bottomOffset : prev);
-    };
-
-    // 🛑 THE FIX: Only `childList: true` keeps the browser from freezing (No layout thrashing)
-    const observer = new MutationObserver(() => checkAnchorAd());
-    observer.observe(document.body, { childList: true }); 
-
-    checkAnchorAd();
-    const timeoutId = setTimeout(checkAnchorAd, 2000);
-
-    return () => {
-      observer.disconnect();
-      clearTimeout(timeoutId);
-    };
-  }, []);
-
   return (
     <div className="relative w-full">
       {tarz && (
@@ -393,11 +362,8 @@ export default function LyricsViewer({
         {embedType === 'instagram' && embedId && <InstagramEmbed embedId={embedId} />}
       </div>
 
-      {/* 🌟 SMART FLOATING TOOLBAR: Cleaned up wrapper and dynamics */}
-      <div 
-        className="fixed bottom-[85px] md:bottom-8 left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw] transition-all duration-300"
-        style={adOffset > 0 ? { bottom: `calc(${adOffset}px + 20px)` } : undefined}
-      >
+      {/* 🌟 ROCK SOLID FLOATING TOOLBAR: Fixed Position, No JS Overrides */}
+      <div className="fixed bottom-[85px] md:bottom-8 left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw]">
         <div className="relative px-3 md:px-4 py-2 bg-white/90 backdrop-blur-xl border border-gray-200 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full">
           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-0">
             <div className="absolute top-0 left-0 h-[3px] bg-orange-500 transition-all duration-150 ease-out opacity-80" style={{ width: `${scrollProgress}%` }}></div>

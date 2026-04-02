@@ -54,6 +54,7 @@ export default function ManualAdUnit() {
     return () => {
       clearTimeout(timeoutId);
       if (observer) observer.disconnect();
+      // 🔥 THE FIX: No `adLoaded.current = false;` here to prevent the infinite loop crash!
     };
   }, [pathname]);
 
@@ -68,7 +69,7 @@ export default function ManualAdUnit() {
     <div className="w-full my-8 flex flex-col items-center justify-center overflow-hidden clear-both min-h-[250px] transition-all duration-500 ease-in-out has-[ins[data-ad-status='unfilled']]:hidden has-[ins[data-ad-status='unfilled']]:h-0 has-[ins[data-ad-status='unfilled']]:min-h-0 has-[ins[data-ad-status='unfilled']]:my-0">
       
       <span className="text-[10px] text-gray-400 uppercase tracking-[0.2em] mb-3 font-sans select-none">
-        Sponsered
+        Sponsored
       </span>
 
       <div className="w-full max-w-[800px] overflow-hidden flex justify-center">
