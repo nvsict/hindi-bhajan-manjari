@@ -8,7 +8,7 @@ import { HiMenuAlt3, HiX } from 'react-icons/hi';
 import { GiLotusFlower } from 'react-icons/gi';
 import {
   FaSearch, FaPenNib, FaInstagram,
-  FaFacebookF, FaHeart, FaChevronRight, FaBookOpen, FaChevronDown, FaMusic, FaHandHoldingHeart, FaDownload
+  FaFacebookF, FaHeart, FaChevronRight, FaBookOpen, FaChevronDown, FaMusic, FaHandHoldingHeart, FaDownload, FaGlobe
 } from 'react-icons/fa';
 import { FaOm, FaHandsPraying } from 'react-icons/fa6';
 import dynamic from 'next/dynamic';
@@ -22,36 +22,38 @@ const hind = Hind({
   display: 'swap',
 });
 
-// ─── 🌟 DEFAULT FALLBACK NAV DATA ────────
+// ─── 🌟 DEFAULT FALLBACK NAV DATA (SEO OPTIMIZED) ────────
 const DEFAULT_NAV_ITEMS = [
-  { name: 'Home', href: '/' },
+  { name: 'Home', href: '/', title: 'Go to Homepage' },
   {
     name: 'Deities',
+    title: 'Explore Deity Specific Bhajans',
     megaMenu: {
       featured: {
         title: 'Divine Darshan',
-        desc: 'Explore our sacred collection of deity-specific Bhajans, Aartis, and Mantras.',
-        icon: <FaOm className="text-4xl text-orange-600 mb-4 opacity-80" />,
+        desc: 'Explore our sacred collection of deity-specific Bhajans, Aartis, and Mantras for deep spiritual connection.',
+        icon: <FaOm className="text-5xl text-orange-600 mb-5 opacity-90 drop-shadow-sm" />,
         href: '/deity',
         bg: 'from-orange-500 to-red-600',
       },
       links: [
-        { name: 'Shri Hanuman', href: '/deity/hanuman', icon: '🚩', desc: 'Sankat Mochan' },
+        { name: 'Shri Hanuman', href: '/deity/hanuman', icon: '🚩', desc: 'Sankat Mochan Bhajans' },
         { name: 'Shri Ram', href: '/deity/shri-ram', icon: '🏹', desc: 'Maryada Purushottam' },
         { name: 'Shri Krishna', href: '/deity/shri-krishna', icon: '🦚', desc: 'Bhakti & Leela' },
-        { name: 'Shiv Ji', href: '/deity/shiv-ji', icon: '🔱', desc: 'Mahadev Chants' },
-        { name: 'Mata Rani', href: '/deity/mata-rani', icon: '🦁', desc: 'Shakti & Devotion' },
-        { name: 'Shri Hari', href: '/deity/shri-hari', icon: '🐚', desc: 'Vishnu Mantras' },
+        { name: 'Shiv Ji', href: '/deity/shiv-ji', icon: '🔱', desc: 'Mahadev Chants & Stotras' },
+        { name: 'Mata Rani', href: '/deity/mata-rani', icon: '🦁', desc: 'Shakti & Devotion Songs' },
+        { name: 'Shri Hari', href: '/deity/shri-hari', icon: '🐚', desc: 'Vishnu Mantras & Path' },
       ]
     }
   },
   {
     name: 'Categories',
+    title: 'Browse Bhajan Categories',
     megaMenu: {
       featured: {
         title: 'Daily Devotion',
-        desc: 'Start your morning with powerful Aartis and peaceful Chalisa recitations.',
-        icon: <FaHandsPraying className="text-4xl text-amber-200 mb-4 opacity-80" />,
+        desc: 'Start your morning with powerful Aartis and peaceful Chalisa recitations tailored for daily worship.',
+        icon: <FaHandsPraying className="text-5xl text-amber-200 mb-5 opacity-90 drop-shadow-sm" />,
         href: '/category/aarti',
         bg: 'from-amber-500 to-orange-500',
       },
@@ -64,21 +66,23 @@ const DEFAULT_NAV_ITEMS = [
       ]
     }
   },
-  { name: 'A-Z Bhajans', href: '/bhajan' }, 
-  { name: 'Gyan Hub', href: '/gyan' }, 
+  { name: 'Bhajans', href: '/bhajan', title: 'A-Z Hindi Bhajans Collection' }, 
+  { name: 'Gyan Hub', href: '/gyan', title: 'Sanatan Gyan & Spiritual Articles' },
+  // 🌟 FIX: Removed the Emoji, only text now (Icon is handled by code)
+  { name: 'Wisdom (EN)', href: '/en/gyan', title: 'Read Spiritual Articles in English' }, 
 ];
 
 const SOCIAL_LINKS = [
   {
     Icon: FaInstagram,
     href: 'https://www.instagram.com/imp.erfecto_?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==',
-    label: 'Instagram',
+    label: 'Follow us on Instagram',
     hoverColor: 'hover:text-pink-500',
   },
   {
     Icon: FaFacebookF,
     href: 'https://www.facebook.com/mohit.tarkar.7121/',
-    label: 'Facebook',
+    label: 'Connect on Facebook',
     hoverColor: 'hover:text-blue-500',
   },
 ] as const;
@@ -89,23 +93,23 @@ const UtilityBar = memo(function UtilityBar() {
   return (
     <div className="hidden md:block bg-gradient-to-r from-[#1a0a00] via-[#2c1200] to-[#1a0a00] border-b border-orange-900/30 relative z-50">
       <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-orange-600/40 to-transparent" />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-9">
-        <nav className="flex items-center gap-5 text-[11px] font-bold tracking-wider uppercase text-orange-100">
-          <Link href="/saved" className="flex items-center gap-1.5 text-red-400 hover:text-red-300 transition-colors">
-            <FaHeart size={10} /> My Sangrah
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-10">
+        <nav className="flex items-center gap-6 text-[11px] font-bold tracking-wider uppercase text-orange-100/90">
+          <Link href="/saved" title="View your saved bhajans" className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors py-1">
+            <FaHeart size={11} /> My Sangrah
           </Link>
-          <span className="w-px h-3 bg-orange-800" />
-          <Link href="/submit" className="flex items-center gap-1.5 hover:text-white transition-colors">
-            <FaPenNib size={10} /> Submit Bhajan
+          <span className="w-px h-3.5 bg-orange-800/60" />
+          <Link href="/submit" title="Submit a new Bhajan" className="flex items-center gap-2 hover:text-white transition-colors py-1">
+            <FaPenNib size={11} /> Submit Bhajan
           </Link>
-          <span className="w-px h-3 bg-orange-800" />
-          <Link href="/about" className="hover:text-white transition-colors">About</Link>
-          <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
+          <span className="w-px h-3.5 bg-orange-800/60" />
+          <Link href="/about" title="Learn about Hindi Bhajan Manjari" className="hover:text-white transition-colors py-1">About Us</Link>
+          <Link href="/contact" title="Contact our team" className="hover:text-white transition-colors py-1">Contact</Link>
         </nav>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-5">
           {SOCIAL_LINKS.map(({ Icon, href, label, hoverColor }) => (
-            <a key={label} href={href} aria-label={label} className={`text-orange-600 ${hoverColor} transition-transform hover:scale-110`} target="_blank" rel="noopener noreferrer">
-              <Icon size={14} />
+            <a key={label} href={href} aria-label={label} title={label} className={`text-orange-500/80 ${hoverColor} transition-transform hover:scale-110 p-1`} target="_blank" rel="noopener noreferrer">
+              <Icon size={15} />
             </a>
           ))}
         </div>
@@ -116,21 +120,16 @@ const UtilityBar = memo(function UtilityBar() {
 
 export default function Header() {
   const [navItems, setNavItems] = useState<any[]>(DEFAULT_NAV_ITEMS);
-
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [expandedMobileMenu, setExpandedMobileMenu] = useState<string | null>(null);
-  
   const [scrolled, setScrolled] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
-  
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
   const [pillStyle, setPillStyle] = useState({ left: 0, width: 0, opacity: 0 });
   const navRefs = useRef<{ [key: string]: HTMLElement | null }>({});
   const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
-
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-
   const lastScrollY = useRef(0);
   const pathname = usePathname();
   const lenis = useLenis();
@@ -139,21 +138,15 @@ export default function Header() {
   useEffect(() => {
     const fetchDynamicNav = async () => {
       try {
-        const { data: topDeities } = await supabase
-          .from('top_deities')
-          .select('name, slug, icon, description') 
-          .limit(6);
-
-        const { data: topCategories } = await supabase
-          .from('top_categories')
-          .select('name, slug, icon, description')
-          .limit(5);
+        const { data: topDeities } = await supabase.from('top_deities').select('name, slug, icon, description').limit(6);
+        const { data: topCategories } = await supabase.from('top_categories').select('name, slug, icon, description').limit(5);
 
         if (topDeities && topCategories) {
           const dynamicNav = [
-            { name: 'Home', href: '/' },
+            { name: 'Home', href: '/', title: 'Go to Homepage' },
             {
               name: 'Deities',
+              title: 'Explore Deity Specific Bhajans',
               megaMenu: {
                 featured: DEFAULT_NAV_ITEMS[1].megaMenu!.featured, 
                 links: topDeities.map((d: any) => ({
@@ -166,6 +159,7 @@ export default function Header() {
             },
             {
               name: 'Categories',
+              title: 'Browse Bhajan Categories',
               megaMenu: {
                 featured: DEFAULT_NAV_ITEMS[2].megaMenu!.featured, 
                 links: topCategories.map((c: any) => ({
@@ -176,25 +170,23 @@ export default function Header() {
                 }))
               }
             },
-            { name: 'A-Z Bhajans', href: '/bhajan' }, 
-            { name: 'Gyan Hub', href: '/gyan' },
+            { name: 'Bhajans', href: '/bhajan', title: 'A-Z Hindi Bhajans Collection' }, 
+            { name: 'Gyan Hub', href: '/gyan', title: 'Sanatan Gyan & Spiritual Articles' },
+            // 🌟 FIX: Removed the Emoji from name string for dynamic fetch as well
+            { name: 'Wisdom (EN)', href: '/en/gyan', title: 'Read Spiritual Articles in English' },
           ];
           setNavItems(dynamicNav);
         }
       } catch (error) {
-        console.error("Failed to fetch dynamic nav items, using fallback:", error);
+        console.error("Failed to fetch dynamic nav items:", error);
       }
     };
-
     fetchDynamicNav();
   }, []);
 
   // PWA Logic
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
+    const handleBeforeInstallPrompt = (e: Event) => { e.preventDefault(); setDeferredPrompt(e); };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
@@ -206,7 +198,7 @@ export default function Header() {
     if (outcome === 'accepted') setDeferredPrompt(null);
   };
 
-  // Scroll logic
+  // Scroll & Lenis Logic
   useLenis(({ scroll }) => {
     setScrolled(scroll > 10);
     if (scroll < 120) setIsHidden(false); 
@@ -245,14 +237,9 @@ export default function Header() {
   const handleNavMouseEnter = (name: string) => {
     if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
     setHoveredMenu(name);
-    
     const el = navRefs.current[name];
     if (el) {
-      setPillStyle({
-        left: el.offsetLeft,
-        width: el.offsetWidth,
-        opacity: 1,
-      });
+      setPillStyle({ left: el.offsetLeft, width: el.offsetWidth, opacity: 1 });
     }
   };
 
@@ -268,75 +255,65 @@ export default function Header() {
   return (
     <> 
       <UtilityBar />
-
       <header
-        className={`sticky top-0 z-40 w-full transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+        className={`sticky top-0 z-40 w-full transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] ${
           isHidden && !isSearchOpen && !isMenuOpen && !hoveredMenu ? '-translate-y-full' : 'translate-y-0'
         } ${
           scrolled 
-            ? 'bg-white/95 backdrop-blur-xl shadow-[0_10px_30px_-10px_rgba(234,88,12,0.1)] border-b border-orange-100/60' 
+            ? 'bg-white/95 backdrop-blur-xl shadow-[0_15px_40px_-15px_rgba(234,88,12,0.15)] border-b border-orange-100/60' 
             : 'bg-white border-b border-orange-100/80'
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-[72px]">
-
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-3 group shrink-0 outline-none rounded-lg z-10 relative">
-              <div className={`relative flex items-center justify-center origin-left transition-transform duration-300 ease-out group-hover:-rotate-6 w-11 h-11 ${scrolled ? 'scale-[0.85]' : 'scale-100'} bg-orange-50 rounded-xl shadow-sm border border-transparent`}>
-                <Image 
-                  src="/favicon.ico" 
-                  alt="Hindi Bhajan Manjari" 
-                  width={32} 
-                  height={32} 
-                  className="object-contain drop-shadow-md brightness-110"
-                />
+          <div className="flex items-center justify-between h-[80px]">
+            
+            {/* 🌟 Logo */}
+            <Link href="/" title="Hindi Bhajan Manjari Home" className="flex items-center gap-3.5 group shrink-0 outline-none rounded-lg z-10 relative py-2">
+              <div className={`relative flex items-center justify-center origin-left transition-transform duration-400 ease-out group-hover:-rotate-6 w-12 h-12 ${scrolled ? 'scale-[0.85]' : 'scale-100'} bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-2xl shadow-sm border border-orange-100/50`}>
+                <Image src="/favicon.ico" alt="Hindi Bhajan Manjari" width={36} height={36} className="object-contain drop-shadow-md brightness-110" />
               </div>
-              <div className="flex flex-col leading-none">
-                <span className={`font-black tracking-tight text-gray-900 text-xl md:text-2xl origin-left inline-block transition-all duration-300 ${scrolled ? 'scale-[0.9]' : 'scale-100'}`}>
+              <div className="flex flex-col leading-none justify-center">
+                <span className={`font-black tracking-tight text-gray-900 text-xl md:text-[26px] origin-left inline-block transition-all duration-400 ${scrolled ? 'scale-[0.9]' : 'scale-100'}`}>
                   HINDI<span className="text-orange-600">BHAJAN</span>
                 </span>
-                <span className="text-[9px] md:text-[10px] font-bold text-gray-500 tracking-[0.3em] uppercase mt-0.5">Manjari</span>
+                <span className="text-[9px] md:text-[10px] font-extrabold text-gray-500 tracking-[0.35em] uppercase mt-1">Manjari</span>
               </div>
             </Link>
 
-            {/* 🌟 PREMIUM DESKTOP NAV WITH DYNAMIC DATA */}
-            <nav 
-              className="hidden lg:flex items-center gap-1 mx-6 relative h-full"
-              onMouseLeave={handleNavMouseLeave}
-            >
+            {/* 🌟 PREMIUM DESKTOP NAV (Fixed Text Wrapping & Spacing) */}
+            <nav className="hidden lg:flex items-center gap-1 xl:gap-2 mx-4 xl:mx-6 relative h-full" onMouseLeave={handleNavMouseLeave}>
               <div 
                 className="absolute h-10 bg-orange-50 rounded-full transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] pointer-events-none"
                 style={{
                   left: pillStyle.left,
                   width: pillStyle.width,
                   opacity: pillStyle.opacity,
-                  transform: `scale(${pillStyle.opacity === 0 ? 0.9 : 1})`,
+                  transform: `scale(${pillStyle.opacity === 0 ? 0.95 : 1})`,
                 }}
               />
-
+              
               {navItems.map((item) => {
                 const isItemActive = item.href ? isActive(item.href) : item.megaMenu?.links.some((d: any) => isActive(d.href));
                 const isHovered = hoveredMenu === item.name;
+                // English Link identifier 
+                const isEnglishLink = item.name.includes('(EN)');
                 
                 return (
-                  <div 
-                    key={item.name} 
-                    className="relative flex items-center h-full"
-                    ref={(el) => { navRefs.current[item.name] = el; }}
-                    onMouseEnter={() => handleNavMouseEnter(item.name)}
-                  >
+                  <div key={item.name} className="relative flex items-center h-full" ref={(el) => { navRefs.current[item.name] = el; }} onMouseEnter={() => handleNavMouseEnter(item.name)}>
                     {item.megaMenu ? (
-                      <button className={`relative z-10 flex items-center gap-1.5 px-5 py-2.5 text-[14px] font-bold uppercase tracking-widest rounded-full transition-colors duration-200 ${
-                        isItemActive || isHovered ? 'text-orange-700' : 'text-gray-700'
-                      }`}>
+                      <button title={item.title} className={`relative z-10 flex items-center gap-1.5 px-4 xl:px-5 py-2.5 text-[13px] font-black uppercase tracking-widest whitespace-nowrap rounded-full transition-colors duration-200 ${isItemActive || isHovered ? 'text-orange-700' : 'text-gray-700'}`}>
                         {item.name}
-                        <FaChevronDown size={10} className={`transition-transform duration-300 opacity-60 ${isHovered ? 'rotate-180' : ''}`} />
+                        <FaChevronDown size={10} className={`transition-transform duration-300 opacity-60 ${isHovered ? 'rotate-180 text-orange-600' : ''}`} />
                       </button>
                     ) : (
-                      <Link href={item.href!} className={`relative z-10 flex items-center gap-1.5 px-5 py-2.5 text-[14px] font-bold uppercase tracking-widest rounded-full transition-colors duration-200 ${
-                        isItemActive || isHovered ? 'text-orange-700' : 'text-gray-700'
+                      // 🌟 FIX: Added whitespace-nowrap to prevent text wrapping!
+                      <Link href={item.href!} title={item.title} className={`relative z-10 flex items-center gap-1.5 px-4 xl:px-5 py-2.5 text-[13px] font-black uppercase tracking-widest whitespace-nowrap rounded-full transition-all duration-200 ${
+                        isItemActive || isHovered 
+                          ? isEnglishLink ? 'text-blue-700' : 'text-orange-700' 
+                          : isEnglishLink ? 'text-blue-600' : 'text-gray-700'
                       }`}>
+                        {/* Render FaGlobe icon dynamically ONLY here, since emoji is removed */}
+                        {isEnglishLink && <FaGlobe className="text-blue-500 text-sm" />}
                         {item.name}
                       </Link>
                     )}
@@ -346,58 +323,36 @@ export default function Header() {
 
               {/* SHARED MEGA MENU DROPDOWN CONTAINER */}
               <div 
-                className={`absolute top-full left-1/2 -translate-x-1/2 pt-4 transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] origin-top z-50 ${
-                  hasActiveMegaMenu ? 'opacity-100 visible translate-y-0 scale-100' : 'opacity-0 invisible translate-y-3 scale-95 pointer-events-none'
-                }`}
+                className={`absolute top-[90%] left-1/2 -translate-x-1/2 pt-5 transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] origin-top z-50 ${hasActiveMegaMenu ? 'opacity-100 visible translate-y-0 scale-100' : 'opacity-0 invisible translate-y-4 scale-95 pointer-events-none'}`}
                 onMouseEnter={() => { if (hoverTimeout.current) clearTimeout(hoverTimeout.current); }}
               >
-                <div className="w-[720px] bg-white/95 backdrop-blur-2xl rounded-[2rem] shadow-[0_25px_70px_-15px_rgba(234,88,12,0.2)] border border-white ring-1 ring-black/5 p-2 grid relative overflow-hidden transition-colors duration-300">
-                  
+                <div className="w-[780px] bg-white/95 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_30px_80px_-15px_rgba(234,88,12,0.25)] border border-white ring-1 ring-black/5 p-3 grid relative overflow-hidden">
                   {navItems.filter(i => i.megaMenu).map((item) => {
                     const isContentActive = hoveredMenu === item.name;
                     return (
-                      <div 
-                        key={item.name}
-                        className={`col-start-1 row-start-1 flex transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] ${
-                          isContentActive ? 'opacity-100 translate-x-0 pointer-events-auto z-10' : 'opacity-0 -translate-x-4 pointer-events-none z-0'
-                        }`}
-                      >
+                      <div key={item.name} className={`col-start-1 row-start-1 flex transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] ${isContentActive ? 'opacity-100 translate-x-0 z-10' : 'opacity-0 -translate-x-6 z-0 pointer-events-none'}`}>
                         {/* Left Featured Column */}
-                        <div className={`w-[260px] shrink-0 bg-gradient-to-br ${item.megaMenu!.featured.bg} p-8 rounded-[1.5rem] flex flex-col justify-between relative overflow-hidden`}>
-                          <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/20 rounded-full blur-3xl pointer-events-none" />
+                        <div className={`w-[280px] shrink-0 bg-gradient-to-br ${item.megaMenu!.featured.bg} p-10 rounded-[2rem] flex flex-col justify-between relative overflow-hidden shadow-inner`}>
+                          <div className="absolute -right-12 -top-12 w-48 h-48 bg-white/20 rounded-full blur-3xl pointer-events-none" />
                           <div className="relative z-10">
                             {item.megaMenu!.featured.icon}
-                            <h3 className="text-white font-black text-2xl leading-tight mb-2 tracking-tight">
-                              {item.megaMenu!.featured.title}
-                            </h3>
-                            <p className="text-white/80 font-medium text-sm leading-relaxed">
-                              {item.megaMenu!.featured.desc}
-                            </p>
+                            <h3 className="text-white font-black text-3xl leading-tight mb-3 tracking-tight">{item.megaMenu!.featured.title}</h3>
+                            <p className="text-white/90 font-medium text-[15px] leading-relaxed">{item.megaMenu!.featured.desc}</p>
                           </div>
-                          <Link href={item.megaMenu!.featured.href} onClick={closeMenu} className="relative z-10 mt-8 inline-flex items-center gap-2 text-white font-bold text-sm bg-white/20 hover:bg-white/30 px-5 py-2.5 rounded-xl w-fit transition-colors backdrop-blur-md">
-                            Explore Now <FaChevronRight size={10} />
+                          <Link href={item.megaMenu!.featured.href} onClick={closeMenu} className="relative z-10 mt-10 inline-flex items-center justify-center gap-2 text-orange-900 font-black text-[15px] bg-white hover:bg-orange-50 px-6 py-3.5 rounded-xl w-full transition-all shadow-md active:scale-95">
+                            Explore All <FaChevronRight size={12} />
                           </Link>
                         </div>
-
                         {/* Right Grid Column */}
-                        <div className="flex-1 p-6 grid grid-cols-2 gap-x-4 gap-y-3 content-start">
+                        <div className="flex-1 p-8 grid grid-cols-2 gap-x-6 gap-y-5 content-start">
                           {item.megaMenu!.links.map((subItem: any) => (
-                            <Link 
-                              key={subItem.name} 
-                              href={subItem.href}
-                              onClick={closeMenu}
-                              className={`group/link flex items-start gap-4 p-3 rounded-2xl transition-all duration-200 ${isActive(subItem.href) ? 'bg-orange-50' : 'hover:bg-gray-50'}`}
-                            >
-                              <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-lg transition-colors ${isActive(subItem.href) ? 'bg-orange-200/50 text-orange-700' : 'bg-white border border-gray-100 text-gray-500 shadow-sm group-hover/link:bg-orange-100 group-hover/link:text-orange-600 group-hover/link:border-orange-200'}`}>
+                            <Link key={subItem.name} href={subItem.href} title={subItem.desc} onClick={closeMenu} className={`group/link flex items-start gap-4 p-4 rounded-2xl transition-all duration-200 ${isActive(subItem.href) ? 'bg-orange-50 ring-1 ring-orange-200/50' : 'hover:bg-gray-50 hover:shadow-sm'}`}>
+                              <div className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center text-xl transition-all duration-300 ${isActive(subItem.href) ? 'bg-orange-200/60 text-orange-700 shadow-sm scale-105' : 'bg-white border border-gray-100 text-gray-500 shadow-sm group-hover/link:bg-orange-100 group-hover/link:text-orange-600 group-hover/link:border-orange-200 group-hover/link:scale-105'}`}>
                                 {subItem.icon}
                               </div>
-                              <div>
-                                <p className={`font-bold text-[15px] leading-tight mb-0.5 transition-colors ${isActive(subItem.href) ? 'text-orange-800' : 'text-gray-900 group-hover/link:text-orange-600'}`}>
-                                  {subItem.name}
-                                </p>
-                                <p className="text-[12px] text-gray-500 font-medium leading-snug truncate w-32">
-                                  {subItem.desc}
-                                </p>
+                              <div className="flex flex-col justify-center pt-0.5">
+                                <p className={`font-bold text-[16px] leading-tight mb-1 transition-colors ${isActive(subItem.href) ? 'text-orange-800' : 'text-gray-900 group-hover/link:text-orange-600'}`}>{subItem.name}</p>
+                                <p className="text-[13px] text-gray-500 font-medium leading-snug line-clamp-1">{subItem.desc}</p>
                               </div>
                             </Link>
                           ))}
@@ -407,83 +362,44 @@ export default function Header() {
                   })}
                 </div>
               </div>
-
             </nav>
 
-            {/* Desktop Actions */}
-            <div className="hidden lg:flex items-center gap-2 shrink-0 z-10">
-              <Link 
-                href="/donate" 
-                className="mr-2 flex items-center gap-2 px-5 py-2.5 bg-orange-700 hover:bg-orange-800 text-white text-sm font-bold rounded-full transition-all shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-orange-400 active:scale-95"
-              >
-                <FaHandHoldingHeart size={16} /> Support Us
+            {/* 🌟 Desktop Actions */}
+            <div className="hidden lg:flex items-center gap-2 xl:gap-3 shrink-0 z-10">
+              <Link href="/donate" title="Support Hindi Bhajan Manjari" className="mr-2 flex items-center gap-2 px-4 xl:px-6 py-2.5 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white text-[14px] font-black tracking-wide rounded-full transition-all shadow-md outline-none focus-visible:ring-4 focus-visible:ring-orange-400/50 active:scale-95 whitespace-nowrap">
+                <FaHandHoldingHeart size={18} /> Support Us
               </Link>
-              
-              {/* 🌟 FIX 1: Added aria-label to Desktop Search Button */}
-              <button 
-                onClick={openSearch} 
-                aria-label="Open search"
-                className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors"
-              >
+              <button onClick={openSearch} aria-label="Open search" title="Search Bhajans & Articles" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors bg-gray-50/50 border border-gray-100">
                 <FaSearch size={16} />
               </button>
-              
-              <div className="w-px h-5 bg-gray-200 mx-1" />
-              
-              {/* 🌟 FIX 2: Added aria-label to Desktop Saved Link */}
-              <Link 
-                href="/saved" 
-                aria-label="View saved bhajans"
-                className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:text-red-500 hover:bg-red-50 transition-colors"
-              >
+              <div className="w-px h-6 bg-gray-200 mx-0.5" />
+              <Link href="/saved" aria-label="View saved bhajans" title="My Saved Bhajans" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:text-red-500 hover:bg-red-50 transition-colors bg-gray-50/50 border border-gray-100">
                 <FaHeart size={16} />
               </Link>
             </div>
 
-            {/* Mobile Actions */}
-            <div className="lg:hidden flex items-center gap-1 z-10 relative">
-              <Link 
-                href="/donate" 
-                className="w-10 h-10 flex items-center justify-center rounded-full text-orange-600 hover:bg-orange-50 transition-colors relative"
-                aria-label="Support Us"
-              >
-                <FaHandHoldingHeart size={20} />
+            {/* 🌟 Mobile Actions */}
+            <div className="lg:hidden flex items-center gap-1.5 z-10 relative">
+              <Link href="/donate" className="w-11 h-11 flex items-center justify-center rounded-full text-orange-600 hover:bg-orange-50 transition-colors relative" aria-label="Support Us" title="Support Us">
+                <FaHandHoldingHeart size={22} />
               </Link>
-              
-              {/* 🌟 FIX 3: Added aria-label to Mobile Search Button */}
-              <button 
-                onClick={openSearch} 
-                aria-label="Open search"
-                className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:bg-orange-50 transition-colors"
-              >
-                <FaSearch size={18} />
+              <button onClick={openSearch} aria-label="Open search" title="Search" className="w-11 h-11 flex items-center justify-center rounded-full text-gray-600 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                <FaSearch size={20} />
               </button>
-
-              {/* 🌟 FIX 4: Added aria-label to Mobile Menu Button */}
-              <button 
-                onClick={openMenu} 
-                aria-label="Open mobile menu"
-                className="w-10 h-10 flex items-center justify-center rounded-xl bg-orange-600 text-white hover:bg-orange-700 transition-colors shadow-md ml-1 active:scale-95"
-              >
-                <HiMenuAlt3 size={24} />
+              <button onClick={openMenu} aria-label="Open mobile menu" title="Open Menu" className="w-12 h-12 flex items-center justify-center rounded-2xl bg-orange-600 text-white hover:bg-orange-700 transition-all shadow-md shadow-orange-600/20 ml-2 active:scale-95">
+                <HiMenuAlt3 size={26} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Search Panel */}
-        <div className={`absolute top-full inset-x-0 bg-white/95 backdrop-blur-xl border-t border-orange-100 shadow-2xl z-50 transition-all duration-300 origin-top ${isSearchOpen ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-95 pointer-events-none'}`}>
-          <div className="max-w-3xl mx-auto px-4 py-6">
+        {/* Search Panel Dropdown */}
+        <div className={`absolute top-full inset-x-0 bg-white/95 backdrop-blur-xl border-t border-orange-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] z-50 transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] origin-top ${isSearchOpen ? 'opacity-100 scale-y-100 visible' : 'opacity-0 scale-y-95 pointer-events-none invisible'}`}>
+          <div className="max-w-4xl mx-auto px-4 py-8">
             <div className="relative">
               {isSearchOpen && <SearchBar onClose={closeSearch} />}
-              
-              {/* 🌟 FIX 5: Added aria-label to Close Search Button */}
-              <button 
-                onClick={closeSearch} 
-                aria-label="Close search"
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
-              >
-                <HiX size={18} />
+              <button onClick={closeSearch} aria-label="Close search" title="Close Search" className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 transition-colors">
+                <HiX size={20} />
               </button>
             </div>
           </div>
@@ -491,97 +407,82 @@ export default function Header() {
       </header>
 
       {/* Overlays */}
-      {isSearchOpen && <div onClick={closeSearch} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 transition-opacity" />}
-      {isMenuOpen && <div onClick={closeMenu} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] lg:hidden transition-opacity" />}
+      {isSearchOpen && <div onClick={closeSearch} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 transition-opacity duration-300" />}
+      {isMenuOpen && <div onClick={closeMenu} className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110] lg:hidden transition-opacity duration-300" />}
 
-      {/* MOBILE DRAWER */}
-      <aside className={`fixed top-0 right-0 h-full w-[85%] max-w-[360px] z-[120] lg:hidden flex flex-col bg-white shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <Image 
-              src="/favicon.ico" 
-              alt="Menu Logo" 
-              width={36} 
-              height={36} 
-              className="object-contain drop-shadow-sm brightness-110"
-            />
-            <span className="font-black text-gray-900 tracking-widest text-sm uppercase">Menu</span>
+      {/* 🌟 MOBILE DRAWER WITH PREMIUM SPACING */}
+      <aside className={`fixed top-0 right-0 h-full w-[88%] max-w-[400px] z-[120] lg:hidden flex flex-col bg-white shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="flex items-center justify-between px-7 py-6 border-b border-gray-100 bg-white z-10">
+          <div className="flex items-center gap-3.5">
+            <Image src="/favicon.ico" alt="Menu Logo" width={40} height={40} className="object-contain drop-shadow-sm brightness-110" />
+            <span className="font-black text-gray-900 tracking-widest text-[15px] uppercase">Menu</span>
           </div>
-
-          {/* 🌟 FIX 6: Added aria-label to Close Menu Button */}
-          <button 
-            onClick={closeMenu} 
-            aria-label="Close menu"
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
-          >
-            <HiX size={20} />
+          <button onClick={closeMenu} aria-label="Close menu" title="Close Menu" className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 transition-colors active:scale-95">
+            <HiX size={22} />
           </button>
         </div>
 
-        <nav data-lenis-prevent="true" className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-2 bg-gray-50/50">
-          {navItems.map((item) => (
-            <div key={item.name}>
-              {item.megaMenu ? (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-colors duration-300">
-                  <button 
-                    onClick={() => setExpandedMobileMenu(expandedMobileMenu === item.name ? null : item.name)}
-                    className="w-full flex items-center justify-between px-5 py-4 font-bold text-[15px] text-gray-800 active:bg-gray-50 transition-colors"
-                  >
-                    {item.name}
-                    <FaChevronDown size={12} className={`text-gray-500 transition-transform duration-300 ${expandedMobileMenu === item.name ? 'rotate-180' : ''}`} />
-                  </button>
-                  <div className={`grid transition-all duration-300 ease-in-out ${expandedMobileMenu === item.name ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-                    <div className="overflow-hidden bg-gray-50/50">
-                      <div className="px-3 pb-4 pt-1 flex flex-col gap-1">
-                        {item.megaMenu.links.map((subItem: any) => (
-                          <Link 
-                            key={subItem.name} 
-                            href={subItem.href}
-                            onClick={closeMenu}
-                            className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-colors ${isActive(subItem.href) ? 'bg-orange-100 text-orange-700 font-bold shadow-sm' : 'text-gray-600 hover:bg-white hover:shadow-sm font-semibold'}`}
-                          >
-                            <span className={`w-8 h-8 flex items-center justify-center rounded-lg text-lg ${isActive(subItem.href) ? 'bg-orange-200/50' : 'bg-white shadow-sm border border-gray-100'}`}>
-                              {subItem.icon}
-                            </span>
-                            {subItem.name}
-                          </Link>
-                        ))}
+        {/* 🌟 FIX: Added pb-24 for Safe Bottom Breathing Space! */}
+        <nav data-lenis-prevent="true" className="flex-1 overflow-y-auto px-5 pt-6 pb-24 flex flex-col gap-3 bg-gray-50/50">
+          {navItems.map((item) => {
+            const isEnglishLink = item.name.includes('(EN)');
+            
+            return (
+              <div key={item.name}>
+                {item.megaMenu ? (
+                  <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300">
+                    <button onClick={() => setExpandedMobileMenu(expandedMobileMenu === item.name ? null : item.name)} className="w-full flex items-center justify-between px-6 py-5 font-black text-[16px] text-gray-800 active:bg-gray-50 transition-colors">
+                      {item.name}
+                      <FaChevronDown size={14} className={`text-gray-400 transition-transform duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] ${expandedMobileMenu === item.name ? 'rotate-180 text-orange-500' : ''}`} />
+                    </button>
+                    <div className={`grid transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] ${expandedMobileMenu === item.name ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                      <div className="overflow-hidden bg-gray-50/80">
+                        <div className="px-4 pb-5 pt-1 flex flex-col gap-1.5">
+                          {item.megaMenu.links.map((subItem: any) => (
+                            <Link key={subItem.name} href={subItem.href} onClick={closeMenu} className={`flex items-center gap-4 py-3.5 px-4 rounded-2xl transition-colors ${isActive(subItem.href) ? 'bg-orange-100/80 text-orange-700 font-black shadow-sm ring-1 ring-orange-200/50' : 'text-gray-600 hover:bg-white hover:shadow-sm font-bold'}`}>
+                              <span className={`w-10 h-10 flex items-center justify-center rounded-xl text-xl ${isActive(subItem.href) ? 'bg-orange-200/60' : 'bg-white shadow-sm border border-gray-100'}`}>{subItem.icon}</span>
+                              {subItem.name}
+                            </Link>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <Link
-                  href={item.href!}
-                  onClick={closeMenu}
-                  className={`flex items-center justify-between px-5 py-4 rounded-2xl font-bold text-[15px] transition-all duration-200 ${isActive(item.href!) ? 'bg-orange-100 text-orange-700 shadow-sm border border-orange-200/50' : 'bg-white text-gray-700 hover:shadow-sm border border-gray-100'}`}
-                >
-                  <span>{item.name}</span>
-                  {isActive(item.href!) ? <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-sm" /> : <FaChevronRight size={14} className="text-gray-500" />}
-                </Link>
-              )}
-            </div>
-          ))}
+                ) : (
+                  <Link
+                    href={item.href!}
+                    onClick={closeMenu}
+                    className={`flex items-center justify-between px-6 py-5 rounded-3xl font-black text-[16px] transition-all duration-200 ${
+                      isActive(item.href!) 
+                        ? 'bg-orange-100 text-orange-700 shadow-sm border border-orange-200/50' 
+                        : isEnglishLink ? 'bg-blue-50/80 text-blue-700 border border-blue-100/50' : 'bg-white text-gray-800 hover:shadow-sm border border-gray-100'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2.5">
+                      {/* 🌟 FIX: Ensuring Icon doesn't get squished with shrink-0 */}
+                      {isEnglishLink && <FaGlobe className="text-blue-500 text-lg shrink-0" />}
+                      <span className="truncate">{item.name}</span>
+                    </span>
+                    {isActive(item.href!) ? <span className="w-3 h-3 rounded-full bg-orange-500 shadow-sm" /> : <FaChevronRight size={14} className="text-gray-400" />}
+                  </Link>
+                )}
+              </div>
+            );
+          })}
           
-          <div className="my-4 border-t border-gray-200/60 mx-2" />
-
+          <div className="my-5 border-t border-gray-200/80 mx-3" />
+          
           {deferredPrompt && (
-            <button
-              onClick={handleInstallClick}
-              className="flex items-center gap-4 px-5 py-3.5 mb-2 rounded-2xl text-white font-bold bg-gradient-to-r from-orange-500 to-red-500 shadow-md shadow-orange-500/20 active:scale-95 transition-all w-full border border-orange-400/50 text-left"
-            >
-              <span className="w-9 h-9 flex items-center justify-center shrink-0 rounded-xl bg-white/20 backdrop-blur-sm text-white">
-                <FaDownload size={16} />
-              </span>
+            <button onClick={handleInstallClick} aria-label="Install App" title="Install App for Offline Access" className="flex items-center gap-4 px-6 py-4 mb-2 rounded-3xl text-white font-black bg-gradient-to-r from-orange-500 to-red-500 shadow-lg shadow-orange-500/25 active:scale-95 transition-all w-full border border-orange-400/50 text-left">
+              <span className="w-11 h-11 flex items-center justify-center shrink-0 rounded-2xl bg-white/25 backdrop-blur-md text-white"><FaDownload size={18} /></span>
               <div className="flex flex-col items-start leading-tight">
-                <span className="text-[15px]">Install App</span>
-                <span className="text-[10px] text-orange-100 font-medium">Fast & Offline Access</span>
+                <span className="text-[17px] mb-0.5">Install App</span>
+                <span className="text-[11px] text-orange-100/90 font-bold tracking-wide">Fast & Offline Access</span>
               </div>
             </button>
           )}
-          
-          <Link href="/saved" onClick={closeMenu} className="flex items-center gap-4 px-5 py-3 rounded-2xl text-gray-700 font-semibold bg-white hover:shadow-sm transition-all border border-gray-100">
-            <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500"><FaHeart size={16} /></span> My Sangrah
+          <Link href="/saved" onClick={closeMenu} aria-label="My Sangrah" title="View Saved Items" className="flex items-center gap-4 px-6 py-4 rounded-3xl text-gray-800 font-black bg-white shadow-sm hover:shadow-md transition-all border border-gray-100">
+            <span className="w-11 h-11 flex items-center justify-center rounded-2xl bg-red-50 text-red-500"><FaHeart size={18} /></span> My Sangrah
           </Link>
         </nav>
       </aside>
