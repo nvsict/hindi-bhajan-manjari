@@ -7,6 +7,7 @@ import {
 } from 'react-icons/fa';
 import DeleteButton from './DeleteButton';
 import AdminSearch from './AdminSearch'; 
+import CopyLinkButton from './CopyLinkButton'; // 🌟 IMPORTED THE NEW BUTTON
 
 export default async function AdminDashboard({ 
   searchParams 
@@ -239,6 +240,9 @@ export default async function AdminDashboard({
                   
                   <td className="p-5 pr-8 md:pr-10 text-center">
                     <div className="flex items-center justify-center gap-3">
+                      {/* 🌟 NEW COPY LINK BUTTON */}
+                      <CopyLinkButton slug={bhajan.slug} />
+
                       <Link 
                         href={`/admin/edit-bhajan/${bhajan.slug}`} 
                         className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm hover:shadow-[0_4px_15px_rgba(37,99,235,0.3)] hover:-translate-y-0.5 active:scale-95"

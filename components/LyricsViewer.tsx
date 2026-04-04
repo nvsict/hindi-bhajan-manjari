@@ -398,17 +398,21 @@ export default function LyricsViewer({
             return (
               <div key={index} className="flex flex-col items-center w-full">
                 
-                {/* 🌟 NEW: Word-by-Word Rendering for Single Tap Dictionary */}
+                {/* 🌟 FIXED: Natural Spacing & Word Split (Not Character Split) */}
                 <div className="w-full">
                   {stanza.split('\n').map((line: string, lineIndex: number) => (
                     <div key={lineIndex} className="min-h-[1.5em]">
-                      {line.split(' ').map((word: string, wordIndex: number) => (
-                        <span 
-                          key={wordIndex} 
-                          onClick={() => handleWordClick(word)}
-                          className="cursor-pointer active:bg-orange-200/60 lg:hover:bg-orange-100/50 transition-colors rounded px-[2px] mx-[1px]"
-                        >
-                          {word}{' '}
+                      {/* 👇 ध्यान दें: split(' ') में सिंगल कोट के बीच स्पेस होना ज़रूरी है! */}
+                      {line.split(' ').map((word: string, wordIndex: number, wordsArray: string[]) => (
+                        <span key={wordIndex}>
+                          <span 
+                            onClick={() => handleWordClick(word)}
+                            className="cursor-pointer active:bg-orange-200/80 lg:hover:bg-orange-100/60 transition-colors rounded-md"
+                          >
+                            {word}
+                          </span>
+                          {/* 🌟 Add a natural space ONLY if it's not the last word in the line */}
+                          {wordIndex < wordsArray.length - 1 ? ' ' : ''}
                         </span>
                       ))}
                     </div>
