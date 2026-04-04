@@ -4,11 +4,11 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   FaWhatsapp, FaHeart, FaRegHeart,
   FaLightbulb, FaRegLightbulb, FaMusic, FaYoutube, FaLanguage,
-  FaChevronDown, FaCheck, FaFont
+  FaChevronDown, FaCheck, FaFont, FaXmark, FaBookOpen, FaSpinner
 } from 'react-icons/fa6';
 import PdfDownloadButton from './PdfDownloadButton';
+import { supabase } from '@/utils/supabase';
 
-// 🌟 THE FIX: Imported directly so the Service Worker cannot block it!
 // @ts-ignore
 import Sanscript from 'sanscript';
 import ManualAdUnit from './ManualAdUnit';
@@ -42,7 +42,6 @@ const FONT_OPTIONS = [
   { id: 'font-kalam', name: 'Kalam (Diary)', className: 'font-kalam' },
 ];
 
-// 🌟 HYDRATION FIX: Safe YouTube Thumbnail Component (Prevents Error 418)
 const YouTubeThumbnail = ({ embedId, title }: { embedId: string, title: string }) => {
   const [imgSrc, setImgSrc] = useState(`https://img.youtube.com/vi/${embedId}/maxresdefault.jpg`);
   
@@ -56,7 +55,6 @@ const YouTubeThumbnail = ({ embedId, title }: { embedId: string, title: string }
   );
 };
 
-// 🌟 OPTIMIZED INSTAGRAM EMBED (Safe Lazy Load)
 const InstagramEmbed = ({ embedId }: { embedId: string }) => {
   const [isIntersecting, setIntersecting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -118,6 +116,11 @@ export default function LyricsViewer({
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showBigHeart, setShowBigHeart] = useState(false);
 
+  // 🌟 DICTIONARY STATE
+  const [dictionaryData, setDictionaryData] = useState<any>(null);
+  const [isDictionaryOpen, setIsDictionaryOpen] = useState(false);
+  const [isFetchingMeaning, setIsFetchingMeaning] = useState(false);
+
   const videoRef = useRef<HTMLDivElement>(null);
   const scriptDropdownRef = useRef<HTMLDivElement>(null);
   const fontDropdownRef = useRef<HTMLDivElement>(null);
@@ -135,7 +138,6 @@ export default function LyricsViewer({
     if (typeof window !== 'undefined' && navigator.vibrate) navigator.vibrate(30); 
   }, []);
 
-  // 🌟 BULLETPROOF TRANSLITERATION LOGIC
   const displayLyrics = useMemo(() => {
     if (activeScript === 'devanagari') return lyricsHindi;
     if (activeScript === 'hinglish' && lyricsHinglish) return lyricsHinglish;
@@ -149,6 +151,49 @@ export default function LyricsViewer({
       return lyricsHindi; 
     }
   }, [activeScript, lyricsHindi, lyricsHinglish]);
+
+  // 🌟 NEW: SINGLE TAP WORD DICTIONARY FETCH
+  const handleWordClick = async (clickedWord: string) => {
+    if (!clickedWord || clickedWord.length < 2) return;
+
+    // Clean punctuation from the clicked word
+    const cleanText = clickedWord.replace(/[.,!?'"(){}\[\]|;:\-\n\r]/g, '').trim();
+    if (!cleanText) return;
+
+    setIsFetchingMeaning(true);
+
+    // Reverse Transliteration to Devanagari
+    let searchWord = cleanText;
+    if (activeScript !== 'devanagari') {
+      try {
+        const fromScript = activeScript === 'hinglish' ? 'iast' : activeScript;
+        searchWord = Sanscript.t(cleanText, fromScript, 'devanagari');
+      } catch (e) {
+        console.error("Reverse transliteration failed", e);
+      }
+    }
+
+    try {
+      // Query Supabase
+      const safeText = cleanText.replace(/[^a-zA-Z\u0900-\u097F]/g, '');
+      const { data, error } = await supabase
+        .from('dictionary')
+        .select('*')
+        .or(`word_hi.eq.${searchWord},word_en.ilike.${safeText}`)
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        setDictionaryData(data);
+        setIsDictionaryOpen(true);
+        triggerHaptic();
+      }
+    } catch (err) {
+      console.error("Dictionary Fetch Error:", err);
+    } finally {
+      setIsFetchingMeaning(false);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -316,8 +361,23 @@ export default function LyricsViewer({
         </div>
       </div>
 
-      {/* LYRICS CONTAINER */}
-      <div className="bg-orange-50/30 rounded-3xl p-6 md:p-12 border border-orange-100/50 relative overflow-hidden shadow-sm select-none transition-all duration-300 hover:shadow-md" onDoubleClick={handleDoubleTap}>
+      {/* 🌟 DICTIONARY HINT UI */}
+      <div className="flex justify-center mb-6 px-4 relative z-10">
+        <div className="bg-blue-50/80 border border-blue-100/80 text-blue-900 text-[13px] md:text-sm font-medium px-5 py-3.5 rounded-2xl shadow-sm flex items-start sm:items-center gap-3 max-w-2xl w-full backdrop-blur-sm relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-1 h-full bg-blue-400 rounded-l-2xl"></div>
+          <FaLightbulb className="text-blue-500 text-lg shrink-0 mt-0.5 sm:mt-0" />
+          <p className="leading-relaxed">
+            <strong className="font-black">Sanatan Dictionary:</strong> Tap on any difficult word in the lyrics to instantly know its spiritual meaning! ✨
+          </p>
+          {isFetchingMeaning && <FaSpinner className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-400 animate-spin" />}
+        </div>
+      </div>
+
+      {/* 🌟 LYRICS CONTAINER (Select None is active, but word-by-word tapping works!) */}
+      <div 
+        className="bg-orange-50/30 rounded-3xl p-6 md:p-12 border border-orange-100/50 relative overflow-hidden shadow-sm select-none transition-all duration-300 hover:shadow-md" 
+        onDoubleClick={handleDoubleTap}
+      >
         
         {/* Background Watermark & Heart */}
         <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none select-none">
@@ -337,7 +397,23 @@ export default function LyricsViewer({
 
             return (
               <div key={index} className="flex flex-col items-center w-full">
-                <p className="whitespace-pre-wrap w-full">{stanza.trim()}</p>
+                
+                {/* 🌟 NEW: Word-by-Word Rendering for Single Tap Dictionary */}
+                <div className="w-full">
+                  {stanza.split('\n').map((line: string, lineIndex: number) => (
+                    <div key={lineIndex} className="min-h-[1.5em]">
+                      {line.split(' ').map((word: string, wordIndex: number) => (
+                        <span 
+                          key={wordIndex} 
+                          onClick={() => handleWordClick(word)}
+                          className="cursor-pointer active:bg-orange-200/60 lg:hover:bg-orange-100/50 transition-colors rounded px-[2px] mx-[1px]"
+                        >
+                          {word}{' '}
+                        </span>
+                      ))}
+                    </div>
+                  ))}
+                </div>
                 
                 {index < array.length - 1 && (
                   <div className={`flex items-center justify-center opacity-60 w-full ${isAllowedAd ? 'pt-6 md:pt-8 pb-2' : 'py-6 md:py-8'}`}>
@@ -379,7 +455,7 @@ export default function LyricsViewer({
         {embedType === 'instagram' && embedId && <InstagramEmbed embedId={embedId} />}
       </div>
 
-      {/* 🌟 ROCK SOLID FLOATING TOOLBAR: Fixed Position, No JS Overrides */}
+      {/* 🌟 ROCK SOLID FLOATING TOOLBAR */}
       <div className="fixed bottom-[85px] md:bottom-8 left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw] transition-all duration-300">
         <div className="relative px-3 md:px-4 py-2 bg-white/90 backdrop-blur-xl border border-gray-200 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full">
           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-0">
@@ -451,6 +527,58 @@ export default function LyricsViewer({
           </div>
         </div>
       </div>
+
+      {/* 🌟 FIX: THE SANATAN SHABDKOSH POPUP / BOTTOM SHEET (pointer-events fixed!) */}
+      <div className={`fixed inset-0 z-[150] flex items-end sm:items-center justify-center transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] ${isDictionaryOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+        
+        {/* Overlay Background */}
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-400" onClick={() => setIsDictionaryOpen(false)} />
+
+        {/* Modal Content */}
+        <div className={`relative w-full sm:w-[500px] bg-white rounded-t-[2.5rem] sm:rounded-[2rem] shadow-2xl transition-transform duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden flex flex-col max-h-[85vh] border border-gray-100 ${isDictionaryOpen ? 'translate-y-0 scale-100' : 'translate-y-full sm:translate-y-10 sm:scale-95'}`}>
+          {/* Mobile Drag Handle */}
+          <div className="w-full flex justify-center pt-5 pb-2 sm:hidden cursor-pointer" onClick={() => setIsDictionaryOpen(false)}>
+            <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+          </div>
+
+          {dictionaryData && (
+            <div className="p-7 sm:p-9 overflow-y-auto">
+              <div className="flex items-start justify-between mb-8">
+                <div>
+                  <div className="flex items-center gap-2 text-orange-600 text-xs font-black uppercase tracking-widest mb-2.5">
+                    <FaBookOpen /> Sanatan Shabdkosh
+                  </div>
+                  <h3 className="text-3xl sm:text-4xl font-black text-gray-900 font-hindi mb-1.5">{dictionaryData.word_hi}</h3>
+                  <p className="text-gray-500 font-bold tracking-wider uppercase text-sm">{dictionaryData.word_en}</p>
+                </div>
+                <button onClick={() => setIsDictionaryOpen(false)} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-500 hover:bg-gray-200 hover:text-gray-900 transition-colors shrink-0">
+                  <FaXmark size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-4 mb-8">
+                <div className="bg-orange-50/70 border border-orange-100/80 rounded-2xl p-6">
+                  <p className="text-[11px] font-black text-orange-500 uppercase tracking-widest mb-2">Hindi Meaning</p>
+                  <p className="text-gray-900 font-bold font-hindi text-[18px] leading-relaxed">{dictionaryData.meaning_hi}</p>
+                </div>
+                {dictionaryData.meaning_en && (
+                  <div className="bg-blue-50/70 border border-blue-100/80 rounded-2xl p-6">
+                    <p className="text-[11px] font-black text-blue-500 uppercase tracking-widest mb-2">English Meaning</p>
+                    <p className="text-gray-900 font-bold text-[16px] leading-relaxed">{dictionaryData.meaning_en}</p>
+                  </div>
+                )}
+              </div>
+
+              {dictionaryData.slug && (
+                <a href={`/shabdkosh/${dictionaryData.slug}`} className="block w-full text-center bg-gray-900 hover:bg-black text-white text-[15px] font-black tracking-wide py-4 rounded-2xl transition-transform active:scale-95 shadow-md">
+                  Read Deep Spiritual Explanation
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
     </div>
   );
 }

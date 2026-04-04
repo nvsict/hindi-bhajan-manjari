@@ -3,6 +3,10 @@ import { revalidatePath } from 'next/cache';
 import Link from 'next/link';
 import { FaTrash, FaCheckCircle, FaUser, FaClock, FaArrowLeft } from 'react-icons/fa';
 
+// 🌟 THE FIX: Force Next.js to fetch fresh data on every load, NO CACHING!
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function PendingSubmissionsPage() {
   // 1. Master admin client to read the locked table
   const supabaseAdmin = createClient(
@@ -11,10 +15,14 @@ export default async function PendingSubmissionsPage() {
   );
 
   // Fetch all pending requests, newest first
-  const { data: pendingBhajans } = await supabaseAdmin
+  const { data: pendingBhajans, error } = await supabaseAdmin
     .from('pending_bhajans')
     .select('*')
     .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error("Error fetching pending bhajans:", error);
+  }
 
   // 2. SECURE SERVER ACTION: Deletes a rejected submission
   async function deleteSubmission(formData: FormData) {
@@ -35,8 +43,8 @@ export default async function PendingSubmissionsPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 mb-20 px-4 sm:px-6">
       
-      <div className="flex items-center gap-4">
-        <Link href="/admin" className="w-10 h-10 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:text-orange-600 hover:border-orange-200 shadow-sm transition-all">
+      <div className="flex items-center gap-4 mt-8">
+        <Link href="/admin" className="w-10 h-10 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:text-orange-600 hover:border-orange-200 shadow-sm transition-all shrink-0">
           <FaArrowLeft />
         </Link>
         <div>
@@ -57,15 +65,17 @@ export default async function PendingSubmissionsPage() {
             <div key={bhajan.id} className="bg-white p-6 md:p-8 rounded-3xl border border-gray-200 shadow-sm flex flex-col gap-4">
               
               {/* Header Info */}
-              <div className="flex justify-between items-start gap-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div>
                   <h3 className="text-2xl font-black text-gray-900">{bhajan.title}</h3>
                   <p className="text-sm text-gray-500 flex items-center gap-2 mt-2 font-medium">
                     <FaUser className="text-orange-500" /> {bhajan.contributor_name || 'Anonymous User'}
                   </p>
                 </div>
-                <p className="text-xs text-gray-500 flex items-center gap-1 font-bold bg-gray-50 px-3 py-1.5 rounded-full shrink-0">
-                  <FaClock /> {new Date(bhajan.created_at).toLocaleDateString()}
+                <p className="text-xs text-gray-500 flex items-center gap-1.5 font-bold bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-full shrink-0">
+                  <FaClock className="text-gray-400" /> {new Date(bhajan.created_at).toLocaleDateString('en-IN', {
+                    day: 'numeric', month: 'short', year: 'numeric'
+                  })}
                 </p>
               </div>
 
@@ -78,7 +88,7 @@ export default async function PendingSubmissionsPage() {
               <div className="flex flex-col sm:flex-row gap-3 mt-4">
                 {/* Approve Button -> Redirects to Add Bhajan and passes the data via URL */}
                 <Link 
-                  href={`/admin/add-bhajan?title=${encodeURIComponent(bhajan.title)}&lyrics=${encodeURIComponent(bhajan.lyrics)}`}
+                  href={`/admin/add-bhajan?title=${encodeURIComponent(bhajan.title)}&lyrics=${encodeURIComponent(bhajan.lyrics)}&pending_id=${bhajan.id}`}
                   className="flex-1 bg-green-600 text-white py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-green-700 shadow-sm transition-colors"
                 >
                   <FaCheckCircle /> Approve & Publish
