@@ -1,13 +1,14 @@
 import { supabase } from '../../utils/supabase';
 import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { 
   FaMusic, FaPrayingHands, FaFolderOpen, FaSearch, 
   FaEye, FaEdit, FaInbox, FaPlus, FaExternalLinkAlt, FaRocket, FaClock 
 } from 'react-icons/fa';
 import DeleteButton from './DeleteButton';
 import AdminSearch from './AdminSearch'; 
-import CopyLinkButton from './CopyLinkButton'; // 🌟 IMPORTED THE NEW BUTTON
+import CopyLinkButton from './CopyLinkButton'; 
 
 export default async function AdminDashboard({ 
   searchParams 
@@ -187,7 +188,10 @@ export default async function AdminDashboard({
             <p className="text-sm text-gray-500 font-medium mt-2">Recently added and updated bhajans in your database.</p>
           </div>
           <div className="w-full md:w-auto relative z-20">
-            <AdminSearch />
+            {/* 🌟 WRAPPED ADMIN SEARCH IN SUSPENSE */}
+            <Suspense fallback={<div className="w-full md:w-80 h-12 bg-gray-100 animate-pulse rounded-2xl"></div>}>
+              <AdminSearch />
+            </Suspense>
           </div>
         </div>
         
