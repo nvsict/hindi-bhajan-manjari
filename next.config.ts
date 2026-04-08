@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // 🌟 NEW: Hide "X-Powered-By: Next.js" from hackers
+  // 🌟 Hide "X-Powered-By: Next.js" from hackers
   poweredByHeader: false,
 
   experimental: {
@@ -49,14 +49,14 @@ const nextConfig: NextConfig = {
             value: 'strict-origin-when-cross-origin',
           },
           {
-            // 🌟 NEW: Permissions Policy (Camera, Mic, Geolocation blocked for safety)
+            // 🌟 Permissions Policy (Camera, Mic, Geolocation blocked for safety)
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()'
           },
           {
-            // 🌟 UPDATED: Removed 'unsafe-eval' for stricter security, kept 'unsafe-inline' for Next.js & Instagram
+            // 🌟 UPDATED: Perfected CSP to whitelist Google Ads, Analytics, Clarity, and Cloudflare
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.instagram.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com;"
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.instagram.com https://pagead2.googlesyndication.com https://www.googletagmanager.com https://static.cloudflareinsights.com https://www.clarity.ms https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com https://googleads.g.doubleclick.net https://*.googlesyndication.com;"
           }
         ],
       },
