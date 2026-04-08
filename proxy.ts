@@ -39,7 +39,14 @@ export async function proxy(req: NextRequest) {
         }),
         { 
           status: 429, 
-          headers: { 'Content-Type': 'application/json' } 
+          headers: { 
+            'Content-Type': 'application/json',
+            // 🌟 THE FIX: ब्राउज़र और Cloudflare को आदेश कि इस एरर को कभी Cache न करें
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+            'Retry-After': '60' // बॉट्स को बताएगा कि 60 सेकंड बाद आना
+          } 
         }
       );
     }
