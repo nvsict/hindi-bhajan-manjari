@@ -2,81 +2,40 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
-// 🛡️ LAYER 2: In-Memory Tracker (Perfect for VPS hosting)
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-
 export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
   // ==========================================
-  // 🛡️ 1. RATE LIMITING SHIELD (Bot Protection)
+  // 🔒 ADMIN PANEL SECURITY
   // ==========================================
-  
-  // 🌟 FIXED: Removed deprecated req.ip and safely parsed x-forwarded-for
-  const ip = req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown-ip';
-  
-  const WINDOW_TIME = 60 * 1000; // 1 मिनट का समय
-  const MAX_REQUESTS = 60; // 1 मिनट में अधिकतम 60 पेज लोड की अनुमति
-
-  const now = Date.now();
-  const userRecord = rateLimitMap.get(ip);
-
-  // अगर IP नया है या उसका 1 मिनट पूरा हो गया है, तो काउंट रीसेट करें
-  if (!userRecord || now > userRecord.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + WINDOW_TIME });
-  } else {
-    // अगर 1 मिनट के अंदर रिक्वेस्ट आई है, तो काउंट बढ़ाएं
-    userRecord.count += 1;
-    
-    // अगर 60 से ज़्यादा बार रिक्वेस्ट आई, तो उसे ब्लॉक कर दें! 🛑
-    if (userRecord.count > MAX_REQUESTS) {
-      console.warn(`🚨 BOT BLOCKED: IP ${ip} exceeded rate limits on path ${path}`);
-      
-      return new NextResponse(
-        JSON.stringify({ 
-          error: 'Too Many Requests', 
-          message: 'हमारी सुरक्षा प्रणाली ने असामान्य गतिविधि देखी है। कृपया 1 मिनट प्रतीक्षा करें।' 
-        }),
-        { 
-          status: 429, 
-          headers: { 
-            'Content-Type': 'application/json',
-            // 🌟 THE FIX: ब्राउज़र और Cloudflare को आदेश कि इस एरर को कभी Cache न करें
-            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0',
-            'Retry-After': '60' // बॉट्स को बताएगा कि 60 सेकंड बाद आना
-          } 
-        }
-      );
-    }
-  }
-
-  // ==========================================
-  // 🔒 2. ADMIN PANEL SECURITY
-  // ==========================================
+  // यह हिस्सा सुनिश्चित करता है कि बिना टोकन के कोई /admin एक्सेस न कर पाए
   if (path.startsWith('/admin') && path !== '/admin/login') {
     
     const token = req.cookies.get('admin_token')?.value;
 
+    // अगर टोकन नहीं है, तो लॉगिन पेज पर भेजें
     if (!token) {
       return NextResponse.redirect(new URL('/admin/login', req.url));
     }
 
     try {
+      // JWT टोकन को वेरीफाई करें
       const secret = new TextEncoder().encode(process.env.JWT_SECRET);
       await jwtVerify(token, secret);
     } catch (err) {
+      // अगर टोकन गलत या एक्सपायर है, तो उसे डिलीट करें और लॉगिन पर भेजें
       const response = NextResponse.redirect(new URL('/admin/login', req.url));
       response.cookies.delete('admin_token');
       return response;
     }
   }
 
+  // बाकी सभी रिक्वेस्ट को नॉर्मल तरीके से जाने दें
   return NextResponse.next();
 }
 
-// 🌟 CRITICAL FIX: The Matcher
+// 🌟 URL Matcher Configuration
+// यह सेटअप स्टैटिक फाइल्स (images, fonts, scripts) को छोड़कर बाकी सब पर लागू होगा
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
