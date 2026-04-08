@@ -54,9 +54,9 @@ const nextConfig: NextConfig = {
             value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()'
           },
           {
-            // 🌟 ULTIMATE CSP: Google AdSense, DoubleClick, Analytics, Clarity को पूरी आज़ादी
+            // 🌟 ULTIMATE CSP: Google AdSense, DoubleClick, Analytics, Clarity और Traffic Quality को पूरी आज़ादी
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.instagram.com https://*.googlesyndication.com https://*.doubleclick.net https://*.googletagmanager.com https://static.cloudflareinsights.com https://*.clarity.ms https://*.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com https://ep2.adtrafficquality.google;"
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.instagram.com https://*.googlesyndication.com https://*.doubleclick.net https://*.googletagmanager.com https://static.cloudflareinsights.com https://*.clarity.ms https://*.google.com https://*.adtrafficquality.google; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com https://*.adtrafficquality.google;"
           }
         ],
       },
