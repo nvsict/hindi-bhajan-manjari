@@ -33,12 +33,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
   const pageUrl = `${siteUrl}/en/gyan/${slug}`;
 
-  // Fallback OG image if custom one is missing
   const ogImageUrl = new URL(`${siteUrl}/api/og/articles`);
   ogImageUrl.searchParams.set('title', article.title_english || 'Sanatan Gyan');
   const finalImageUrl = article.featured_image_url || ogImageUrl.toString();
 
-  // 🌟 SEO MAGIC: Hreflang Tags linking back to Hindi version
   const alternates: any = { canonical: pageUrl };
   if (article.slug && article.is_published) {
     alternates.languages = {
@@ -84,7 +82,6 @@ export default async function EnglishArticlePage({ params }: Props) {
   const pageUrl = `${siteUrl}/en/gyan/${slug}`;
   const finalImageUrl = article.featured_image_url || `${siteUrl}/api/og/articles?title=${encodeURIComponent(article.title_english || '')}`;
 
-  // 🌟 Schema Generation
   const advancedArticleSchema = {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
@@ -98,90 +95,81 @@ export default async function EnglishArticlePage({ params }: Props) {
     "mainEntityOfPage": { "@type": "WebPage", "@id": pageUrl }
   };
 
-  // Split HTML chunks for Smart Ad Injection
   const htmlChunks = article.content_html_english ? article.content_html_english.split(/<\/p>/i) : [];
 
   return (
-    <div className="min-h-screen bg-blue-50/30 pb-20">
+    <div className="min-h-screen bg-blue-50/20 pb-20">
       
-      {/* 🌟 BACKGROUND VIEW TRACKER FOR ENGLISH PAGE */}
       <ArticleViewCounter slug={slug} />
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(advancedArticleSchema) }} />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        <Breadcrumbs items={[ { label: 'Spiritual Wisdom', href: '/en/gyan' }, { label: article.title_english || '' } ]} />
+        <Breadcrumbs items={[ { label: 'Wisdom', href: '/en/gyan' }, { label: article.title_english || '' } ]} />
 
-        <main className="mt-6 bg-white rounded-[2.5rem] shadow-sm border border-blue-100 overflow-hidden">
+        <main className="mt-6 bg-white rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm border border-blue-100 overflow-hidden">
           
-          {/* --- ARTICLE HERO HEADER --- */}
-          <div className="bg-gradient-to-br from-blue-50 to-white p-8 md:p-12 border-b border-blue-100">
-            
+          <div className="bg-gradient-to-br from-blue-50/50 to-white p-8 md:p-12 border-b border-blue-100">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-              <div className="flex flex-wrap items-center gap-4 text-sm font-bold text-blue-600/80 uppercase tracking-widest">
-                <span className="flex items-center gap-2 bg-blue-100/50 px-3 py-1.5 rounded-full border border-blue-200/50">
+              <div className="flex items-center gap-4 text-xs md:text-sm font-bold text-blue-700 uppercase tracking-wider">
+                <span className="flex items-center gap-2 bg-blue-100 px-3 py-1.5 rounded-full">
                   <FaBookOpen /> Wisdom
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <FaClock className="mb-0.5" /> {article.read_time_minutes} Min Read
+                  <FaClock /> {article.read_time_minutes} Min Read
                 </span>
-                <span className="flex items-center gap-1.5 text-gray-500">&bull;</span>
+                <span className="hidden sm:inline text-gray-400">&bull;</span>
                 <span className="flex items-center gap-1.5 text-gray-500">
-                  <FaCalendarAlt className="mb-0.5" /> {publishDateStr}
+                  <FaCalendarAlt /> {publishDateStr}
                 </span>
               </div>
 
-              {/* 🌟 LANGUAGE SWITCHER: Back to Hindi */}
               {article.slug && article.is_published && (
                 <Link 
                   href={`/gyan/${article.slug}`}
-                  className="flex items-center gap-2 bg-orange-50 text-orange-700 hover:bg-orange-600 hover:text-white border border-orange-200 px-4 py-2 rounded-full font-bold text-sm transition-all duration-300 shadow-sm active:scale-95 font-hindi"
+                  className="flex items-center gap-2 bg-orange-600 text-white hover:bg-orange-700 border border-transparent px-4 py-2 rounded-full font-bold text-sm transition-all shadow-md active:scale-95"
                 >
-                  <FaLanguage className="text-lg" /> हिंदी में पढ़ें
+                  <FaLanguage className="text-lg" /> हिंदी में
                 </Link>
               )}
             </div>
 
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-8 tracking-tight">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.15] mb-8 tracking-tight">
               {article.title_english}
             </h1>
 
-            {/* 🌟 Beautiful Landscape Image (Personalized) */}
             {article.featured_image_url && (
-              <div className="relative w-full aspect-[16/9] md:aspect-[21/9] rounded-2xl overflow-hidden shadow-lg border border-gray-100">
+              <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-xl border border-gray-100">
                 <Image 
                   src={article.featured_image_url} 
                   alt={article.title_english || 'Article Image'}
                   fill
                   priority={true}             
                   fetchPriority="high"         
-                  quality={75}                
-                  className="object-cover hover:scale-105 transition-transform duration-700"
+                  className="object-cover"
                   sizes="(max-width: 768px) 100vw, 800px"
                 />
               </div>
             )}
           </div>
 
-          {/* --- ARTICLE BODY (SMART AD INJECTION) --- */}
-          <div className="p-8 md:p-12">
+          <div className="p-6 md:p-12">
             <article 
               className="
-                text-lg md:text-xl text-gray-800 leading-[2.2] tracking-wide font-medium
-                [&_p]:mb-6 [&_p:last-child]:mb-0
-                [&_h2]:text-3xl [&_h2]:font-black [&_h2]:text-gray-900 [&_h2]:mt-12 [&_h2]:mb-6 [&_h2]:border-b [&_h2]:border-blue-100 [&_h2]:pb-2
-                [&_h3]:text-2xl [&_h3]:font-bold [&_h3]:text-gray-900 [&_h3]:mt-8 [&_h3]:mb-4
-                [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-6 [&_ul>li]:mb-2 [&_ul>li::marker]:text-blue-500
-                [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-6 [&_ol>li]:mb-2 [&_ol>li::marker]:font-bold [&_ol>li::marker]:text-blue-600
-                [&_strong]:text-gray-900 [&_strong]:bg-blue-50/50 [&_strong]:px-1 [&_strong]:rounded
-                [&_blockquote]:border-l-4 [&_blockquote]:border-blue-500 [&_blockquote]:pl-6 [&_blockquote]:py-2 [&_blockquote]:bg-blue-50/30 [&_blockquote]:italic [&_blockquote]:text-gray-700 [&_blockquote]:mb-6 [&_blockquote]:rounded-r-xl
-                [&_img]:rounded-xl [&_img]:shadow-md [&_img]:my-8 [&_img]:w-full
+                text-gray-800 text-[1.125rem] md:text-[1.25rem] leading-[1.8] tracking-normal
+                [&_p]:mb-8
+                [&_h2]:text-2xl md:text-3xl [&_h2]:font-extrabold [&_h2]:text-slate-900 [&_h2]:mt-12 [&_h2]:mb-6 [&_h2]:border-l-4 [&_h2]:border-blue-500 [&_h2]:pl-4
+                [&_h3]:text-xl md:text-2xl [&_h3]:font-bold [&_h3]:text-slate-900 [&_h3]:mt-8 [&_h3]:mb-4
+                [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-8 [&_ul>li]:mb-3
+                [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-8 [&_ol>li]:mb-3
+                [&_strong]:text-slate-950 [&_strong]:font-bold
+                [&_blockquote]:border-l-4 [&_blockquote]:border-blue-400 [&_blockquote]:pl-6 [&_blockquote]:py-1 [&_blockquote]:bg-blue-50/50 [&_blockquote]:italic [&_blockquote]:text-slate-700 [&_blockquote]:mb-8 [&_blockquote]:rounded-r-lg
+                [&_img]:rounded-2xl [&_img]:my-10 [&_img]:w-full [&_img]:shadow-lg
               "
             >
               {htmlChunks.map((chunk: string, index: number) => {
                 if (!chunk.trim() && index === htmlChunks.length - 1) return null;
 
-                // Smart Ad Logic (After 2nd para, then every 4)
                 const shouldShowAd = index === 1 || (index > 2 && (index - 1) % 4 === 0);
                 const adCount = Math.floor((index - 1) / 4) + 1;
                 const isAllowedAd = shouldShowAd && adCount <= 3;
@@ -191,7 +179,7 @@ export default async function EnglishArticlePage({ params }: Props) {
                     <div dangerouslySetInnerHTML={{ __html: chunk + (index < htmlChunks.length - 1 ? '</p>' : '') }} />
                     
                     {isAllowedAd && index < htmlChunks.length - 1 && (
-                      <div className="py-2 my-8 md:my-12 border-y border-gray-100/50">
+                      <div className="my-10 py-4 border-y border-gray-100 flex justify-center bg-gray-50/50 rounded-xl">
                         <ManualAdUnit />
                       </div>
                     )}
@@ -201,10 +189,9 @@ export default async function EnglishArticlePage({ params }: Props) {
             </article>
           </div>
 
-          {/* --- AUTHOR BOX --- */}
-          <div className="p-8 md:p-12 bg-gray-50 border-t border-gray-100">
-            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-6 text-center">
-              Written & Verified By
+          <div className="p-8 md:p-12 bg-slate-50 border-t border-slate-100">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8 text-center">
+              Content Curated By
             </h3>
             <AuthorBox authorName={article.author_name} authorSlug={article.author_slug} />
           </div>
