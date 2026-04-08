@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: 'Privacy Policy & Cookie Usage | Hindi Bhajan Manjari',
   description: 'Learn how Hindi Bhajan Manjari protects your privacy, handles data, and complies with Google AdSense and international cookie tracking policies.',
   alternates: {
-    canonical: 'https://www.hindibhajanmanjari.com/privacy-policy',
+    canonical: 'https://www.hindibhajanmanjari.com/privacy',
   }
 };
 

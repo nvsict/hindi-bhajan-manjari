@@ -197,7 +197,7 @@ export default function ContactPage() {
                 <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-gray-100">
                   <FaShieldAlt className="text-green-500" />
                   <p className="text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider m-0">
-                    Your data is secure. By contacting us, you agree to our <Link href="/privacy-policy" className="text-gray-600 hover:text-orange-600 transition-colors">Privacy Policy</Link>.
+                    Your data is secure. By contacting us, you agree to our <Link href="/privacy" className="text-gray-600 hover:text-orange-600 transition-colors">Privacy Policy</Link>.
                   </p>
                 </div>
 
