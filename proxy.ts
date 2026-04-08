@@ -2,13 +2,17 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
-export async function middleware(req: NextRequest) {
+// 🌟 FIX: Function name must be 'proxy' for Next.js 16.x
+export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
-  // 🔒 केवल एडमिन पैनल की सुरक्षा
+  // 🔒 ADMIN PANEL SECURITY
   if (path.startsWith('/admin') && path !== '/admin/login') {
     const token = req.cookies.get('admin_token')?.value;
-    if (!token) return NextResponse.redirect(new URL('/admin/login', req.url));
+
+    if (!token) {
+      return NextResponse.redirect(new URL('/admin/login', req.url));
+    }
 
     try {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET);
@@ -19,9 +23,13 @@ export async function middleware(req: NextRequest) {
       return response;
     }
   }
+
   return NextResponse.next();
 }
 
+// 🌟 Matcher Config
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 };
