@@ -56,7 +56,7 @@ const nextConfig: NextConfig = {
           {
             // 🌟 UPDATED: Perfected CSP to whitelist Google Ads, Analytics, Clarity, and Cloudflare
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.instagram.com https://pagead2.googlesyndication.com https://www.googletagmanager.com https://static.cloudflareinsights.com https://www.clarity.ms https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com https://googleads.g.doubleclick.net https://*.googlesyndication.com;"
+value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.instagram.com https://pagead2.googlesyndication.com https://www.googletagmanager.com https://static.cloudflareinsights.com https://www.clarity.ms https://*.clarity.ms https://fundingchoicesmessages.google.com https://ep2.adtrafficquality.google; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com https://googleads.g.doubleclick.net https://*.googlesyndication.com;"
           }
         ],
       },
