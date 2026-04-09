@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
-import { FaFire, FaWhatsapp, FaEye, FaStar, FaChevronRight, FaBookOpen } from 'react-icons/fa';
+import { FaFire, FaWhatsapp, FaStar, FaChevronRight, FaBookOpen } from 'react-icons/fa';
 import { FaWandSparkles } from 'react-icons/fa6';
 
-// 🌟 THE UPGRADE: The Sidebar now accepts context so it knows exactly where it is being rendered.
+// 🌟 IMPORT THE AD COMPONENT
+import ManualAdUnit from '@/components/ManualAdUnit';
+
 interface SidebarProps {
   topicName?: string;           // e.g., "Hanuman" or "Aarti"
   filterColumn?: string;        // e.g., "deity_id" or "category_slug"
@@ -16,7 +18,7 @@ export default async function Sidebar({
   filterColumn, 
   filterValue, 
   currentBhajanSlug 
-}: SidebarProps = {}) { // Default to empty object for global pages (like Home)
+}: SidebarProps = {}) {
 
   // 1. Build the Dynamic Queries
   let trendingQuery = supabase
@@ -31,13 +33,13 @@ export default async function Sidebar({
     .order('created_at', { ascending: false })
     .limit(4);
 
-  // 2. Apply Context Filters (If we are on a specific deity/category page)
+  // 2. Apply Context Filters
   if (filterColumn && filterValue) {
     trendingQuery = trendingQuery.eq(filterColumn, filterValue);
     latestQuery = latestQuery.eq(filterColumn, filterValue);
   }
 
-  // 3. Exclude the current page (Never show a link to the page the user is already reading)
+  // 3. Exclude the current page
   if (currentBhajanSlug) {
     trendingQuery = trendingQuery.neq('slug', currentBhajanSlug);
     latestQuery = latestQuery.neq('slug', currentBhajanSlug);
@@ -112,6 +114,14 @@ export default async function Sidebar({
         </div>
       )}
 
+      {/* 🌟 AD SLOT 1: HIGH VISIBILITY (Desktop & Mobile) */}
+      <div className="w-full bg-slate-50/60 rounded-[2rem] p-4 border border-slate-100 flex flex-col items-center justify-center overflow-hidden min-h-[280px]">
+        <span className="text-[10px] text-slate-400 uppercase tracking-widest mb-3 font-bold">Advertisement</span>
+        <div className="w-full flex justify-center items-center">
+          <ManualAdUnit />
+        </div>
+      </div>
+
       {/* --- SECTION 2: NEW ARRIVALS --- */}
       {latestBhajans && latestBhajans.length > 0 && (
         <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 sm:p-7 border border-orange-100/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
@@ -159,6 +169,14 @@ export default async function Sidebar({
           </Link>
         </div>
       )}
+
+      {/* 🌟 AD SLOT 2: STICKY BOTTOM (Great for long reads) */}
+      <div className="w-full bg-slate-50/60 rounded-[2rem] p-4 border border-slate-100 flex flex-col items-center justify-center overflow-hidden min-h-[280px]">
+        <span className="text-[10px] text-slate-400 uppercase tracking-widest mb-3 font-bold">Advertisement</span>
+        <div className="w-full flex justify-center items-center">
+          <ManualAdUnit />
+        </div>
+      </div>
 
       {/* --- SECTION 4: PREMIUM COMMUNITY BANNER --- */}
       <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#128C7E] to-[#075E54] p-8 text-white shadow-xl shadow-[#128C7E]/20 group">
