@@ -116,7 +116,6 @@ export default async function Sidebar({
 
       {/* 🌟 AD SLOT 1: HIGH VISIBILITY (Desktop & Mobile) */}
       <div className="w-full bg-slate-50/60 rounded-[2rem] p-4 border border-slate-100 flex flex-col items-center justify-center overflow-hidden min-h-[280px]">
-        <span className="text-[10px] text-slate-400 uppercase tracking-widest mb-3 font-bold">Advertisement</span>
         <div className="w-full flex justify-center items-center">
           <ManualAdUnit />
         </div>
@@ -172,7 +171,6 @@ export default async function Sidebar({
 
       {/* 🌟 AD SLOT 2: STICKY BOTTOM (Great for long reads) */}
       <div className="w-full bg-slate-50/60 rounded-[2rem] p-4 border border-slate-100 flex flex-col items-center justify-center overflow-hidden min-h-[280px]">
-        <span className="text-[10px] text-slate-400 uppercase tracking-widest mb-3 font-bold">Advertisement</span>
         <div className="w-full flex justify-center items-center">
           <ManualAdUnit />
         </div>
