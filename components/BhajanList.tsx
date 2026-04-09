@@ -3,7 +3,7 @@
 import { useState, useEffect, memo } from 'react';
 import { supabase } from '../utils/supabase';
 import Link from 'next/link';
-import { FaArrowRight, FaArrowLeft, FaExclamationTriangle, FaPlay, FaMusic } from 'react-icons/fa';
+import { FaArrowRight, FaArrowLeft, FaExclamationTriangle, FaPlay, FaMusic, FaCompass } from 'react-icons/fa';
 import ScrollReveal from './ScrollReveal'; 
 import Image from 'next/image';
 
@@ -19,8 +19,10 @@ interface Bhajan {
 
 interface Props {
   initialBhajans: Bhajan[];
-  categoryId?: string;
+  categoryId?: string | number; // Category ID (If on Category Page)
   categorySlug?: string;
+  deityId?: string | number;    // 🌟 NEW: Deity ID (If on Deity Page)
+  deitySlug?: string;           // 🌟 NEW: Deity Slug
   currentPage?: number;
   totalItems?: number;
   itemsPerPage?: number;
@@ -43,7 +45,6 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
   return (
     <ScrollReveal delay={(index % itemsPerPage) * 0.05} yOffset={30}>
       <Link href={`/bhajan/${bhajan.slug}`}>
-        {/* 🌟 THE FIX: Added 'sm:items-center'. This prevents the image from stretching vertically to match the text height! */}
         <div className="group bg-white p-4 md:p-5 rounded-[2rem] border border-gray-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-orange-200 transition-all duration-300 flex flex-col sm:flex-row sm:items-center gap-5 md:gap-6 relative overflow-hidden hover:-translate-y-1">
           
           {/* 🌟 YOUTUBE THUMBNAIL (Strictly Locked at 16:9) */}
@@ -55,7 +56,6 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
                 fill 
                 quality={75}
                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 250px" 
-                // 🌟 THE FIX: scale-[1.02] perfectly trims out YouTube's native black borders, leaving a flawless 16:9 image
                 className="object-cover scale-[1.02] group-hover:scale-110 transition-transform duration-700" 
               />
               <div className="absolute inset-0 bg-black/10 flex items-center justify-center group-hover:bg-black/20 transition-colors duration-500">
@@ -137,6 +137,8 @@ export default function BhajanList({
   initialBhajans, 
   categoryId,
   categorySlug,
+  deityId,       // 🌟 Destructured Deity ID
+  deitySlug,     // 🌟 Destructured Deity Slug
   currentPage,
   totalItems,
   itemsPerPage = 10
@@ -153,9 +155,9 @@ export default function BhajanList({
     setLoadMorePage(1); 
     setHasMore(true);
     setNetworkError(null);
-  }, [initialBhajans]);
+  }, [initialBhajans, categoryId, deityId]); // Reset if IDs change
 
-  const isSeoPaginated = !!(categorySlug && currentPage && totalItems);
+  const isSeoPaginated = !!((categorySlug || deitySlug) && currentPage && totalItems);
   const totalPages = isSeoPaginated ? Math.ceil(totalItems! / itemsPerPage) : 0;
   const hasNextPage = isSeoPaginated ? currentPage! < totalPages : false;
   const hasPrevPage = isSeoPaginated ? currentPage! > 1 : false;
@@ -171,6 +173,7 @@ export default function BhajanList({
       let fetchedData = null;
 
       if (categoryId) {
+        // 🌟 FETCH FOR CATEGORY
         const { data, error } = await supabase
           .from('bhajan_category_map')
           .select(`
@@ -190,7 +193,23 @@ export default function BhajanList({
           categories: initialBhajans[0]?.categories || null 
         }));
 
+      } else if (deityId) {
+        // 🌟 NEW: FETCH FOR DEITY ONLY
+        const { data, error } = await supabase
+          .from('bhajans')
+          .select(`
+            title_hinglish, title_hindi, slug, lyrics_hindi, video_embed_url,
+            deities ( name_hinglish ), categories ( name_hinglish )
+          `)
+          .eq('deity_id', deityId)
+          .order('created_at', { ascending: false }) 
+          .range(from, to);
+          
+        if (error) throw error;
+        fetchedData = data;
+
       } else {
+        // 🌟 FETCH ALL (Homepage)
         const { data, error } = await supabase
           .from('bhajans')
           .select(`
@@ -226,15 +245,18 @@ export default function BhajanList({
       }
     } catch (err: any) {
       console.error("Supabase Fetch Error:", err);
-      setNetworkError(`Supabase says: ${err.message || err.details || 'DNS Connection Timeout'}`);
+      setNetworkError(`Supabase says: ${err.message || err.details || 'Connection Timeout'}`);
     } finally {
       setLoading(false);
     }
   };
 
+  const paginationBaseUrl = categorySlug ? `/category/${categorySlug}` : `/deity/${deitySlug}`;
+
   return (
     <div className="flex flex-col gap-8 w-full">
       
+      {/* List of Bhajans */}
       <div className="flex flex-col gap-5">
         {bhajans.map((bhajan, index) => (
           <BhajanCard 
@@ -246,12 +268,13 @@ export default function BhajanList({
         ))}
       </div>
 
+      {/* SEO Pagination (If active) */}
       {isSeoPaginated ? (
         <ScrollReveal yOffset={20}>
           <div className="flex items-center justify-between pt-8 border-t border-gray-100 mt-4">
             {hasPrevPage ? (
               <Link 
-                href={`/category/${categorySlug}${currentPage! - 1 === 1 ? '' : `?page=${currentPage! - 1}`}`}
+                href={`${paginationBaseUrl}${currentPage! - 1 === 1 ? '' : `?page=${currentPage! - 1}`}`}
                 className="px-6 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-full hover:border-orange-500 hover:text-orange-600 shadow-sm transition-all flex items-center gap-2"
               >
                 <FaArrowLeft size={14} /> Previous
@@ -264,7 +287,7 @@ export default function BhajanList({
 
             {hasNextPage ? (
               <Link 
-                href={`/category/${categorySlug}?page=${currentPage! + 1}`}
+                href={`${paginationBaseUrl}?page=${currentPage! + 1}`}
                 className="px-6 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-full hover:border-orange-500 hover:text-orange-600 shadow-sm transition-all flex items-center gap-2"
               >
                 Next <FaArrowRight size={14} />
@@ -272,10 +295,10 @@ export default function BhajanList({
             ) : <div></div>}
           </div>
         </ScrollReveal>
-      ) : hasMore && (
+      ) : hasMore ? (
+        // "Load More" Button
         <ScrollReveal yOffset={20}>
           <div className="flex flex-col items-center pt-6 border-t border-gray-50 mt-2">
-            
             {networkError && (
               <div className="mb-4 flex items-center gap-2 bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-medium border border-red-100">
                 <FaExclamationTriangle className="shrink-0" />
@@ -304,6 +327,33 @@ export default function BhajanList({
                 "Load More Bhajans"
               )}
             </button>
+          </div>
+        </ScrollReveal>
+      ) : (
+        // 🌟 NEW: "End of List" UI when no more bhajans are available
+        <ScrollReveal yOffset={20}>
+          <div className="flex flex-col items-center justify-center pt-10 pb-6 border-t border-gray-100 mt-4 text-center">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-4">
+              <FaCompass size={24} />
+            </div>
+            <h4 className="text-lg font-black text-gray-800 mb-2 tracking-tight">You've reached the end!</h4>
+            <p className="text-gray-500 text-sm font-medium mb-6 max-w-sm">
+              We have shown all the bhajans available in this section. Continue your spiritual journey by exploring other collections.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Link 
+                href="/deity" 
+                className="px-6 py-2.5 bg-orange-50 text-orange-600 font-bold rounded-full hover:bg-orange-100 hover:shadow-sm transition-all text-sm"
+              >
+                Explore Deities
+              </Link>
+              <Link 
+                href="/category" 
+                className="px-6 py-2.5 bg-blue-50 text-blue-600 font-bold rounded-full hover:bg-blue-100 hover:shadow-sm transition-all text-sm"
+              >
+                Browse Categories
+              </Link>
+            </div>
           </div>
         </ScrollReveal>
       )}

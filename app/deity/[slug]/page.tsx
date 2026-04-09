@@ -36,6 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const dynamicDescription = `Read the most authentic and popular ${deity.name_hinglish} (${deity.name_hindi}) bhajans, aartis, and chalisa. Complete lyrics with meanings, curated by experts.`;
 
   return {
+    metadataBase: new URL(siteUrl), // 🌟 Added metadataBase for safe OG resolution
     title: `100+ Best ${deity.name_hindi} Bhajans & Aarti Lyrics (${currentYear}) | Hindi Bhajan Manjari`,
     description: dynamicDescription,
     keywords: `${deity.name_hinglish} bhajans, ${deity.name_hindi} भजन, ${deity.name_hinglish} aarti lyrics, ${deity.name_hinglish} chalisa, Hindi Bhajan Manjari, best ${deity.name_hinglish} songs`,
@@ -71,7 +72,7 @@ export default async function DeityPage({ params }: Props) {
   // 2. Fetch Deity
   const { data: deity, error: deityError } = await supabase
     .from('deities')
-    .select('id, name_hinglish, name_hindi') 
+    .select('id, name_hinglish, name_hindi, slug') 
     .eq('slug', slug)
     .single();
 
@@ -95,14 +96,14 @@ export default async function DeityPage({ params }: Props) {
     .order('created_at', { ascending: false })
     .range(0, 9); // Fetches exactly 10 initial bhajans for the first page load
 
-  // 🌟 FIXED TYPE ERROR: Added (bhajan: any) to prevent spread operator build failure
+  // FIXED TYPE ERROR: Added (bhajan: any) to prevent spread operator build failure
   const initialBhajans = rawBhajans?.map((bhajan: any) => ({
     ...bhajan,
     deities: Array.isArray(bhajan.deities) ? bhajan.deities[0] : bhajan.deities,
     categories: Array.isArray(bhajan.categories) ? bhajan.categories[0] : bhajan.categories,
   })) || [];
 
-  // 🌟 Fetch Trending/Classic Bhajans (Top 5)
+  // Fetch Trending/Classic Bhajans (Top 5)
   const { data: trendingBhajans } = await supabase
     .from('bhajans')
     .select('title_hindi, title_hinglish, slug')
@@ -132,9 +133,8 @@ export default async function DeityPage({ params }: Props) {
   ];
 
   // ==========================================
-  // 🌟 5. ADVANCED SEO SCHEMA GRAPH (The "Hub" Strategy)
+  // 🌟 5. ADVANCED SEO SCHEMA GRAPH
   // ==========================================
-  
   const graphNodes: any[] = [];
 
   // Node 1: Breadcrumbs
@@ -143,14 +143,13 @@ export default async function DeityPage({ params }: Props) {
     "@id": `${pageUrl}#breadcrumb`,
     "itemListElement": [
       { "@type": "ListItem", "position": 1, "name": "Home", "item": siteUrl },
-      { "@type": "ListItem", "position": 2, "name": "Deities", "item": `${siteUrl}/deity` },
+      { "@type": "ListItem", "position": 2, "name": "Deities", "item": `${siteUrl}/deities` }, // Fixed Plural Link
       { "@type": "ListItem", "position": 3, "name": deity.name_hinglish, "item": pageUrl }
     ]
   });
 
-  // Node 2: ItemList (Tells Google this is a list of Bhajans)
+  // Node 2: ItemList
   const allVisibleBhajans = [...(trendingBhajans || []), ...(rawBhajans || [])];
-  // Deduplicate just in case a trending bhajan is also in the latest list
   const uniqueBhajans = Array.from(new Set(allVisibleBhajans.map(b => b.slug)))
     .map(slug => allVisibleBhajans.find(b => b.slug === slug));
 
@@ -182,7 +181,7 @@ export default async function DeityPage({ params }: Props) {
     }))
   });
 
-  // Node 4: CollectionPage (The Master Node tying it all together)
+  // Node 4: CollectionPage
   graphNodes.push({
     "@type": "CollectionPage",
     "@id": pageUrl,
@@ -222,7 +221,7 @@ export default async function DeityPage({ params }: Props) {
             </div>
 
             {/* ==========================================
-                🌟 TRENDING CAROUSEL (Anti-Bounce Rate)
+                🌟 TRENDING CAROUSEL
                 ========================================== */}
             <TrendingBhajans 
               bhajans={trendingBhajans || []} 
@@ -237,10 +236,14 @@ export default async function DeityPage({ params }: Props) {
               </h2>
             </div>
 
-            {/* Main List */}
-            <BhajanList initialBhajans={initialBhajans} />
+            {/* 🌟 FIXED: Passed deityId & deitySlug to BhajanList */}
+            <BhajanList 
+              initialBhajans={initialBhajans} 
+              deityId={deity.id}
+              deitySlug={deity.slug}
+            />
 
-            {/* --- THE "WIKIPEDIA" INJECTION (SEO Pillar Content) --- */}
+            {/* --- THE "WIKIPEDIA" INJECTION --- */}
             <div className="mt-16 bg-white rounded-3xl p-8 md:p-10 shadow-sm border border-gray-100 mb-8">
               <div className="flex items-center gap-3 mb-6">
                 <FaBookOpen className="text-orange-500 text-2xl" />
@@ -272,7 +275,15 @@ export default async function DeityPage({ params }: Props) {
 
           </main>
 
-          <Sidebar />
+          {/* 🌟 FIXED: Configured Sidebar for Deity Page */}
+          <aside className="hidden lg:block w-[320px] sticky top-24 shrink-0">
+            <Sidebar 
+              topicName={deity.name_hinglish}
+              filterColumn="deity_id"
+              filterValue={deity.id}
+            />
+          </aside>
+
         </div>
       </div>
     </div>
