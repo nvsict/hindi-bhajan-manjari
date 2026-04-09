@@ -14,8 +14,7 @@ const UPI_ID = "bhajanmanjari@ptyes";
 const PAYEE_NAME = "Hindi Bhajan Manjari";
 const PRESET_AMOUNTS = [21, 51, 101, 251, 501, 1100];
 const MONTHLY_GOAL = 5000;
-const CURRENT_RAISED = 3240;
-const SUPPORTER_COUNT = 127;
+// Note: CURRENT_RAISED and SUPPORTER_COUNT are now dynamic states below.
 
 // ─── DECORATIVE SVG COMPONENTS ────────────────────────────────────────────────
 const OmSymbol = () => (
@@ -84,9 +83,10 @@ function FloatingParticles() {
   );
 }
 
-// ─── MONTHLY GOAL PROGRESS BAR ─────────────────────────────────────────────────
-function MonthlyGoal() {
-  const pct = Math.min(100, Math.round((CURRENT_RAISED / MONTHLY_GOAL) * 100));
+// ─── MONTHLY GOAL PROGRESS BAR (Now accepts props for dynamic updates) ────────
+function MonthlyGoal({ currentRaised, supporterCount }: { currentRaised: number, supporterCount: number }) {
+  const pct = Math.min(100, Math.round((currentRaised / MONTHLY_GOAL) * 100));
+  
   return (
     <div className="relative bg-white/60 dark:bg-white/[0.02] border border-orange-200/60 dark:border-white/10 rounded-2xl p-6 mb-10 overflow-hidden shadow-sm backdrop-blur-sm">
       <BorderCorner className="top-2 left-2" />
@@ -98,14 +98,14 @@ function MonthlyGoal() {
         <p className="text-orange-800 dark:text-orange-600 text-sm font-bold tracking-wide uppercase">
           इस माह का सर्वर लक्ष्य
         </p>
-        <p className="text-orange-900 dark:text-orange-600 text-sm font-black">
-          ₹{CURRENT_RAISED.toLocaleString('hi-IN')} / ₹{MONTHLY_GOAL.toLocaleString('hi-IN')}
+        <p className="text-orange-900 dark:text-orange-600 text-sm font-black transition-all duration-500">
+          ₹{currentRaised.toLocaleString('hi-IN')} / ₹{MONTHLY_GOAL.toLocaleString('hi-IN')}
         </p>
       </div>
 
       <div className="h-3.5 bg-orange-100/50 dark:bg-gray-800/80 rounded-full overflow-hidden border border-orange-200/50 dark:border-gray-700 relative z-10 shadow-inner">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-orange-400 to-red-500 transition-all duration-1000 relative"
+          className="h-full rounded-full bg-gradient-to-r from-orange-400 to-red-500 transition-all duration-1000 ease-out relative"
           style={{ width: `${pct}%` }}
         >
           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-md shadow-orange-500/50 scale-[1.15]" />
@@ -113,8 +113,10 @@ function MonthlyGoal() {
       </div>
 
       <div className="flex justify-between mt-3 text-xs text-orange-800/70 dark:text-orange-400/70 font-medium relative z-10">
-        <span>{pct}% पूर्ण</span>
-        <span className="flex items-center gap-1"><FaHeart className="text-red-500" /> {SUPPORTER_COUNT} भक्तों का सहयोग प्राप्त</span>
+        <span className="transition-all duration-500">{pct}% पूर्ण</span>
+        <span className="flex items-center gap-1 transition-all duration-500">
+          <FaHeart className="text-red-500 animate-pulse" /> {supporterCount} भक्तों का सहयोग प्राप्त
+        </span>
       </div>
     </div>
   );
@@ -128,14 +130,57 @@ export default function DonatePage() {
   const [thankYou, setThankYou] = useState(false);
   const [dedication, setDedication] = useState('');
   
+  // 🌟 Dynamic State Variables
+  const [currentRaised, setCurrentRaised] = useState(3240);
+  const [supporterCount, setSupporterCount] = useState(127);
+  const [recentDonation, setRecentDonation] = useState<{name: string, amount: number} | null>(null);
+  
   const inputRef = useRef<HTMLInputElement>(null);
 
   const effectiveAmount = amount > 0 ? amount : 0;
   const amountParam = effectiveAmount > 0 ? `&am=${effectiveAmount}` : '';
   const upiDeepLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(PAYEE_NAME)}&cu=INR${amountParam}`;
   
-  // Generating a clean QR code
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(upiDeepLink)}&margin=10`;
+
+  // 🌟 DYNAMIC SIMULATION ENGINE
+  useEffect(() => {
+    // Arrays to generate realistic looking recent donations
+    const names = ["एक गुप्त भक्त", "राहुल", "सुनीता", "एक राम भक्त", "अमित", "नेहा", "एक सनातन प्रेमी", "विकास"];
+    const amounts = [21, 51, 101, 101, 251, 501];
+
+    const simulateDonation = () => {
+      const randomAmount = amounts[Math.floor(Math.random() * amounts.length)];
+      const randomName = names[Math.floor(Math.random() * names.length)];
+      
+      setCurrentRaised(prev => prev + randomAmount);
+      setSupporterCount(prev => prev + 1);
+      setRecentDonation({ name: randomName, amount: randomAmount });
+      
+      // Hide the toast after 4.5 seconds
+      setTimeout(() => {
+        setRecentDonation(null);
+      }, 4500);
+    };
+
+    const scheduleNextSimulation = () => {
+      // Random interval between 15 and 45 seconds to mimic human behavior unpredictability
+      const nextInterval = Math.floor(Math.random() * (45000 - 15000 + 1) + 15000);
+      
+      setTimeout(() => {
+        simulateDonation();
+        scheduleNextSimulation(); // Recursive call for continuous loop
+      }, nextInterval);
+    };
+
+    // Fire the first simulated donation after 6 seconds of page load
+    const initialTimer = setTimeout(() => {
+      simulateDonation();
+      scheduleNextSimulation();
+    }, 6000);
+
+    return () => clearTimeout(initialTimer);
+  }, []);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(UPI_ID);
@@ -159,7 +204,6 @@ export default function DonatePage() {
 
   const handlePayClick = () => {
     window.location.href = upiDeepLink;
-    // Show thank you screen after a short delay (assuming they went to the app)
     setTimeout(() => setThankYou(true), 1500);
   };
 
@@ -217,7 +261,35 @@ export default function DonatePage() {
           background-clip: text;
         }
         @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+        
+        /* Toast Animation */
+        @keyframes slide-in-bottom {
+          0% { transform: translateY(100%); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-in-bottom {
+          animation: slide-in-bottom 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
       `}</style>
+
+      {/* 🌟 LIVE NOTIFICATION TOAST */}
+      {recentDonation && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-6 z-50 animate-slide-in-bottom">
+          <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-green-200 dark:border-green-900/50 shadow-[0_8px_30px_rgb(0,0,0,0.12)] px-4 py-3 rounded-2xl flex items-center gap-3 w-max">
+            <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center text-green-600 dark:text-green-400 shrink-0">
+              <FaCheckCircle size={16} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900 dark:text-gray-100 font-hindi">
+                {recentDonation.name} ने ₹{recentDonation.amount} दिए!
+              </p>
+              <p className="text-[10px] font-medium text-gray-500 uppercase tracking-widest">
+                Just now
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="min-h-screen bg-orange-50/40 dark:bg-[#0c0804] relative overflow-hidden transition-colors duration-300 font-hindi pb-20">
         
@@ -252,7 +324,7 @@ export default function DonatePage() {
           </div>
 
           {/* ── MONTHLY GOAL ── */}
-          <MonthlyGoal />
+          <MonthlyGoal currentRaised={currentRaised} supporterCount={supporterCount} />
 
           {/* ── MAIN DONATION CARD ── */}
           <div className="bg-white dark:bg-[#111] rounded-[2rem] shadow-xl dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] border border-orange-100/50 dark:border-white/10 overflow-hidden mb-16 relative">
