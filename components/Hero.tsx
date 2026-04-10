@@ -6,8 +6,16 @@ import Image from 'next/image';
 import { FaSearch, FaMusic, FaSpinner, FaTimes, FaChevronDown, FaBookOpen } from 'react-icons/fa';
 import Link from 'next/link';
 
-// 🌟 Import statically for best performance
-import heroBg from '@/public/images/pexels-photo-9277866.avif';
+// 🌟 BACKGROUND IMAGES ARRAY:
+// अपनी public/images फोल्डर की सभी इमेजेज के नाम यहाँ लिस्ट कर दें।
+const BACKGROUND_IMAGES = [
+  '/images/pexels-photo-9277866.avif',
+  '/images/pexels-photo-9277866t.avif',
+  // उदाहरण: (अपने असली फाइल नाम यहाँ डालें)
+  // '/images/bg-ram-darbar.jpg',
+  // '/images/bg-krishna.jpg',
+  // '/images/bg-shiv.webp',
+];
 
 // 🌟 SMART SEARCH INTERFACE: Added 'type' and 'title' (for articles)
 interface SearchResult {
@@ -24,9 +32,25 @@ export default function Hero() {
   const [isSearching, setIsSearching] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
+  // 🌟 SLIDESHOW STATE
+  const [currentBgIndex, setCurrentBgIndex] = useState(0);
+  
   const router = useRouter();
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
+  // 🌟 SLIDESHOW LOGIC: Change image every 5 seconds
+  useEffect(() => {
+    // अगर लिस्ट में सिर्फ 1 इमेज है, तो स्लाइडशो चलाने की ज़रूरत नहीं
+    if (BACKGROUND_IMAGES.length <= 1) return;
+
+    const intervalId = setInterval(() => {
+      setCurrentBgIndex((prevIndex) => (prevIndex + 1) % BACKGROUND_IMAGES.length);
+    }, 5000); // 5000ms = 5 seconds
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Search API Logic
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
       if (query.trim().length >= 2) {
@@ -52,6 +76,7 @@ export default function Hero() {
     return () => clearTimeout(timeoutId);
   }, [query]);
 
+  // Click Outside to Close Search Dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
@@ -79,22 +104,36 @@ export default function Hero() {
 
   return (
     <section className="relative w-full min-h-[100svh] flex flex-col justify-center px-6 sm:px-12 lg:px-24 bg-[#1a0500]">
-      <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
-        <Image 
-          src={heroBg} 
-          alt="Hindi Bhajan Manjari Devotional Background"
-          fill
-          priority={true}            
-          fetchPriority="high"        
-          placeholder="blur"
-          quality={50} 
-          className="object-cover object-[center_30%]"
-          sizes="(max-width: 768px) 100vw, 100vw" 
-        />
-        <div className="absolute inset-0 bg-[#1a0500]/40 backdrop-blur-[1px]"></div>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#1a0500] via-[#1a0500]/70 to-transparent"></div>
+      
+      {/* 🌟 OPTIMIZED SLIDESHOW CONTAINER */}
+      <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none bg-[#1a0500]">
+        {BACKGROUND_IMAGES.map((src, index) => (
+          <div
+            key={src}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+              index === currentBgIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
+            }`}
+          >
+            <Image 
+              src={src} 
+              alt={`Hindi Bhajan Manjari Background ${index + 1}`}
+              fill
+              // सिर्फ पहली इमेज को Priority पर रखेंगे, बाकी Lazy Load होंगी
+              priority={index === 0}             
+              fetchPriority={index === 0 ? "high" : "auto"}        
+              quality={50} 
+              className="object-cover object-[center_30%]"
+              sizes="(max-width: 768px) 100vw, 100vw" 
+            />
+          </div>
+        ))}
+        
+        {/* Overlays for readability (Always above images -> z-20) */}
+        <div className="absolute inset-0 bg-[#1a0500]/40 backdrop-blur-[1px] z-20 transition-all duration-300"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1a0500] via-[#1a0500]/70 to-transparent z-20"></div>
       </div>
 
+      {/* MAIN CONTENT */}
       <div className="relative z-30 w-full max-w-3xl text-left text-white -mt-10">
         <div className="flex items-center justify-start gap-3 md:gap-4 mb-5 opacity-0 animate-[fade-in_0.8s_ease-out_forwards]">
           <div className="h-[1px] w-12 md:w-20 bg-gradient-to-r from-transparent to-orange-300/60"></div>
@@ -169,7 +208,6 @@ export default function Hero() {
                 <>
                   <div className="py-2 max-h-[50vh] overflow-y-auto overscroll-contain">
                     {searchResults.map((item) => {
-                      // 🌟 SMART ROUTING LOGIC: Determine type
                       const isArticle = item.type === 'article';
                       const linkHref = isArticle ? `/gyan/${item.slug}` : `/bhajan/${item.slug}`;
                       const displayTitle = isArticle ? (item.title || item.title_hindi) : item.title_hindi;
@@ -182,7 +220,6 @@ export default function Hero() {
                           onClick={() => setIsDropdownOpen(false)}
                           className="group flex items-center gap-4 px-6 py-3.5 hover:bg-orange-50 transition-colors border-b border-gray-100 last:border-0 focus-visible:bg-orange-50 outline-none"
                         >
-                          {/* Dynamic Icon based on type */}
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${isArticle ? 'bg-blue-100/50 text-blue-500 group-hover:bg-blue-200' : 'bg-orange-100/50 text-orange-500 group-hover:bg-orange-200'}`} aria-hidden="true">
                             {isArticle ? <FaBookOpen size={14} /> : <FaMusic size={14} />}
                           </div>
