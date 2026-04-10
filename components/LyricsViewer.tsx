@@ -321,7 +321,7 @@ export default function LyricsViewer({
   return (
     <div className="relative w-full">
 
-      {/* 🌟 SEO & INTERNAL LINKING: Clickable Tarz (Original design kept intact) */}
+      {/* 🌟 SEO & INTERNAL LINKING: Clickable Tarz */}
       {tarz && (
         <div className="mb-6 flex justify-center relative z-20">
           <Link 
@@ -398,7 +398,7 @@ export default function LyricsViewer({
       <div 
         className="bg-orange-50/30 rounded-3xl p-6 md:p-12 border border-orange-100/50 relative overflow-hidden shadow-sm select-none transition-all duration-300 hover:shadow-md" 
         onDoubleClick={handleDoubleTap}
-        onClick={handleLyricsContainerClick} // 🌟 PERFORMANCE FIX: 1 Listener instead of 1000s
+        onClick={handleLyricsContainerClick}
       >
         <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none select-none">
           <span className="text-6xl md:text-9xl font-black rotate-[-45deg] whitespace-nowrap uppercase tracking-tighter">Hindi Bhajan Manjari</span>
@@ -420,7 +420,6 @@ export default function LyricsViewer({
                     <div key={lineIndex} className="min-h-[1.5em]">
                       {line.split(' ').map((word: string, wordIndex: number, wordsArray: string[]) => (
                         <span key={wordIndex}>
-                          {/* 🌟 PERFORMANCE FIX: Removed inline onClick */}
                           <span className="cursor-pointer active:bg-orange-200/80 lg:hover:bg-orange-100/60 transition-colors rounded-md">{word}</span>
                           {wordIndex < wordsArray.length - 1 ? ' ' : ''}
                         </span>

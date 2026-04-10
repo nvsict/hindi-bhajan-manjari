@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '../../utils/supabase';
 import { FaEnvelope, FaWhatsapp, FaCheckCircle, FaSpinner, FaMapMarkerAlt, FaShieldAlt } from 'react-icons/fa';
 import { HiArrowRight } from 'react-icons/hi';
@@ -16,8 +16,20 @@ export default function ContactPage() {
     message: ''
   });
 
+  const triggerHaptic = useCallback(() => {
+    if (typeof window !== 'undefined' && navigator.vibrate) navigator.vibrate(30); 
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    triggerHaptic();
+
+    // Basic validation to ensure no empty spaces are submitted
+    if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
+      alert("Please fill out all fields.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -25,9 +37,9 @@ export default function ContactPage() {
         .from('contact_submissions')
         .insert([
           { 
-            name: formData.name, 
-            email: formData.email, 
-            message: formData.message 
+            name: formData.name.trim(), 
+            email: formData.email.trim(), 
+            message: formData.message.trim() 
           }
         ]);
 
@@ -37,7 +49,7 @@ export default function ContactPage() {
       setFormData({ name: '', email: '', message: '' });
     } catch (error) {
       alert("Something went wrong. Please try again or use WhatsApp.");
-      console.error(error);
+      console.error("Submission Error:", error);
     } finally {
       setLoading(false);
     }
@@ -46,6 +58,10 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen bg-white relative overflow-hidden selection:bg-orange-100 selection:text-orange-900">
       
+      {/* Dynamic SEO Title Update for Client Component */}
+      <title>Contact Us - Hindi Bhajan Manjari | Suggestions & Support</title>
+      <meta name="description" content="Get in touch with Hindi Bhajan Manjari. Suggest new bhajans, report corrections, or reach out to our editorial team." />
+
       {/* Background Decorative Elements */}
       <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-orange-50/50 to-transparent pointer-events-none"></div>
       <div className="absolute -top-24 -right-24 text-orange-500/5 pointer-events-none">
@@ -104,7 +120,7 @@ export default function ContactPage() {
               </a>
             </div>
 
-            {/* 🌟 NEW: Location Card (Boosts AdSense Trust & E-E-A-T) */}
+            {/* 🌟 Location Card (Boosts AdSense Trust & E-E-A-T) */}
             <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-xl shadow-blue-900/5 hover:-translate-y-1 hover:border-blue-200 transition-all duration-300 group">
               <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors shadow-sm">
                 <FaMapMarkerAlt size={24} />
@@ -130,7 +146,7 @@ export default function ContactPage() {
                 <h2 className="text-4xl font-black font-hindi text-gray-900 mb-4 tracking-tighter">जय श्री राम!</h2>
                 <p className="text-gray-600 text-lg mb-8 font-medium">Your message has been received securely. We will get back to you shortly.</p>
                 <button 
-                  onClick={() => setSubmitted(false)}
+                  onClick={() => { triggerHaptic(); setSubmitted(false); }}
                   className="px-8 py-3 bg-orange-50 text-orange-600 font-bold rounded-full hover:bg-orange-100 transition-colors"
                 >
                   Send another message
@@ -193,7 +209,7 @@ export default function ContactPage() {
                   )}
                 </button>
                 
-                {/* 🌟 NEW: Privacy Consent Statement */}
+                {/* 🌟 Privacy Consent Statement */}
                 <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-gray-100">
                   <FaShieldAlt className="text-green-500" />
                   <p className="text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider m-0">

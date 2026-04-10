@@ -1,5 +1,8 @@
-import { GiLotusFlower, GiMeditation, GiTempleGate } from 'react-icons/gi';
-import { FaHeart, FaUniversalAccess, FaMobileAlt, FaShieldAlt, FaFont, FaPenNib } from 'react-icons/fa';
+import { GiLotusFlower, GiTempleGate } from 'react-icons/gi';
+import { 
+  FaHeart, FaUniversalAccess, FaMobileAlt, FaShieldAlt, 
+  FaFont, FaPenNib, FaLightbulb, FaCloudDownloadAlt 
+} from 'react-icons/fa';
 import { HiSparkles } from 'react-icons/hi';
 import Link from 'next/link';
 import Image from 'next/image'; 
@@ -32,7 +35,7 @@ export default function AboutPage() {
             <HiSparkles /> हमारी आध्यात्मिक यात्रा (Our Mission)
           </div>
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white mb-6 drop-shadow-sm tracking-tighter leading-tight">
-            Preserving Devotion <br /> For the <span className="text-orange-600">Digital Age</span>
+            Preserving Devotion <br /> For the <span className="text-orange-200">Digital Age</span>
           </h1>
           <p className="text-orange-50 max-w-2xl mx-auto text-lg md:text-xl leading-relaxed opacity-95 font-medium">
             Hindi Bhajan Manjari is a carefully curated digital temple. We focus on quality, accurate meanings (Bhavarth), and a distraction-free environment for devotees worldwide.
@@ -44,7 +47,7 @@ export default function AboutPage() {
       <div className="max-w-6xl mx-auto px-6 -mt-12 relative z-20">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { icon: <GiTempleGate />, label: "Hand-Curated Library", text: "Over 140 meticulously verified bhajans with accurate lyrics." },
+            { icon: <GiTempleGate />, label: "Hand-Curated Library", text: "Over 200+ meticulously verified bhajans with accurate lyrics." },
             { icon: <FaPenNib />, label: "Deep Spiritual Meanings", text: "Providing 'Bhavarth' to help you understand the true essence." },
             { icon: <FaShieldAlt />, label: "100% Original Content", text: "Thoughtfully written blog posts and verified spiritual facts." }
           ].map((item, i) => (
@@ -71,7 +74,7 @@ export default function AboutPage() {
               In an era where the internet is flooded with auto-generated content and poorly formatted lyrics, I noticed a huge gap: devotees were struggling to find a clean, respectful, and accurate digital space for their daily prayers.
             </p>
             <p>
-              I didn't want to build just another website with thousands of copied songs. Instead, I chose <strong>quality over quantity</strong>. Currently, our library hosts around 140 carefully selected bhajans and a growing collection of spiritual blog posts. Every single entry is manually verified for spelling accuracy and paired with its authentic 'Bhavarth' (meaning).
+              I didn't want to build just another website with thousands of copied songs. Instead, I chose <strong>quality over quantity</strong>. Currently, our library hosts <strong>over 200+ carefully selected bhajans</strong> and a growing collection of spiritual blog posts. Every single entry is manually verified for spelling accuracy and paired with its authentic 'Bhavarth' (meaning).
             </p>
             
             {/* 🌟 THE HINDI CONNECTION: Shows cultural authenticity & emotional connect */}
@@ -132,7 +135,17 @@ export default function AboutPage() {
             <p className="text-gray-500 font-medium text-lg">Built with modern technology for timeless traditions.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <FeatureCard 
+              icon={<FaLightbulb />}
+              title="Sanatan Shabdkosh"
+              desc="Tap on any difficult word in the lyrics to instantly reveal its deep spiritual meaning in Hindi and English."
+            />
+            <FeatureCard 
+              icon={<FaCloudDownloadAlt />}
+              title="Offline Ready"
+              desc="Our PWA technology caches your favorite bhajans so you can read them seamlessly even without an internet connection."
+            />
             <FeatureCard 
               icon={<FaMobileAlt />}
               title="Screen Wake Lock"
@@ -141,7 +154,7 @@ export default function AboutPage() {
             <FeatureCard 
               icon={<FaUniversalAccess />}
               title="Multi-Script Support"
-              desc="Read instantly in Devanagari, Romanized (English), and other regional scripts."
+              desc="Read instantly in Devanagari, Romanized (English), and other regional scripts like Gujarati & Bengali."
             />
             <FeatureCard 
               icon={<FaHeart />}
@@ -156,7 +169,7 @@ export default function AboutPage() {
             <FeatureCard 
               icon={<HiSparkles />}
               title="Spiritual Meaning"
-              desc="We don't just provide lyrics; we provide the 'Bhavarth' (meaning) to help you understand the depth of the composition."
+              desc="We don't just provide lyrics; we provide the 'Bhavarth' to help you understand the depth of the composition."
             />
             <FeatureCard 
               icon={<FaShieldAlt />}

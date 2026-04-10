@@ -18,6 +18,14 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
+// 🌟 HELPER: Bulletproof YouTube ID Extractor for Video Schema
+const getYouTubeId = (url?: string) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
   const { data: bhajan } = await supabase
@@ -112,27 +120,88 @@ export default async function BhajanDetails({ params }: Props) {
   const baseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
   const pageUrl = `${baseUrl}/bhajan/${bhajan.slug}`;
 
-  // SEO Graph
-  const graphNodes: any[] = [
-    {
-      "@type": "BreadcrumbList",
-      "@id": `${pageUrl}#breadcrumb`,
-      "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": baseUrl },
-        { "@type": "ListItem", "position": 2, "name": bhajan.deities?.name_hinglish || "Deities", "item": `${baseUrl}/deity/${bhajan.deities?.slug}` },
-        { "@type": "ListItem", "position": 3, "name": bhajan.title_hindi, "item": pageUrl }
-      ]
-    },
-    {
-      "@type": "MusicComposition",
-      "@id": `${pageUrl}#composition`,
-      "name": bhajan.title_hindi,
-      "alternateName": bhajan.title_hinglish,
-      "genre": ["Hindu Devotional Music", "Bhajan", ...categories.map((c:any) => c.name_hinglish)],
-      "inLanguage": ["hi", "en-IN", "gu", "bn", "te", "kn", "ml", "or"],
-      "lyrics": { "@type": "CreativeWork", "text": bhajan.lyrics_hindi, "inLanguage": "hi" }
+  // ==============================================================
+  // 🌟 ULTIMATE MASTER GRAPH SCHEMA (Fixes GSC Validation Drops)
+  // ==============================================================
+  const graphNodes: any[] = [];
+
+  // 1. Breadcrumbs
+  graphNodes.push({
+    "@type": "BreadcrumbList",
+    "@id": `${pageUrl}#breadcrumb`,
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": baseUrl },
+      { "@type": "ListItem", "position": 2, "name": bhajan.deities?.name_hinglish || "Deities", "item": `${baseUrl}/deity/${bhajan.deities?.slug}` },
+      { "@type": "ListItem", "position": 3, "name": bhajan.title_hindi, "item": pageUrl }
+    ]
+  });
+
+  // 2. Valid VideoObject
+  let ytId = null;
+  if (bhajan.video_embed_url) {
+    ytId = getYouTubeId(bhajan.video_embed_url);
+    if (ytId) {
+      graphNodes.push({
+        "@type": "VideoObject",
+        "@id": `${pageUrl}#video`,
+        "name": `${bhajan.title_hindi} Video`,
+        "description": `Watch the divine video for ${bhajan.title_hindi} (${bhajan.title_hinglish})`,
+        "thumbnailUrl": [
+          `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`,
+          `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
+        ],
+        "uploadDate": bhajan.created_at || new Date().toISOString(),
+        "embedUrl": `https://www.youtube.com/embed/${ytId}`
+      });
     }
-  ];
+  }
+
+  // 3. MusicComposition (Lyrics)
+  graphNodes.push({
+    "@type": "MusicComposition",
+    "@id": `${pageUrl}#composition`,
+    "name": bhajan.title_hindi,
+    "alternateName": bhajan.title_hinglish,
+    "genre": ["Hindu Devotional Music", "Bhajan", ...categories.map((c:any) => c.name_hinglish)],
+    "inLanguage": ["hi", "en-IN", "gu", "bn", "te", "kn", "ml", "or"],
+    "lyrics": { 
+      "@type": "CreativeWork", 
+      "text": bhajan.lyrics_hindi, 
+      "inLanguage": "hi" 
+    },
+    ...(ytId && { "video": { "@id": `${pageUrl}#video` } }) // Link Video to Composition
+  });
+
+  // 4. FAQPage Schema
+  if (bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0) {
+    graphNodes.push({
+      "@type": "FAQPage",
+      "@id": `${pageUrl}#faq`,
+      "mainEntity": bhajan.faqs.map((faq: any) => ({
+        "@type": "Question",
+        "name": faq.question,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": faq.answer
+        }
+      }))
+    });
+  }
+
+  // 5. WebPage Wrapper
+  graphNodes.push({
+    "@type": "WebPage",
+    "@id": pageUrl,
+    "url": pageUrl,
+    "name": `${bhajan.title_hindi} Lyrics`,
+    "isPartOf": {
+      "@type": "WebSite",
+      "name": "Hindi Bhajan Manjari",
+      "url": baseUrl
+    },
+    "breadcrumb": { "@id": `${pageUrl}#breadcrumb` },
+    "mainEntity": { "@id": `${pageUrl}#composition` }
+  });
 
   const advancedSchemaGraph = {
     "@context": "https://schema.org",
@@ -141,6 +210,7 @@ export default async function BhajanDetails({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-orange-50/30">
+      {/* 🌟 INJECT MASTER SCHEMA GRAPH */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(advancedSchemaGraph) }} />
       
       <ViewCounter slug={bhajan.slug} />
@@ -152,7 +222,6 @@ export default async function BhajanDetails({ params }: Props) {
             
             <div className="p-6 md:p-10 border-b border-orange-50 bg-gradient-to-br from-white to-orange-50/40 pb-6">
               
-              {/* 🌟 FIXED: Beautiful, Clickable Native Chips */}
               <div className="flex flex-wrap gap-2 mb-4">
                 {bhajan.deities && (
                   <Link 
@@ -225,7 +294,7 @@ export default async function BhajanDetails({ params }: Props) {
                 <DisplayAdUnit />
               </div>
 
-              {/* 🌟 FIXED: Clean, Lightweight Call to LyricsViewer */}
+              {/* 🌟 Clean, Lightweight Call to LyricsViewer */}
               <LyricsViewer 
                 title={bhajan.title_hindi} 
                 lyricsHindi={bhajan.lyrics_hindi} 
