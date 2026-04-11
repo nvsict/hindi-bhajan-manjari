@@ -23,6 +23,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanj
 const seoDescription = "हिंदी भजन मंजरी पर आपका हार्दिक स्वागत है। यहाँ आप सभी देवी-देवताओं के प्रामाणिक भजन, आरती, चालीसा और मंत्रों के लिरिक्स (Lyrics) और उनके भावार्थ हिंदी में पढ़ सकते हैं।";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl), // 🌟 Added metadataBase for safe OG image resolution
   title: 'हिंदी भजन मंजरी | Hindi Bhajan Manjari - Lyrics, Aarti & Chalisa Sangrah',
   description: seoDescription,
   keywords: 'Hindi Bhajan, Bhajan Lyrics, Aarti Lyrics, Chalisa Sangrah, Devotional Songs, हिंदी भजन, आरती संग्रह, हनुमान चालीसा, शिव भजन',
@@ -153,9 +154,9 @@ async function LatestBhajansSection() {
 }
 
 export default function Home() {
-  // ==========================================
-  // 🌟 THE HOMEPAGE SEO GRAPH
-  // ==========================================
+  // ==========================================================
+  // 🌟 HOMEPAGE SEO GRAPH (With Sitename & SearchAction)
+  // ==========================================================
   const homeSchemaGraph = {
     "@context": "https://schema.org",
     "@graph": [
@@ -165,6 +166,7 @@ export default function Home() {
         "url": siteUrl,
         "name": "Hindi Bhajan Manjari",
         "description": seoDescription,
+        // 🌟 ENHANCEMENT 1: SITELINKS SEARCH BOX
         "potentialAction": {
           "@type": "SearchAction",
           "target": {
@@ -194,6 +196,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* 🌟 INJECT THE MASTER HOMEPAGE GRAPH */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(homeSchemaGraph) }} />
 
       {/* 1. Hero Section */}
@@ -241,8 +244,6 @@ export default function Home() {
         </main>
 
         {/* 6. Intelligent Global Sidebar */}
-        {/* 🌟 THE FIX 2: Reduced sidebar width from 340px to 300px. 
-            This is the magic move! It returns crucial width back to your Bhajan List thumbnails! */}
         <Suspense fallback={
           <div className="hidden lg:block w-[300px] h-[800px] shrink-0 bg-gray-50/50 border border-gray-100 rounded-[2rem] animate-pulse sticky top-28"></div>
         }>
