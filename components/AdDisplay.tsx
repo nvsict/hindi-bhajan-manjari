@@ -3,14 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-export default function DisplayAdUnit() {
+export default function AdDisplay() {
   const pathname = usePathname();
   const adLoaded = useRef(false);
   const insRef = useRef<HTMLModElement>(null);
   
   const [isUnfilled, setIsUnfilled] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
     if (pathname?.startsWith("/admin")) return;
     if (adLoaded.current) return;
 
@@ -28,9 +34,7 @@ export default function DisplayAdUnit() {
               mutations.forEach((mutation) => {
                 if (mutation.attributeName === 'data-ad-status') {
                   const status = insRef.current?.getAttribute('data-ad-status');
-                  if (status === 'unfilled') {
-                    setIsUnfilled(true);
-                  }
+                  if (status === 'unfilled') setIsUnfilled(true);
                 }
               });
             });
@@ -38,29 +42,25 @@ export default function DisplayAdUnit() {
           }
         }
       } catch (err: any) {
-        if (!err.message?.includes("already have ads")) {
-          console.error("AdSense Error:", err);
-        }
+        if (!err.message?.includes("already have ads")) console.error("AdSense Error:", err);
       }
     }, 250);
 
     return () => {
       clearTimeout(timeoutId);
       if (observer) observer.disconnect();
-      // 🔥 THE FIX: Removed `adLoaded.current = false;` to stop the infinite unmount-loop crash!
     };
-  }, [pathname]);
+  }, [pathname, isMounted]);
 
-  if (pathname?.startsWith("/admin")) return null;
+  if (!isMounted || pathname?.startsWith("/admin")) return <div className="min-h-[250px] w-full"></div>;
   if (isUnfilled) return null;
 
   return (
-    <div className="w-full flex flex-col items-center justify-center overflow-hidden clear-both min-h-[250px] transition-all duration-500 ease-in-out has-[ins[data-ad-status='unfilled']]:hidden has-[ins[data-ad-status='unfilled']]:h-0 has-[ins[data-ad-status='unfilled']]:min-h-0 has-[ins[data-ad-status='unfilled']]:my-0">
+    <div className="w-full flex flex-col items-center justify-center overflow-hidden min-h-[250px] my-4">
       <span className="text-[10px] text-gray-400 uppercase tracking-[0.2em] mb-2 font-sans select-none">
-        Sponsored
+        Advertisement
       </span>
-      <div className="w-full max-w-[800px] overflow-hidden flex justify-center">
-        {/* 🌟 OLD DISPLAY AD UNIT */}
+      <div className="w-full overflow-hidden flex justify-center">
         <ins
           ref={insRef}
           className="adsbygoogle"

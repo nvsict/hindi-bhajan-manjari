@@ -4,7 +4,7 @@ import { FaFire, FaWhatsapp, FaStar, FaChevronRight, FaBookOpen } from 'react-ic
 import { FaWandSparkles } from 'react-icons/fa6';
 
 // 🌟 IMPORT THE AD COMPONENT
-import ManualAdUnit from '@/components/ManualAdUnit';
+import ManualAdUnit from '@/components/AdInArticle';
 
 interface SidebarProps {
   topicName?: string;           // e.g., "Hanuman" or "Aarti"

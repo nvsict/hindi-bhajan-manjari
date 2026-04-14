@@ -3,13 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-export default function ManualAdUnit() {
+export default function AdInArticle() {
   const pathname = usePathname();
   const adLoaded = useRef(false);
   const insRef = useRef<HTMLModElement>(null);
-  const [isUnfilled, setIsUnfilled] = useState(false);
   
-  // 🌟 HYDRATION FIX: AdBlockers से बचने के लिए
+  const [isUnfilled, setIsUnfilled] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -17,7 +16,7 @@ export default function ManualAdUnit() {
   }, []);
 
   useEffect(() => {
-    if (!isMounted) return; // जब तक Hydration पूरा न हो, रुको
+    if (!isMounted) return;
     if (pathname?.startsWith("/admin")) return;
     if (adLoaded.current) return;
 
@@ -52,20 +51,15 @@ export default function ManualAdUnit() {
     };
   }, [pathname, isMounted]);
 
-  if (pathname?.startsWith("/admin")) return null;
+  if (!isMounted || pathname?.startsWith("/admin")) return <div className="min-h-[150px] w-full my-6"></div>;
   if (isUnfilled) return null;
 
-  // 🌟 HYDRATION SAFE PLACEHOLDER: सर्वर से सिर्फ खाली डब्बा जाएगा
-  if (!isMounted) {
-    return <div className="w-full my-8 min-h-[250px]"></div>;
-  }
-
   return (
-    <div className="w-full my-8 flex flex-col items-center justify-center overflow-hidden clear-both min-h-[250px] transition-all duration-500 ease-in-out has-[ins[data-ad-status='unfilled']]:hidden has-[ins[data-ad-status='unfilled']]:h-0 has-[ins[data-ad-status='unfilled']]:min-h-0 has-[ins[data-ad-status='unfilled']]:my-0">
-      <span className="text-[10px] text-gray-400 uppercase tracking-[0.2em] mb-3 font-sans select-none">
+    <div className="w-full my-8 flex flex-col items-center justify-center overflow-hidden min-h-[150px]">
+      <span className="text-[10px] text-gray-300 uppercase tracking-[0.2em] mb-3 font-sans select-none">
         Sponsored
       </span>
-      <div className="w-full max-w-[800px] overflow-hidden flex justify-center">
+      <div className="w-full overflow-hidden flex justify-center">
         <ins
           ref={insRef}
           className="adsbygoogle"

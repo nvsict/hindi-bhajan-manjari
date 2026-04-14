@@ -10,7 +10,10 @@ import ViewCounter from '../../../components/ViewCounter';
 import CommentsSection from '@/components/CommentsSection';
 import AuthorBox from '@/components/AuthorBox';
 import RelatedContent from '@/components/RelatedContent';
-import DisplayAdUnit from '@/components/DisplayAdUnit';
+
+// 🌟 NAYE AD COMPONENTS IMPORTS
+import AdDisplay from '@/components/AdDisplay';
+import AdMultiplex from '@/components/AdMultiplex';
 
 export const revalidate = 3600;
 
@@ -290,11 +293,13 @@ export default async function BhajanDetails({ params }: Props) {
             </div>
 
             <div className="p-4 md:p-8">
+              
+              {/* 🌟 1. DISPLAY AD (TOP) */}
               <div className="mb-8 md:mb-10 w-full flex justify-center">
-                <DisplayAdUnit />
+                <AdDisplay />
               </div>
 
-              {/* 🌟 Clean, Lightweight Call to LyricsViewer */}
+              {/* 🌟 Clean, Lightweight Call to LyricsViewer (This will have InArticle ads inside it) */}
               <LyricsViewer 
                 title={bhajan.title_hindi} 
                 lyricsHindi={bhajan.lyrics_hindi} 
@@ -304,8 +309,9 @@ export default async function BhajanDetails({ params }: Props) {
                 tarz={bhajan.tarj_parody}
               />
               
+              {/* 🌟 2. DISPLAY AD (BOTTOM OF LYRICS) */}
               <div className="mt-8 mb-6 md:mt-10 md:mb-8 w-full flex justify-center">
-                <DisplayAdUnit />
+                <AdDisplay />
               </div>
               
               {bhajan.explanation && (
@@ -368,6 +374,11 @@ export default async function BhajanDetails({ params }: Props) {
                 </div>
               )}
 
+              {/* 🌟 3. MULTIPLEX AD (GRID) - High CTR Area */}
+              <div className="mt-12">
+                <AdMultiplex />
+              </div>
+
               <div className="mt-8">
                 <CommentsSection bhajanSlug={slug} />
               </div>
@@ -392,8 +403,9 @@ export default async function BhajanDetails({ params }: Props) {
               filterValue={bhajan.deity_id}
               currentBhajanSlug={bhajan.slug}
             />
+            {/* 🌟 4. DISPLAY AD (SIDEBAR) */}
             <div className="mt-6">
-              <DisplayAdUnit />
+              <AdDisplay />
             </div>
           </aside>
           

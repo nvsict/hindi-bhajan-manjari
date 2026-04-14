@@ -9,7 +9,7 @@ import AuthorBox from '../../../components/AuthorBox';
 import { FaClock, FaCalendarAlt, FaBookOpen, FaGlobe } from 'react-icons/fa';
 
 // 🌟 IMPORT THE AD COMPONENT & VIEW COUNTER
-import ManualAdUnit from '@/components/ManualAdUnit';
+import ManualAdUnit from '@/components/AdInArticle';
 import ArticleViewCounter from '@/components/ArticleViewCounter';
 
 interface Props {
