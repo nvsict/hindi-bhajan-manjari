@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, memo, Fragment } from 'react';
 import { supabase } from '../utils/supabase';
 import Link from 'next/link';
 import { FaArrowRight, FaArrowLeft, FaExclamationTriangle, FaPlay, FaMusic, FaCompass } from 'react-icons/fa';
 import ScrollReveal from './ScrollReveal'; 
 import Image from 'next/image';
+
+// 🌟 NEW: IMPORT THE IN-FEED AD
+import AdInFeed from './AdInFeed';
 
 interface Bhajan {
   title_hinglish: string;
@@ -21,8 +24,8 @@ interface Props {
   initialBhajans: Bhajan[];
   categoryId?: string | number; // Category ID (If on Category Page)
   categorySlug?: string;
-  deityId?: string | number;    // 🌟 NEW: Deity ID (If on Deity Page)
-  deitySlug?: string;           // 🌟 NEW: Deity Slug
+  deityId?: string | number;    // Deity ID (If on Deity Page)
+  deitySlug?: string;           // Deity Slug
   currentPage?: number;
   totalItems?: number;
   itemsPerPage?: number;
@@ -36,7 +39,7 @@ const getYouTubeId = (url?: string) => {
 };
 
 // ==========================================
-// 🌟 OPTIMIZED BHAJAN CARD (Perfect Aspect Ratio Fix)
+// 🌟 OPTIMIZED BHAJAN CARD
 // ==========================================
 const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, index: number, itemsPerPage: number }) => {
   const ytId = getYouTubeId(bhajan.video_embed_url);
@@ -47,7 +50,7 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
       <Link href={`/bhajan/${bhajan.slug}`}>
         <div className="group bg-white p-4 md:p-5 rounded-[2rem] border border-gray-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-orange-200 transition-all duration-300 flex flex-col sm:flex-row sm:items-center gap-5 md:gap-6 relative overflow-hidden hover:-translate-y-1">
           
-          {/* 🌟 YOUTUBE THUMBNAIL (Strictly Locked at 16:9) */}
+          {/* YOUTUBE THUMBNAIL */}
           {thumbnailUrl ? (
             <div className="relative w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl overflow-hidden bg-gray-900 group-hover:shadow-md transition-all border border-gray-100/50">
               <Image 
@@ -137,8 +140,8 @@ export default function BhajanList({
   initialBhajans, 
   categoryId,
   categorySlug,
-  deityId,       // 🌟 Destructured Deity ID
-  deitySlug,     // 🌟 Destructured Deity Slug
+  deityId,       
+  deitySlug,     
   currentPage,
   totalItems,
   itemsPerPage = 10
@@ -155,7 +158,7 @@ export default function BhajanList({
     setLoadMorePage(1); 
     setHasMore(true);
     setNetworkError(null);
-  }, [initialBhajans, categoryId, deityId]); // Reset if IDs change
+  }, [initialBhajans, categoryId, deityId]); 
 
   const isSeoPaginated = !!((categorySlug || deitySlug) && currentPage && totalItems);
   const totalPages = isSeoPaginated ? Math.ceil(totalItems! / itemsPerPage) : 0;
@@ -173,7 +176,6 @@ export default function BhajanList({
       let fetchedData = null;
 
       if (categoryId) {
-        // 🌟 FETCH FOR CATEGORY
         const { data, error } = await supabase
           .from('bhajan_category_map')
           .select(`
@@ -187,14 +189,12 @@ export default function BhajanList({
           .range(from, to);
 
         if (error) throw error;
-
         fetchedData = data?.map((item: any) => ({
           ...item.bhajans,
           categories: initialBhajans[0]?.categories || null 
         }));
 
       } else if (deityId) {
-        // 🌟 NEW: FETCH FOR DEITY ONLY
         const { data, error } = await supabase
           .from('bhajans')
           .select(`
@@ -209,7 +209,6 @@ export default function BhajanList({
         fetchedData = data;
 
       } else {
-        // 🌟 FETCH ALL (Homepage)
         const { data, error } = await supabase
           .from('bhajans')
           .select(`
@@ -224,9 +223,7 @@ export default function BhajanList({
       }
 
       if (fetchedData) {
-        if (fetchedData.length < itemsPerPage) {
-          setHasMore(false);
-        }
+        if (fetchedData.length < itemsPerPage) setHasMore(false);
 
         const flattenedData: Bhajan[] = fetchedData.map((item: any) => ({
           ...item,
@@ -256,19 +253,26 @@ export default function BhajanList({
   return (
     <div className="flex flex-col gap-8 w-full">
       
-      {/* List of Bhajans */}
+      {/* 🌟 List of Bhajans WITH IN-FEED ADS */}
       <div className="flex flex-col gap-5">
         {bhajans.map((bhajan, index) => (
-          <BhajanCard 
-            key={bhajan.slug} 
-            bhajan={bhajan} 
-            index={index} 
-            itemsPerPage={itemsPerPage} 
-          />
+          <Fragment key={bhajan.slug}>
+            <BhajanCard 
+              bhajan={bhajan} 
+              index={index} 
+              itemsPerPage={itemsPerPage} 
+            />
+            {/* 🌟 INJECT IN-FEED AD: After every 4th bhajan (index 3, 7, 11...) */}
+            {(index + 1) % 4 === 0 && index !== bhajans.length - 1 && (
+              <ScrollReveal yOffset={10}>
+                <AdInFeed />
+              </ScrollReveal>
+            )}
+          </Fragment>
         ))}
       </div>
 
-      {/* SEO Pagination (If active) */}
+      {/* SEO Pagination / Load More UI Below... */}
       {isSeoPaginated ? (
         <ScrollReveal yOffset={20}>
           <div className="flex items-center justify-between pt-8 border-t border-gray-100 mt-4">
@@ -296,7 +300,6 @@ export default function BhajanList({
           </div>
         </ScrollReveal>
       ) : hasMore ? (
-        // "Load More" Button
         <ScrollReveal yOffset={20}>
           <div className="flex flex-col items-center pt-6 border-t border-gray-50 mt-2">
             {networkError && (
@@ -305,7 +308,6 @@ export default function BhajanList({
                 <p>{networkError}</p>
               </div>
             )}
-
             <button 
               onClick={loadMoreBhajans}
               disabled={loading}
@@ -330,7 +332,6 @@ export default function BhajanList({
           </div>
         </ScrollReveal>
       ) : (
-        // 🌟 NEW: "End of List" UI when no more bhajans are available
         <ScrollReveal yOffset={20}>
           <div className="flex flex-col items-center justify-center pt-10 pb-6 border-t border-gray-100 mt-4 text-center">
             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-4">
