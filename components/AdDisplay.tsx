@@ -68,7 +68,7 @@ export default function AdDisplay() {
           data-ad-client="ca-pub-5565563905050993"
           data-ad-slot="1922873836"
           data-ad-format="auto"
-          data-full-width-responsive="true"
+          data-full-width-responsive="false"
         />
       </div>
     </div>

@@ -7,31 +7,28 @@ export default function AdInFeed() {
   const pathname = usePathname();
   const adLoaded = useRef(false);
   const insRef = useRef<HTMLModElement>(null);
-  
   const [isUnfilled, setIsUnfilled] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-
-  // 🌟 Hydration Fix: Ensure component only renders fully on the client
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   useEffect(() => {
-    if (!isMounted) return;
-    // Admin routes par ads nahi dikhane hain
+    // एडमिन पेजों पर ऐड न दिखाएं
     if (pathname?.startsWith("/admin")) return;
+    
+    // अगर इस कंपोनेंट में ऐड पहले ही लोड हो चुका है, तो दोबारा न चलाएं
     if (adLoaded.current) return;
 
     let observer: MutationObserver;
     
+    // थोड़ा सा डिले (Delay) ताकि In-feed (Fluid) ऐड के लिए जगह अच्छे से बन जाए
     const timeoutId = setTimeout(() => {
       try {
         if (typeof window !== "undefined") {
+          // मैन्युअल ट्रिगर (यह "Load More" वाले ऐड्स के लिए बहुत ज़रूरी है)
           // @ts-ignore
           (window.adsbygoogle = window.adsbygoogle || []).push({});
           adLoaded.current = true;
 
-          // 🌟 MutationObserver to hide the ad box completely if AdSense says "unfilled"
+          // 🌟 MutationObserver: अगर Google के पास दिखाने के लिए ऐड नहीं है (Unfilled), 
+          // तो खाली सफेद डब्बे को पूरी तरह से गायब कर दो
           if (insRef.current) {
             observer = new MutationObserver((mutations) => {
               mutations.forEach((mutation) => {
@@ -45,29 +42,27 @@ export default function AdInFeed() {
           }
         }
       } catch (err: any) {
-        // Ignore the benign "already have ads" error
+        // "already have ads" एक सामान्य एरर है जब Google का ग्लोबल स्क्रिप्ट ऐड पहले ही लोड कर देता है,
+        // इसलिए हम इसे इग्नोर कर रहे हैं।
         if (!err.message?.includes("already have ads")) {
           console.error("AdSense Error:", err);
         }
       }
-    }, 250);
+    }, 300);
 
     return () => {
       clearTimeout(timeoutId);
       if (observer) observer.disconnect();
     };
-  }, [pathname, isMounted]);
+  }, [pathname]);
 
-  // Prevent rendering on admin pages or before hydration
-  if (!isMounted || pathname?.startsWith("/admin")) {
-    return <div className="min-h-[120px] w-full"></div>;
-  }
+  if (pathname?.startsWith("/admin")) return null;
   
-  // Hide completely if Google didn't find an ad to show
+  // अगर ऐड Unfilled है तो खाली जगह न घेरें, पूरा कंपोनेंट छिपा दें
   if (isUnfilled) return null;
 
   return (
-    <div className="w-full flex flex-col overflow-hidden min-h-[120px] my-2 transition-all">
+    <div className="w-full flex flex-col overflow-hidden min-h-[120px] my-4 transition-all">
       <span className="text-[10px] text-gray-300 uppercase tracking-[0.2em] mb-2 font-sans select-none text-center">
         Sponsored
       </span>
@@ -76,11 +71,11 @@ export default function AdInFeed() {
         className="adsbygoogle"
         style={{ display: "block" }}
         data-ad-format="fluid"
-        // 👇 नीचे वाले दोनों को अपने AdSense कोड से बदलें 👇
+        // 👇 अपने AdSense डैशबोर्ड से मिला हुआ असली In-feed कोड यहाँ डालें 👇
         data-ad-layout-key="-fg+5r+6l-ft+4e" 
         data-ad-client="ca-pub-5565563905050993"
         data-ad-slot="1234567890" 
-        // 👆 ऊपर वाले दोनों को अपने AdSense कोड से बदलें 👆
+        // 👆 👆
       />
     </div>
   );

@@ -124,11 +124,10 @@ export default async function BhajanDetails({ params }: Props) {
   const pageUrl = `${baseUrl}/bhajan/${bhajan.slug}`;
 
   // ==============================================================
-  // 🌟 ULTIMATE MASTER GRAPH SCHEMA (Fixes GSC Validation Drops)
+  // 🌟 ULTIMATE MASTER GRAPH SCHEMA
   // ==============================================================
   const graphNodes: any[] = [];
 
-  // 1. Breadcrumbs
   graphNodes.push({
     "@type": "BreadcrumbList",
     "@id": `${pageUrl}#breadcrumb`,
@@ -139,7 +138,6 @@ export default async function BhajanDetails({ params }: Props) {
     ]
   });
 
-  // 2. Valid VideoObject
   let ytId = null;
   if (bhajan.video_embed_url) {
     ytId = getYouTubeId(bhajan.video_embed_url);
@@ -159,7 +157,6 @@ export default async function BhajanDetails({ params }: Props) {
     }
   }
 
-  // 3. MusicComposition (Lyrics)
   graphNodes.push({
     "@type": "MusicComposition",
     "@id": `${pageUrl}#composition`,
@@ -172,10 +169,9 @@ export default async function BhajanDetails({ params }: Props) {
       "text": bhajan.lyrics_hindi, 
       "inLanguage": "hi" 
     },
-    ...(ytId && { "video": { "@id": `${pageUrl}#video` } }) // Link Video to Composition
+    ...(ytId && { "video": { "@id": `${pageUrl}#video` } }) 
   });
 
-  // 4. FAQPage Schema
   if (bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0) {
     graphNodes.push({
       "@type": "FAQPage",
@@ -191,7 +187,6 @@ export default async function BhajanDetails({ params }: Props) {
     });
   }
 
-  // 5. WebPage Wrapper
   graphNodes.push({
     "@type": "WebPage",
     "@id": pageUrl,
@@ -213,7 +208,6 @@ export default async function BhajanDetails({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-orange-50/30">
-      {/* 🌟 INJECT MASTER SCHEMA GRAPH */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(advancedSchemaGraph) }} />
       
       <ViewCounter slug={bhajan.slug} />
@@ -230,7 +224,6 @@ export default async function BhajanDetails({ params }: Props) {
                   <Link 
                     href={`/deity/${bhajan.deities.slug}`} 
                     className="bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-sm transition-colors active:scale-95"
-                    title={`View more ${bhajan.deities.name_hinglish} Bhajans`}
                   >
                     {bhajan.deities.name_hinglish}
                   </Link>
@@ -241,7 +234,6 @@ export default async function BhajanDetails({ params }: Props) {
                     key={cat.slug} 
                     href={`/category/${cat.slug}`} 
                     className="bg-orange-100 hover:bg-orange-200 text-orange-700 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border border-orange-200/50 transition-colors active:scale-95"
-                    title={`Explore ${cat.name_hinglish} Category`}
                   >
                     {cat.name_hinglish}
                   </Link>
@@ -255,10 +247,8 @@ export default async function BhajanDetails({ params }: Props) {
                 {bhajan.title_hinglish}
               </p>
               
-              {/* Artist Details Box */}
               {(displaySingerName || displayLyricistName || displayPhone || displayAddress) && (
                 <div className="flex flex-wrap gap-4 md:gap-6 bg-white/60 p-4 md:p-5 rounded-2xl border border-orange-100 shadow-sm">
-                  {/* Singers */}
                   {(singers.length > 0 || bhajan.singer_details?.name) && (
                     <div className="flex items-center gap-2 text-gray-700">
                       <FaMicrophoneAlt className="text-orange-500" aria-hidden="true" />
@@ -278,7 +268,6 @@ export default async function BhajanDetails({ params }: Props) {
                     </div>
                   )}
 
-                  {/* Contact Number */}
                   {displayPhone && (
                     <div className="flex items-center gap-2 text-gray-700">
                       <FaPhoneAlt className="text-orange-500" aria-hidden="true" />
@@ -294,12 +283,11 @@ export default async function BhajanDetails({ params }: Props) {
 
             <div className="p-4 md:p-8">
               
-              {/* 🌟 1. DISPLAY AD (TOP) */}
-              <div className="mb-8 md:mb-10 w-full flex justify-center">
+              {/* 🌟 1. DISPLAY AD (TOP) - FIXED MOBILE OVERFLOW */}
+              <div className="mb-8 md:mb-10 w-full max-w-full overflow-hidden block">
                 <AdDisplay />
               </div>
 
-              {/* 🌟 Clean, Lightweight Call to LyricsViewer (This will have InArticle ads inside it) */}
               <LyricsViewer 
                 title={bhajan.title_hindi} 
                 lyricsHindi={bhajan.lyrics_hindi} 
@@ -309,8 +297,8 @@ export default async function BhajanDetails({ params }: Props) {
                 tarz={bhajan.tarj_parody}
               />
               
-              {/* 🌟 2. DISPLAY AD (BOTTOM OF LYRICS) */}
-              <div className="mt-8 mb-6 md:mt-10 md:mb-8 w-full flex justify-center">
+              {/* 🌟 2. DISPLAY AD (BOTTOM OF LYRICS) - FIXED MOBILE OVERFLOW */}
+              <div className="mt-8 mb-6 md:mt-10 md:mb-8 w-full max-w-full overflow-hidden block">
                 <AdDisplay />
               </div>
               
@@ -374,8 +362,8 @@ export default async function BhajanDetails({ params }: Props) {
                 </div>
               )}
 
-              {/* 🌟 3. MULTIPLEX AD (GRID) - High CTR Area */}
-              <div className="mt-12">
+              {/* 🌟 3. MULTIPLEX AD */}
+              <div className="mt-12 w-full max-w-full overflow-hidden block">
                 <AdMultiplex />
               </div>
 
@@ -404,7 +392,7 @@ export default async function BhajanDetails({ params }: Props) {
               currentBhajanSlug={bhajan.slug}
             />
             {/* 🌟 4. DISPLAY AD (SIDEBAR) */}
-            <div className="mt-6">
+            <div className="mt-6 w-full max-w-full overflow-hidden block">
               <AdDisplay />
             </div>
           </aside>
