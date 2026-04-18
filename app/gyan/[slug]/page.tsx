@@ -8,8 +8,10 @@ import Breadcrumbs from '../../../components/Breadcrumbs';
 import AuthorBox from '../../../components/AuthorBox';
 import { FaClock, FaCalendarAlt, FaBookOpen, FaGlobe } from 'react-icons/fa';
 
-// 🌟 IMPORT THE AD COMPONENT & VIEW COUNTER
-import ManualAdUnit from '@/components/AdInArticle';
+// 🌟 IMPORT THE NEW AD COMPONENTS & VIEW COUNTER
+import AdInArticle from '@/components/AdInArticle';
+import AdDisplay from '@/components/AdDisplay';
+import AdMultiplex from '@/components/AdMultiplex';
 import ArticleViewCounter from '@/components/ArticleViewCounter';
 
 interface Props {
@@ -200,7 +202,12 @@ export default async function ArticlePage({ params }: Props) {
         
         <Breadcrumbs items={[ { label: 'Gyan', href: '/gyan' }, { label: article.title_hinglish } ]} />
 
-        <main className="mt-6 bg-white rounded-[2.5rem] shadow-sm border border-orange-100 overflow-hidden">
+        {/* 🌟 DISPLAY AD: Top of the Page (Above Article) */}
+        <div className="mt-6 mb-6 w-full max-w-full overflow-hidden block">
+          <AdDisplay />
+        </div>
+
+        <main className="bg-white rounded-[2.5rem] shadow-sm border border-orange-100 overflow-hidden">
           
           {/* --- ARTICLE HERO HEADER --- */}
           <div className="bg-gradient-to-br from-orange-50 to-white p-8 md:p-12 border-b border-orange-100">
@@ -282,16 +289,21 @@ export default async function ArticlePage({ params }: Props) {
                     {/* Render the chunk and append the closing </p> back */}
                     <div dangerouslySetInnerHTML={{ __html: chunk + (index < htmlChunks.length - 1 ? '</p>' : '') }} />
                     
-                    {/* INJECT AD SAFELY BETWEEN CHUNKS */}
+                    {/* INJECT IN-ARTICLE AD SAFELY BETWEEN CHUNKS */}
                     {isAllowedAd && index < htmlChunks.length - 1 && (
-                      <div className="py-2 my-8 md:my-12 border-y border-gray-100/50">
-                        <ManualAdUnit />
+                      <div className="py-2 my-8 md:my-12 border-y border-gray-100/50 w-full max-w-full overflow-hidden block">
+                        <AdInArticle />
                       </div>
                     )}
                   </div>
                 );
               })}
             </article>
+          </div>
+
+          {/* 🌟 DISPLAY AD: Bottom of the Article Content */}
+          <div className="w-full max-w-full overflow-hidden block border-t border-gray-50 pt-8 pb-4 bg-gray-50/30">
+            <AdDisplay />
           </div>
 
           {/* --- THE AUTHOR BOX --- */}
@@ -303,6 +315,12 @@ export default async function ArticlePage({ params }: Props) {
           </div>
 
         </main>
+
+        {/* 🌟 MULTIPLEX AD: "You May Also Like" Grid Below The Post */}
+        <div className="mt-12 w-full max-w-full overflow-hidden block">
+          <AdMultiplex />
+        </div>
+
       </div>
     </div>
   );

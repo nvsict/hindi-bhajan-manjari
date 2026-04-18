@@ -8,8 +8,10 @@ import Breadcrumbs from '../../../../components/Breadcrumbs';
 import AuthorBox from '../../../../components/AuthorBox';
 import { FaClock, FaCalendarAlt, FaBookOpen, FaLanguage } from 'react-icons/fa';
 
-// 🌟 IMPORT THE AD COMPONENT & VIEW COUNTER
-import ManualAdUnit from '@/components/AdInArticle';
+// 🌟 IMPORT THE NEW AD COMPONENTS & VIEW COUNTER
+import AdInArticle from '@/components/AdInArticle';
+import AdDisplay from '@/components/AdDisplay';
+import AdMultiplex from '@/components/AdMultiplex';
 import ArticleViewCounter from '@/components/ArticleViewCounter';
 
 interface Props {
@@ -107,7 +109,12 @@ export default async function EnglishArticlePage({ params }: Props) {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         <Breadcrumbs items={[ { label: 'Wisdom', href: '/en/gyan' }, { label: article.title_english || '' } ]} />
 
-        <main className="mt-6 bg-white rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm border border-blue-100 overflow-hidden">
+        {/* 🌟 TOP DISPLAY AD */}
+        <div className="mt-6 mb-6 w-full max-w-full overflow-hidden block">
+          <AdDisplay />
+        </div>
+
+        <main className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm border border-blue-100 overflow-hidden">
           
           <div className="bg-gradient-to-br from-blue-50/50 to-white p-8 md:p-12 border-b border-blue-100">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -178,15 +185,21 @@ export default async function EnglishArticlePage({ params }: Props) {
                   <div key={index} className="contents">
                     <div dangerouslySetInnerHTML={{ __html: chunk + (index < htmlChunks.length - 1 ? '</p>' : '') }} />
                     
+                    {/* 🌟 NATIVE IN-ARTICLE AD */}
                     {isAllowedAd && index < htmlChunks.length - 1 && (
-                      <div className="my-10 py-4 border-y border-gray-100 flex justify-center bg-gray-50/50 rounded-xl">
-                        <ManualAdUnit />
+                      <div className="my-10 py-4 border-y border-gray-100 flex justify-center bg-gray-50/50 rounded-xl w-full max-w-full overflow-hidden block">
+                        <AdInArticle />
                       </div>
                     )}
                   </div>
                 );
               })}
             </article>
+          </div>
+
+          {/* 🌟 BOTTOM DISPLAY AD */}
+          <div className="w-full max-w-full overflow-hidden block border-t border-blue-50 pt-8 pb-4 bg-blue-50/20">
+            <AdDisplay />
           </div>
 
           <div className="p-8 md:p-12 bg-slate-50 border-t border-slate-100">
@@ -197,6 +210,12 @@ export default async function EnglishArticlePage({ params }: Props) {
           </div>
 
         </main>
+
+        {/* 🌟 BOTTOM MULTIPLEX AD (OUTSIDE MAIN CARD) */}
+        <div className="w-full mt-12 max-w-full overflow-hidden block">
+          <AdMultiplex />
+        </div>
+
       </div>
     </div>
   );

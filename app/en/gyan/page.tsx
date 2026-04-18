@@ -2,8 +2,14 @@ import { supabase } from '../../../utils/supabase';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Fragment } from 'react';
 import Breadcrumbs from '../../../components/Breadcrumbs';
 import { FaBookOpen, FaClock, FaCalendarAlt, FaChevronRight, FaLanguage } from 'react-icons/fa';
+
+// 🌟 IMPORT AD COMPONENTS
+import AdDisplay from '@/components/AdDisplay';
+import AdInFeed from '@/components/AdInFeed';
+import AdMultiplex from '@/components/AdMultiplex';
 
 export const metadata: Metadata = {
   title: 'Sanatan Gyan - Spiritual Articles & Meanings | Hindi Bhajan Manjari',
@@ -12,6 +18,8 @@ export const metadata: Metadata = {
     canonical: `${process.env.NEXT_PUBLIC_SITE_URL}/en/gyan`,
   }
 };
+
+export const revalidate = 3600;
 
 export default async function EnglishGyanIndexPage() {
   // 🌟 Fetch only articles where English version is published
@@ -61,6 +69,11 @@ export default async function EnglishGyanIndexPage() {
           </p>
         </div>
 
+        {/* 🌟 TOP DISPLAY AD */}
+        <div className="w-full mb-12 max-w-full overflow-hidden block">
+          <AdDisplay />
+        </div>
+
         {/* --- ARTICLES GRID --- */}
         {error || !articles || articles.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl border border-gray-100">
@@ -68,63 +81,77 @@ export default async function EnglishGyanIndexPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {articles.map((article) => {
+            {articles.map((article, index) => {
               const publishDate = new Date(article.published_at).toLocaleDateString('en-US', {
                 year: 'numeric', month: 'short', day: 'numeric'
               });
 
               return (
-                <Link 
-                  href={`/en/gyan/${article.slug_english}`} 
-                  key={article.slug_english}
-                  className="bg-white rounded-3xl border border-blue-100/60 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-blue-200 transition-all duration-300 flex flex-col h-full group overflow-hidden"
-                >
-                  {/* 🌟 Beautiful Landscape Image */}
-                  {article.featured_image_url && (
-                    <div className="relative w-full h-52 bg-gray-100 border-b border-blue-100/50 overflow-hidden shrink-0">
-                      <Image
-                        src={article.featured_image_url}
-                        alt={article.title_english || 'Article Image'}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-700"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      />
-                      <div className="absolute top-4 right-4 bg-white/95 backdrop-blur text-orange-600 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5">
-                        <FaLanguage /> Hindi Available
+                <Fragment key={article.slug_english}>
+                  <Link 
+                    href={`/en/gyan/${article.slug_english}`} 
+                    className="bg-white rounded-3xl border border-blue-100/60 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-blue-200 transition-all duration-300 flex flex-col h-full group overflow-hidden"
+                  >
+                    {/* 🌟 Beautiful Landscape Image */}
+                    {article.featured_image_url && (
+                      <div className="relative w-full h-52 bg-gray-100 border-b border-blue-100/50 overflow-hidden shrink-0">
+                        <Image
+                          src={article.featured_image_url}
+                          alt={article.title_english || 'Article Image'}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-700"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        />
+                        <div className="absolute top-4 right-4 bg-white/95 backdrop-blur text-orange-600 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5">
+                          <FaLanguage /> Hindi Available
+                        </div>
                       </div>
+                    )}
+
+                    <div className="p-7 md:p-8 flex-1 flex flex-col">
+                      <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">
+                        <span className="flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100/50">
+                          <FaClock className="mb-0.5" /> {article.read_time_minutes} Min
+                        </span>
+                        <span className="flex items-center gap-1.5 text-gray-500">
+                          <FaCalendarAlt className="mb-0.5" /> {publishDate}
+                        </span>
+                      </div>
+
+                      <h2 className="text-2xl font-black text-gray-900 mb-4 leading-tight group-hover:text-blue-600 transition-colors line-clamp-3">
+                        {article.title_english}
+                      </h2>
+
+                      <p className="text-gray-600 leading-relaxed line-clamp-3 mb-6 flex-1 font-medium">
+                        {article.meta_description_english}
+                      </p>
+
+                      <div className="mt-auto pt-5 border-t border-gray-50 flex items-center justify-between text-blue-600 font-bold text-sm">
+                        Read Full Article
+                        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                          <FaChevronRight className="text-xs group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+
+                  {/* 🌟 NATIVE IN-FEED AD (Injects every 5th item) */}
+                  {(index + 1) % 5 === 0 && index !== articles.length - 1 && (
+                    <div className="h-full flex flex-col justify-center bg-white rounded-3xl border border-blue-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] p-4 md:p-6 overflow-hidden">
+                      <AdInFeed />
                     </div>
                   )}
-
-                  <div className="p-7 md:p-8 flex-1 flex flex-col">
-                    <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">
-                      <span className="flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100/50">
-                        <FaClock className="mb-0.5" /> {article.read_time_minutes} Min
-                      </span>
-                      <span className="flex items-center gap-1.5 text-gray-500">
-                        <FaCalendarAlt className="mb-0.5" /> {publishDate}
-                      </span>
-                    </div>
-
-                    <h2 className="text-2xl font-black text-gray-900 mb-4 leading-tight group-hover:text-blue-600 transition-colors line-clamp-3">
-                      {article.title_english}
-                    </h2>
-
-                    <p className="text-gray-600 leading-relaxed line-clamp-3 mb-6 flex-1 font-medium">
-                      {article.meta_description_english}
-                    </p>
-
-                    <div className="mt-auto pt-5 border-t border-gray-50 flex items-center justify-between text-blue-600 font-bold text-sm">
-                      Read Full Article
-                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                        <FaChevronRight className="text-xs group-hover:translate-x-0.5 transition-transform" />
-                      </div>
-                    </div>
-                  </div>
-                </Link>
+                </Fragment>
               );
             })}
           </div>
         )}
+
+        {/* 🌟 BOTTOM MULTIPLEX AD */}
+        <div className="w-full mt-16 max-w-full overflow-hidden block">
+          <AdMultiplex />
+        </div>
+
       </div>
     </div>
   );

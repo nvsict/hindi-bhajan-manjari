@@ -2,8 +2,14 @@ import { supabase } from '../../utils/supabase';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Fragment } from 'react';
 import Breadcrumbs from '../../components/Breadcrumbs';
 import { FaBookOpen, FaClock, FaCalendarAlt, FaChevronRight, FaGlobe } from 'react-icons/fa';
+
+// 🌟 IMPORT AD COMPONENTS
+import AdDisplay from '@/components/AdDisplay';
+import AdInFeed from '@/components/AdInFeed';
+import AdMultiplex from '@/components/AdMultiplex';
 
 // ==========================================
 // 🌟 1. HIGH-CTR SEO METADATA
@@ -96,6 +102,11 @@ export default async function GyanIndexPage() {
           </p>
         </header>
 
+        {/* 🌟 TOP DISPLAY AD */}
+        <div className="w-full mb-12 max-w-full overflow-hidden block">
+          <AdDisplay />
+        </div>
+
         {/* --- ARTICLES GRID --- */}
         {error || !articles || articles.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl border border-gray-100">
@@ -103,7 +114,7 @@ export default async function GyanIndexPage() {
           </div>
         ) : (
           <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {articles.map((article) => {
+            {articles.map((article, index) => {
               const publishDate = new Date(article.published_at).toLocaleDateString('hi-IN', {
                 year: 'numeric',
                 month: 'short',
@@ -111,78 +122,93 @@ export default async function GyanIndexPage() {
               });
 
               return (
-                <article key={article.slug} className="h-full flex flex-col group overflow-hidden bg-white rounded-3xl border border-orange-100/60 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-orange-200 transition-all duration-300">
-                  <Link 
-                    href={`/gyan/${article.slug}`} 
-                    className="flex flex-col h-full focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded-3xl"
-                    aria-label={`Read article: ${article.title_hinglish}`}
-                  >
-                    
-                    {/* Featured Image Header */}
-                    {article.featured_image_url && (
-                      <div className="relative w-full h-52 bg-gray-100 border-b border-orange-100/50 overflow-hidden shrink-0">
-                        <Image
-                          src={article.featured_image_url}
-                          alt={`Cover image for ${article.title_hinglish}`}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-700"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        />
-                        
-                        {/* "English Available" Badge over image */}
-                        {article.is_published_english && article.slug_english && (
-                          <div className="absolute top-4 right-4 bg-white/95 backdrop-blur text-blue-600 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5">
-                            <FaGlobe aria-hidden="true" /> EN Available
-                          </div>
-                        )}
-                      </div>
-                    )}
+                <Fragment key={article.slug}>
+                  <article className="h-full flex flex-col group overflow-hidden bg-white rounded-3xl border border-orange-100/60 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-orange-200 transition-all duration-300">
+                    <Link 
+                      href={`/gyan/${article.slug}`} 
+                      className="flex flex-col h-full focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded-3xl"
+                      aria-label={`Read article: ${article.title_hinglish}`}
+                    >
+                      
+                      {/* Featured Image Header */}
+                      {article.featured_image_url && (
+                        <div className="relative w-full h-52 bg-gray-100 border-b border-orange-100/50 overflow-hidden shrink-0">
+                          <Image
+                            src={article.featured_image_url}
+                            alt={`Cover image for ${article.title_hinglish}`}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform duration-700"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          />
+                          
+                          {/* "English Available" Badge over image */}
+                          {article.is_published_english && article.slug_english && (
+                            <div className="absolute top-4 right-4 bg-white/95 backdrop-blur text-blue-600 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5">
+                              <FaGlobe aria-hidden="true" /> EN Available
+                            </div>
+                          )}
+                        </div>
+                      )}
 
-                    <div className="p-7 md:p-8 flex-1 flex flex-col">
-                      {/* Meta Info */}
-                      <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-orange-500 uppercase tracking-widest mb-4">
-                        <span className="flex items-center gap-1.5 bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100/50 group-hover:bg-orange-100 transition-colors">
-                          <FaClock className="mb-0.5" aria-hidden="true" /> {article.read_time_minutes} Min
-                        </span>
-                        <time dateTime={article.published_at} className="flex items-center gap-1.5 text-gray-500">
-                          <FaCalendarAlt className="mb-0.5" aria-hidden="true" /> {publishDate}
-                        </time>
-                        
-                        {/* Fallback Badge if no image is present */}
-                        {!article.featured_image_url && article.is_published_english && article.slug_english && (
-                          <span className="flex items-center gap-1.5 text-blue-500 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100/50">
-                            <FaGlobe aria-hidden="true" /> EN
+                      <div className="p-7 md:p-8 flex-1 flex flex-col">
+                        {/* Meta Info */}
+                        <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-orange-500 uppercase tracking-widest mb-4">
+                          <span className="flex items-center gap-1.5 bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100/50 group-hover:bg-orange-100 transition-colors">
+                            <FaClock className="mb-0.5" aria-hidden="true" /> {article.read_time_minutes} Min
                           </span>
-                        )}
-                      </div>
+                          <time dateTime={article.published_at} className="flex items-center gap-1.5 text-gray-500">
+                            <FaCalendarAlt className="mb-0.5" aria-hidden="true" /> {publishDate}
+                          </time>
+                          
+                          {/* Fallback Badge if no image is present */}
+                          {!article.featured_image_url && article.is_published_english && article.slug_english && (
+                            <span className="flex items-center gap-1.5 text-blue-500 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100/50">
+                              <FaGlobe aria-hidden="true" /> EN
+                            </span>
+                          )}
+                        </div>
 
-                      {/* Titles */}
-                      <h2 className="font-hindi text-2xl font-black text-gray-900 mb-2 leading-tight group-hover:text-orange-600 transition-colors line-clamp-3">
-                        {article.title_hindi}
-                      </h2>
-                      <h3 className="text-sm font-medium text-gray-500 mb-4 line-clamp-1">
-                        {article.title_hinglish}
-                      </h3>
+                        {/* Titles */}
+                        <h2 className="font-hindi text-2xl font-black text-gray-900 mb-2 leading-tight group-hover:text-orange-600 transition-colors line-clamp-3">
+                          {article.title_hindi}
+                        </h2>
+                        <h3 className="text-sm font-medium text-gray-500 mb-4 line-clamp-1">
+                          {article.title_hinglish}
+                        </h3>
 
-                      {/* Description */}
-                      <p className="text-gray-600 font-hindi leading-relaxed line-clamp-3 mb-6 flex-1">
-                        {article.meta_description}
-                      </p>
+                        {/* Description */}
+                        <p className="text-gray-600 font-hindi leading-relaxed line-clamp-3 mb-6 flex-1">
+                          {article.meta_description}
+                        </p>
 
-                      {/* Read More Button */}
-                      <div className="mt-auto pt-5 border-t border-gray-50 flex items-center justify-between text-orange-600 font-bold text-sm">
-                        पूरा पढ़ें (Read Article)
-                        <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center group-hover:bg-orange-600 group-hover:text-white transition-colors">
-                          <FaChevronRight className="text-xs group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
+                        {/* Read More Button */}
+                        <div className="mt-auto pt-5 border-t border-gray-50 flex items-center justify-between text-orange-600 font-bold text-sm">
+                          पूरा पढ़ें (Read Article)
+                          <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                            <FaChevronRight className="text-xs group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
+                          </div>
                         </div>
                       </div>
+                    </Link>
+                  </article>
+
+                  {/* 🌟 NATIVE IN-FEED AD (Injects every 5th item) */}
+                  {(index + 1) % 5 === 0 && index !== articles.length - 1 && (
+                    <div className="h-full flex flex-col justify-center bg-white rounded-3xl border border-gray-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] p-4 md:p-6 overflow-hidden">
+                      <AdInFeed />
                     </div>
-                  </Link>
-                </article>
+                  )}
+                </Fragment>
               );
             })}
           </section>
         )}
+
+        {/* 🌟 BOTTOM MULTIPLEX AD */}
+        <div className="w-full mt-16 max-w-full overflow-hidden block">
+          <AdMultiplex />
+        </div>
+
       </div>
     </main>
   );
