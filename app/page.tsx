@@ -212,7 +212,8 @@ export default function Home() {
           <DeityBrowse /> 
 
           {/* 3. Core Content: The Bhajans */}
-          <div className="mt-8">
+          {/* 🌟 UPGRADE: Increased margins here for Auto Ads breathing room */}
+          <div className="mt-12 md:mt-16">
             <ScrollReveal yOffset={20}>
               <div className="flex flex-row items-center justify-between border-b border-gray-100 pb-3 md:pb-4 mb-6 md:mb-8 mt-4">
                 <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2 md:gap-3">
@@ -232,7 +233,8 @@ export default function Home() {
             <PopularCategories />
           </div>
           
-          <div className="mt-8">
+          {/* 🌟 UPGRADE: Increased margins here for Auto Ads breathing room */}
+          <div className="mt-12 md:mt-16">
             <TrendingArtists />
           </div>
 

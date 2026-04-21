@@ -30,6 +30,9 @@ import ClarityAnalytics from '@/components/ClarityAnalytics';
 import PwaRegistration from '@/components/PwaRegistration';
 import { ThemeProvider } from '@/components/ThemeProvider';
 
+// 🌟 NEW: SMART SITE ASSISTANT
+import SiteAssistant from '@/components/SiteAssistant';
+
 // --- BASE FONTS ---
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -188,6 +191,9 @@ export default function RootLayout({
           
           {/* 🌟 PWA & Engagement UI */}
           <PwaRegistration />
+
+          {/* 🌟 MANJARI GUIDE (Smart Site Assistant) */}
+          <SiteAssistant />
 
         </ThemeProvider>
       </body>
