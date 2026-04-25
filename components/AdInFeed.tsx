@@ -74,7 +74,7 @@ export default function AdInFeed() {
         // 👇 अपने AdSense डैशबोर्ड से मिला हुआ असली In-feed कोड यहाँ डालें 👇
         data-ad-layout-key="-fg+5r+6l-ft+4e" 
         data-ad-client="ca-pub-5565563905050993"
-        data-ad-slot="1234567890" 
+        data-ad-slot="3596971010" 
         // 👆 👆
       />
     </div>
