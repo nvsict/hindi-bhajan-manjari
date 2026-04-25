@@ -44,6 +44,27 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* 🌟 PDF PRINT FIX (Force Black Text & White Background) */
+@media print {
+  body, .dark {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  
+  /* Force all text inside to be black to save ink and ensure visibility */
+  * {
+    color: #000000 !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Optional: Hide backgrounds of cards when printing so it looks clean */
+  div, main, article, section {
+    background: transparent !important;
+    border-color: #e5e7eb !important;
+  }
+}
+
 /* globals.css */
 #nprogress .peg {
   box-shadow: 0 0 15px #ea580c, 0 0 8px #ea580c !important;

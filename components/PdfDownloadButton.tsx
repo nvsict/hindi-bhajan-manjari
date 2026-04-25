@@ -149,6 +149,7 @@ export default function PdfDownloadButton({
             position: "relative",
             width: "794px",
             backgroundColor: "#fffcf5",
+            color: "#000000", /* 🌟 FIX 1: Force baseline color to black */
             padding: "0 64px",
             fontFamily: '"Noto Sans Devanagari","Mangal",serif',
             overflow: "hidden",
@@ -194,6 +195,7 @@ export default function PdfDownloadButton({
             </h2>
           </div>
 
+          {/* 🌟 FIX 2: Explicitly set text color to solid black so Dark Mode can't affect it */}
           <div
             style={{
               position: "relative",
@@ -203,6 +205,8 @@ export default function PdfDownloadButton({
               whiteSpace: "pre-wrap",
               textAlign: "center",
               marginTop: "20px",
+              color: "#171717", 
+              fontWeight: 600,
             }}
           >
             {lyricsHindi}

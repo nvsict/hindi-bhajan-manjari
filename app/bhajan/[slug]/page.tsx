@@ -123,9 +123,6 @@ export default async function BhajanDetails({ params }: Props) {
   const baseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
   const pageUrl = `${baseUrl}/bhajan/${bhajan.slug}`;
 
-  // ==============================================================
-  // 🌟 ULTIMATE MASTER GRAPH SCHEMA
-  // ==============================================================
   const graphNodes: any[] = [];
 
   graphNodes.push({
@@ -207,7 +204,8 @@ export default async function BhajanDetails({ params }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-orange-50/30">
+    // 🌟 THE ONLY FIX: Added dark:bg-[#0c0804] here so the background isn't white in dark mode
+    <div className="min-h-screen bg-orange-50/30 dark:bg-[#0c0804]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(advancedSchemaGraph) }} />
       
       <ViewCounter slug={bhajan.slug} />
@@ -283,7 +281,6 @@ export default async function BhajanDetails({ params }: Props) {
 
             <div className="p-4 md:p-8">
               
-              {/* 🌟 1. DISPLAY AD (TOP) - FIXED MOBILE OVERFLOW */}
               <div className="mb-8 md:mb-10 w-full max-w-full overflow-hidden block">
                 <AdDisplay />
               </div>
@@ -297,7 +294,6 @@ export default async function BhajanDetails({ params }: Props) {
                 tarz={bhajan.tarj_parody}
               />
               
-              {/* 🌟 2. DISPLAY AD (BOTTOM OF LYRICS) - FIXED MOBILE OVERFLOW */}
               <div className="mt-8 mb-6 md:mt-10 md:mb-8 w-full max-w-full overflow-hidden block">
                 <AdDisplay />
               </div>
@@ -362,7 +358,6 @@ export default async function BhajanDetails({ params }: Props) {
                 </div>
               )}
 
-              {/* 🌟 3. MULTIPLEX AD */}
               <div className="mt-12 w-full max-w-full overflow-hidden block">
                 <AdMultiplex />
               </div>
@@ -391,7 +386,6 @@ export default async function BhajanDetails({ params }: Props) {
               filterValue={bhajan.deity_id}
               currentBhajanSlug={bhajan.slug}
             />
-            {/* 🌟 4. DISPLAY AD (SIDEBAR) */}
             <div className="mt-6 w-full max-w-full overflow-hidden block">
               <AdDisplay />
             </div>
