@@ -21,12 +21,19 @@ export default function AdMultiplex() {
     if (adLoaded.current) return;
 
     let observer: MutationObserver;
-    const timeoutId = setTimeout(() => {
+    let checkInterval: NodeJS.Timeout;
+
+    // 🌟 SMART CHECK LOGIC
+    const pushAd = () => {
+      if (!insRef.current) return;
+
+      if (insRef.current.offsetWidth === 0 || insRef.current.clientWidth === 0) {
+        checkInterval = setTimeout(pushAd, 200);
+        return;
+      }
+
       try {
         if (typeof window !== "undefined") {
-          // 🌟 TWEAK 1: Push करने से पहले चेक करें कि <ins> टैग अभी भी स्क्रीन पर है या नहीं
-          if (!insRef.current) return;
-
           // @ts-ignore
           (window.adsbygoogle = window.adsbygoogle || []).push({});
           adLoaded.current = true;
@@ -46,10 +53,12 @@ export default function AdMultiplex() {
       } catch (err: any) {
         if (!err.message?.includes("already have ads")) console.error("AdSense Error:", err);
       }
-    }, 250);
+    };
+
+    checkInterval = setTimeout(pushAd, 100);
 
     return () => {
-      clearTimeout(timeoutId);
+      clearTimeout(checkInterval);
       if (observer) observer.disconnect();
     };
   }, [pathname, isMounted]);
@@ -59,16 +68,15 @@ export default function AdMultiplex() {
 
   return (
     <div className="w-full my-10 flex flex-col overflow-hidden min-h-[300px]">
-      {/* 🌟 BONUS: Dark mode text color added for consistency */}
       <h3 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-4 tracking-tight border-b border-gray-100 dark:border-gray-800 pb-2 transition-colors duration-300">
         You May Also Like
       </h3>
-      <div className="w-full overflow-hidden">
+      {/* 🌟 Width Fixes */}
+      <div className="w-full overflow-hidden flex justify-center min-w-[250px]">
         <ins
           ref={insRef}
           className="adsbygoogle"
-          // 🌟 TWEAK 2: width: "100%" लगाना ज़रूरी है ताकि availableWidth=0 एरर न आए
-          style={{ display: "block", width: "100%" }}
+          style={{ display: "block", width: "100%", minWidth: "100px" }}
           data-ad-format="autorelaxed"
           data-ad-client="ca-pub-5565563905050993"
           data-ad-slot="6558176273"

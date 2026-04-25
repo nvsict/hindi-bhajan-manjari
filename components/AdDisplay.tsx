@@ -21,13 +21,20 @@ export default function AdDisplay() {
     if (adLoaded.current) return;
 
     let observer: MutationObserver;
+    let checkInterval: NodeJS.Timeout;
 
-    const timeoutId = setTimeout(() => {
+    // 🌟 SMART CHECK LOGIC: जब तक चौड़ाई 0 है, इंतज़ार करो
+    const pushAd = () => {
+      if (!insRef.current) return;
+
+      // अगर चौड़ाई अभी भी 0 है, तो 200ms बाद फिर से चेक करो (यह एरर को 100% खत्म कर देगा)
+      if (insRef.current.offsetWidth === 0 || insRef.current.clientWidth === 0) {
+        checkInterval = setTimeout(pushAd, 200);
+        return;
+      }
+
       try {
         if (typeof window !== "undefined") {
-          // 🌟 TWEAK 1: Push करने से पहले चेक करें कि कंपोनेंट अभी भी स्क्रीन पर है या नहीं
-          if (!insRef.current) return;
-
           // @ts-ignore
           (window.adsbygoogle = window.adsbygoogle || []).push({});
           adLoaded.current = true;
@@ -47,15 +54,18 @@ export default function AdDisplay() {
       } catch (err: any) {
         if (!err.message?.includes("already have ads")) console.error("AdSense Error:", err);
       }
-    }, 250);
+    };
+
+    // पहली बार चेक शुरू करें
+    checkInterval = setTimeout(pushAd, 100);
 
     return () => {
-      clearTimeout(timeoutId);
+      clearTimeout(checkInterval);
       if (observer) observer.disconnect();
     };
   }, [pathname, isMounted]);
 
-  if (!isMounted || pathname?.startsWith("/admin")) return <div className="min-h-[250px] w-full"></div>;
+  if (!isMounted || pathname?.startsWith("/admin")) return <div className="min-h-[250px] w-full my-4"></div>;
   if (isUnfilled) return null;
 
   return (
@@ -63,15 +73,16 @@ export default function AdDisplay() {
       <span className="text-[10px] text-gray-400 uppercase tracking-[0.2em] mb-2 font-sans select-none">
         Advertisement
       </span>
-      <div className="w-full overflow-hidden flex justify-center">
+      {/* 🌟 min-width देना ज़रूरी है */}
+      <div className="w-full overflow-hidden flex justify-center min-w-[250px]">
         <ins
           ref={insRef}
           className="adsbygoogle"
-          style={{ display: "block", width: "100%" }}
+          // 🌟 minWidth: '100px' लगाकर एक फॉलबैक दे दें
+          style={{ display: "block", width: "100%", minWidth: "100px" }}
           data-ad-client="ca-pub-5565563905050993"
           data-ad-slot="1922873836"
           data-ad-format="auto"
-          /* 🌟 TWEAK 2: इसे true करें ताकि मोबाइल पर ऐड पूरा फैले और कमाई बढ़े */
           data-full-width-responsive="true"
         />
       </div>

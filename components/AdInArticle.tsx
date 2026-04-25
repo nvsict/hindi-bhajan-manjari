@@ -21,13 +21,19 @@ export default function AdInArticle() {
     if (adLoaded.current) return;
 
     let observer: MutationObserver;
-    
-    const timeoutId = setTimeout(() => {
+    let checkInterval: NodeJS.Timeout;
+
+    // 🌟 SMART CHECK LOGIC
+    const pushAd = () => {
+      if (!insRef.current) return;
+
+      if (insRef.current.offsetWidth === 0 || insRef.current.clientWidth === 0) {
+        checkInterval = setTimeout(pushAd, 200);
+        return;
+      }
+
       try {
         if (typeof window !== "undefined") {
-          // 🌟 TWEAK: Push करने से पहले चेक करें कि <ins> टैग अभी भी स्क्रीन पर है या नहीं
-          if (!insRef.current) return;
-
           // @ts-ignore
           (window.adsbygoogle = window.adsbygoogle || []).push({});
           adLoaded.current = true;
@@ -47,10 +53,12 @@ export default function AdInArticle() {
       } catch (err: any) {
         if (!err.message?.includes("already have ads")) console.error("AdSense Error:", err);
       }
-    }, 250);
+    };
+
+    checkInterval = setTimeout(pushAd, 100);
 
     return () => {
-      clearTimeout(timeoutId);
+      clearTimeout(checkInterval);
       if (observer) observer.disconnect();
     };
   }, [pathname, isMounted]);
@@ -63,11 +71,12 @@ export default function AdInArticle() {
       <span className="text-[10px] text-gray-300 uppercase tracking-[0.2em] mb-3 font-sans select-none">
         Sponsored
       </span>
-      <div className="w-full overflow-hidden flex justify-center">
+      {/* 🌟 Width Fixes */}
+      <div className="w-full overflow-hidden flex justify-center min-w-[250px]">
         <ins
           ref={insRef}
           className="adsbygoogle"
-          style={{ display: "block", textAlign: "center", width: "100%" }}
+          style={{ display: "block", textAlign: "center", width: "100%", minWidth: "100px" }}
           data-ad-layout="in-article"
           data-ad-format="fluid"
           data-ad-client="ca-pub-5565563905050993"
