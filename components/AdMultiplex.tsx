@@ -24,6 +24,9 @@ export default function AdMultiplex() {
     const timeoutId = setTimeout(() => {
       try {
         if (typeof window !== "undefined") {
+          // 🌟 TWEAK 1: Push करने से पहले चेक करें कि <ins> टैग अभी भी स्क्रीन पर है या नहीं
+          if (!insRef.current) return;
+
           // @ts-ignore
           (window.adsbygoogle = window.adsbygoogle || []).push({});
           adLoaded.current = true;
@@ -56,14 +59,16 @@ export default function AdMultiplex() {
 
   return (
     <div className="w-full my-10 flex flex-col overflow-hidden min-h-[300px]">
-      <h3 className="text-xl font-black text-gray-900 mb-4 tracking-tight border-b border-gray-100 pb-2">
+      {/* 🌟 BONUS: Dark mode text color added for consistency */}
+      <h3 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-4 tracking-tight border-b border-gray-100 dark:border-gray-800 pb-2 transition-colors duration-300">
         You May Also Like
       </h3>
       <div className="w-full overflow-hidden">
         <ins
           ref={insRef}
           className="adsbygoogle"
-          style={{ display: "block" }}
+          // 🌟 TWEAK 2: width: "100%" लगाना ज़रूरी है ताकि availableWidth=0 एरर न आए
+          style={{ display: "block", width: "100%" }}
           data-ad-format="autorelaxed"
           data-ad-client="ca-pub-5565563905050993"
           data-ad-slot="6558176273"

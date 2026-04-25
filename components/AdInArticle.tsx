@@ -21,9 +21,13 @@ export default function AdInArticle() {
     if (adLoaded.current) return;
 
     let observer: MutationObserver;
+    
     const timeoutId = setTimeout(() => {
       try {
         if (typeof window !== "undefined") {
+          // 🌟 TWEAK: Push करने से पहले चेक करें कि <ins> टैग अभी भी स्क्रीन पर है या नहीं
+          if (!insRef.current) return;
+
           // @ts-ignore
           (window.adsbygoogle = window.adsbygoogle || []).push({});
           adLoaded.current = true;

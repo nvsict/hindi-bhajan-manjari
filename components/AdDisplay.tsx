@@ -25,6 +25,9 @@ export default function AdDisplay() {
     const timeoutId = setTimeout(() => {
       try {
         if (typeof window !== "undefined") {
+          // 🌟 TWEAK 1: Push करने से पहले चेक करें कि कंपोनेंट अभी भी स्क्रीन पर है या नहीं
+          if (!insRef.current) return;
+
           // @ts-ignore
           (window.adsbygoogle = window.adsbygoogle || []).push({});
           adLoaded.current = true;
@@ -68,7 +71,8 @@ export default function AdDisplay() {
           data-ad-client="ca-pub-5565563905050993"
           data-ad-slot="1922873836"
           data-ad-format="auto"
-          data-full-width-responsive="false"
+          /* 🌟 TWEAK 2: इसे true करें ताकि मोबाइल पर ऐड पूरा फैले और कमाई बढ़े */
+          data-full-width-responsive="true"
         />
       </div>
     </div>
