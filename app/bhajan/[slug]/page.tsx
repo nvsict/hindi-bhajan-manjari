@@ -11,9 +11,11 @@ import CommentsSection from '@/components/CommentsSection';
 import AuthorBox from '@/components/AuthorBox';
 import RelatedContent from '@/components/RelatedContent';
 
-// 🌟 NAYE AD COMPONENTS IMPORTS
+// 🌟 AD COMPONENTS IMPORTS (Updated with all 4 strategic units)
 import AdDisplay from '@/components/AdDisplay';
+import AdInArticle from '@/components/AdInArticle';
 import AdMultiplex from '@/components/AdMultiplex';
+import AdStickySidebar from '@/components/AdStickySidebar';
 
 export const revalidate = 3600;
 
@@ -281,6 +283,7 @@ export default async function BhajanDetails({ params }: Props) {
 
             <div className="p-4 md:p-8">
               
+              {/* 🌟 ABOVE THE FOLD PLACEMENT */}
               <div className="mb-8 md:mb-10 w-full max-w-full overflow-hidden block">
                 <AdDisplay />
               </div>
@@ -294,8 +297,9 @@ export default async function BhajanDetails({ params }: Props) {
                 tarz={bhajan.tarj_parody}
               />
               
+              {/* 🌟 MID-CONTENT PLACEMENT (Fluid In-Article layout) */}
               <div className="mt-8 mb-6 md:mt-10 md:mb-8 w-full max-w-full overflow-hidden block">
-                <AdDisplay />
+                <AdInArticle />
               </div>
               
               {bhajan.explanation && (
@@ -358,6 +362,7 @@ export default async function BhajanDetails({ params }: Props) {
                 </div>
               )}
 
+              {/* 🌟 BOTTOM OF SCREEN PLACEMENT */}
               <div className="mt-12 w-full max-w-full overflow-hidden block">
                 <AdMultiplex />
               </div>
@@ -386,8 +391,9 @@ export default async function BhajanDetails({ params }: Props) {
               filterValue={bhajan.deity_id}
               currentBhajanSlug={bhajan.slug}
             />
+            {/* 🌟 THE VERTICAL AD UNIT (High-paying sticky placement) */}
             <div className="mt-6 w-full max-w-full overflow-hidden block">
-              <AdDisplay />
+              <AdStickySidebar />
             </div>
           </aside>
           
