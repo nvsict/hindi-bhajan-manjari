@@ -13,6 +13,13 @@ import TrendingArtists from '../components/home/TrendingArtists';
 import { FaBookOpen, FaClock, FaArrowRight, FaMusic } from 'react-icons/fa';
 import ScrollReveal from '../components/ScrollReveal';
 
+// 🌟 SMART AD COMPONENTS
+import AdDisplay from '@/components/AdDisplay';
+import AdInArticle from '@/components/AdInArticle';
+import AdMultiplex from '@/components/AdMultiplex';
+import AdStickySidebar from '@/components/AdStickySidebar';
+import AdInFeed from '@/components/AdInFeed';
+
 // VPS Native ISR (Incremental Static Regeneration)
 export const revalidate = 300; 
 
@@ -23,7 +30,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanj
 const seoDescription = "हिंदी भजन मंजरी पर आपका हार्दिक स्वागत है। यहाँ आप सभी देवी-देवताओं के प्रामाणिक भजन, आरती, चालीसा और मंत्रों के लिरिक्स (Lyrics) और उनके भावार्थ हिंदी में पढ़ सकते हैं।";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl), // 🌟 Added metadataBase for safe OG image resolution
+  metadataBase: new URL(siteUrl),
   title: 'हिंदी भजन मंजरी | Hindi Bhajan Manjari - Lyrics, Aarti & Chalisa Sangrah',
   description: seoDescription,
   keywords: 'Hindi Bhajan, Bhajan Lyrics, Aarti Lyrics, Chalisa Sangrah, Devotional Songs, हिंदी भजन, आरती संग्रह, हनुमान चालीसा, शिव भजन',
@@ -86,29 +93,38 @@ async function LatestGyanSection() {
           });
 
           return (
-            <ScrollReveal key={article.slug} delay={index * 0.1} yOffset={30}>
-              <Link 
-                href={`/gyan/${article.slug}`} 
-                className="flex flex-col sm:flex-row gap-4 p-5 bg-gradient-to-br from-white to-orange-50/30 rounded-2xl border border-orange-100 hover:border-orange-300 hover:shadow-md transition-all duration-300 group outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
-              >
-                <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-orange-500 group-hover:text-white transition-all duration-300">
-                  <FaBookOpen size={20} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">
-                    <span className="text-orange-500 flex items-center gap-1"><FaClock /> {article.read_time_minutes} Min</span>
-                    <span>&bull;</span>
-                    <span>{publishDate}</span>
+            <div key={article.slug}>
+              <ScrollReveal delay={index * 0.1} yOffset={30}>
+                <Link 
+                  href={`/gyan/${article.slug}`} 
+                  className="flex flex-col sm:flex-row gap-4 p-5 bg-gradient-to-br from-white to-orange-50/30 rounded-2xl border border-orange-100 hover:border-orange-300 hover:shadow-md transition-all duration-300 group outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-orange-500 group-hover:text-white transition-all duration-300">
+                    <FaBookOpen size={20} />
                   </div>
-                  <h3 className="text-xl font-black text-gray-900 font-hindi leading-tight mb-1 group-hover:text-orange-600 transition-colors line-clamp-1">
-                    {article.title_hindi}
-                  </h3>
-                  <p className="text-sm text-gray-600 line-clamp-2">
-                    {article.meta_description || article.title_hinglish}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">
+                      <span className="text-orange-500 flex items-center gap-1"><FaClock /> {article.read_time_minutes} Min</span>
+                      <span>&bull;</span>
+                      <span>{publishDate}</span>
+                    </div>
+                    <h3 className="text-xl font-black text-gray-900 font-hindi leading-tight mb-1 group-hover:text-orange-600 transition-colors line-clamp-1">
+                      {article.title_hindi}
+                    </h3>
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {article.meta_description || article.title_hinglish}
+                    </p>
+                  </div>
+                </Link>
+              </ScrollReveal>
+              
+              {/* 🌟 SMART INJECTION: AdInFeed appears gracefully after the first article */}
+              {index === 0 && (
+                <div className="my-4 w-full">
+                  <AdInFeed />
                 </div>
-              </Link>
-            </ScrollReveal>
+              )}
+            </div>
           );
         })}
       </div>
@@ -135,7 +151,6 @@ async function LatestBhajansSection() {
     .range(0, 9);
 
   if (error) {
-    // Log securely to VPS server logs, but don't expose raw DB schema/messages to users
     console.error("[Homepage] Failed to fetch latest bhajans:", error.message);
     return (
       <div className="p-8 text-center bg-orange-50 rounded-2xl border border-orange-100">
@@ -155,7 +170,7 @@ async function LatestBhajansSection() {
 
 export default function Home() {
   // ==========================================================
-  // 🌟 HOMEPAGE SEO GRAPH (With Sitename & SearchAction)
+  // 🌟 HOMEPAGE SEO GRAPH
   // ==========================================================
   const homeSchemaGraph = {
     "@context": "https://schema.org",
@@ -166,7 +181,6 @@ export default function Home() {
         "url": siteUrl,
         "name": "Hindi Bhajan Manjari",
         "description": seoDescription,
-        // 🌟 ENHANCEMENT 1: SITELINKS SEARCH BOX
         "potentialAction": {
           "@type": "SearchAction",
           "target": {
@@ -196,13 +210,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* 🌟 INJECT THE MASTER HOMEPAGE GRAPH */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(homeSchemaGraph) }} />
 
       {/* 1. Hero Section */}
       <Hero />
 
-      {/* 🌟 THE FIX 1: Container max-w-[1180px] and gap-8 (Reduced gap to give main content more space) */}
       <div className="max-w-[1180px] mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16 flex flex-col lg:flex-row gap-8 items-start">
         
         {/* Main Content Area */}
@@ -211,9 +223,13 @@ export default function Home() {
           {/* 2. Visual Hook: Who to pray to? */}
           <DeityBrowse /> 
 
+          {/* 🌟 HIGH VISIBILITY DISPLAY AD: Placed right after the visual hook */}
+          <div className="my-10 w-full max-w-full overflow-hidden block">
+            <AdDisplay />
+          </div>
+
           {/* 3. Core Content: The Bhajans */}
-          {/* 🌟 UPGRADE: Increased margins here for Auto Ads breathing room */}
-          <div className="mt-12 md:mt-16">
+          <div className="mt-8 md:mt-12">
             <ScrollReveal yOffset={20}>
               <div className="flex flex-row items-center justify-between border-b border-gray-100 pb-3 md:pb-4 mb-6 md:mb-8 mt-4">
                 <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2 md:gap-3">
@@ -233,8 +249,12 @@ export default function Home() {
             <PopularCategories />
           </div>
           
-          {/* 🌟 UPGRADE: Increased margins here for Auto Ads breathing room */}
-          <div className="mt-12 md:mt-16">
+          {/* 🌟 MID-PAGE BREAK AD: Breaks up the UI beautifully between categories and artists */}
+          <div className="my-12 w-full max-w-full overflow-hidden block">
+            <AdInArticle />
+          </div>
+
+          <div className="mt-8 md:mt-12">
             <TrendingArtists />
           </div>
 
@@ -243,14 +263,24 @@ export default function Home() {
             <LatestGyanSection />
           </Suspense>
 
+          {/* 🌟 THE ANCHOR MULTIPLEX: Catches users before they bounce off the homepage */}
+          <div className="mt-12 mb-8 w-full max-w-full overflow-hidden block">
+            <AdMultiplex />
+          </div>
+
         </main>
 
         {/* 6. Intelligent Global Sidebar */}
         <Suspense fallback={
           <div className="hidden lg:block w-[300px] h-[800px] shrink-0 bg-gray-50/50 border border-gray-100 rounded-[2rem] animate-pulse sticky top-28"></div>
         }>
-          <div className="hidden lg:block lg:sticky lg:top-28 h-fit w-[300px] shrink-0">
+          <div className="hidden lg:block lg:sticky lg:top-28 h-fit w-[300px] shrink-0 pb-8">
             <Sidebar />
+            
+            {/* 🌟 THE SIDEBAR POWER-UP: Vertical sticky ad locks in below your sidebar content */}
+            <div className="mt-8 w-full max-w-full overflow-hidden block">
+              <AdStickySidebar />
+            </div>
           </div>
         </Suspense>
 
