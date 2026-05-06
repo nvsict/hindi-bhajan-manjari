@@ -42,14 +42,25 @@ const FONT_OPTIONS = [
   { id: 'font-kalam', name: 'Kalam (Diary)', className: 'font-kalam' },
 ];
 
+// 🌟 ZERO-ERROR THUMBNAIL COMPONENT
 const YouTubeThumbnail = ({ embedId, title }: { embedId: string, title: string }) => {
-  const [imgSrc, setImgSrc] = useState(`https://img.youtube.com/vi/${embedId}/maxresdefault.jpg`);
+  // We default to 'hqdefault.jpg' because YouTube guarantees it exists for 100% of videos.
+  // This completely eliminates the 404 network errors in the console.
+  const [imgSrc, setImgSrc] = useState(`https://img.youtube.com/vi/${embedId}/hqdefault.jpg`);
+  const [hasError, setHasError] = useState(false);
+
   return (
     <img 
       src={imgSrc} 
       alt={`${title} Video`} 
       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 opacity-90" 
-      onError={() => setImgSrc(`https://img.youtube.com/vi/${embedId}/hqdefault.jpg`)} 
+      onError={() => {
+        // Ultimate fallback just in case even hqdefault drops (prevents infinite loop)
+        if (!hasError) {
+          setImgSrc(`https://img.youtube.com/vi/${embedId}/mqdefault.jpg`);
+          setHasError(true);
+        }
+      }} 
     />
   );
 };
