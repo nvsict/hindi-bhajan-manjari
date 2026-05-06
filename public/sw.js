@@ -15,9 +15,22 @@ self.addEventListener('fetch', (event) => {
   // 🌟 FIXED 1: Ignore non-GET requests
   if (event.request.method !== 'GET') return;
   
-  // 🌟 FIXED 2: Ignore chrome extensions and non-HTTP requests (Stops the annoying console errors)
+  // 🌟 FIXED 2: Ignore chrome extensions and non-HTTP requests (Stops annoying console errors)
   if (!(event.request.url.startsWith('http:') || event.request.url.startsWith('https:'))) {
     return;
+  }
+
+  // 🌟 THE ADSENSE FIX: Tell the Service Worker to completely ignore Google Ad networks
+  // This stops the "[Intervention] Ad was removed" and network promise crashes!
+  const ignoredDomains = [
+    'googlesyndication.com',
+    'doubleclick.net',
+    'googleads.g.doubleclick.net',
+    'adtrafficquality.google'
+  ];
+  
+  if (ignoredDomains.some(domain => event.request.url.includes(domain))) {
+    return; // Bypass the service worker and let the browser handle the ad natively
   }
 
   event.respondWith(

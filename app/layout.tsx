@@ -30,9 +30,8 @@ import ClarityAnalytics from '@/components/ClarityAnalytics';
 import PwaRegistration from '@/components/PwaRegistration';
 import { ThemeProvider } from '@/components/ThemeProvider';
 
-// 🌟 NEW: SMART SITE ASSISTANT & PUSH PROMPT
+// 🌟 SMART SITE ASSISTANT
 import SiteAssistant from '@/components/SiteAssistant';
-import SlideInPrompt from '@/components/SlideInPrompt';
 
 // --- BASE FONTS ---
 const geistSans = Geist({
@@ -187,17 +186,14 @@ export default function RootLayout({
             
             <ConditionalFooter />
           </SmoothScrolling>
-          
+            
           <AnalyticsWrapper gaId="G-LVXN7TD3JB" />
           
-          {/* 🌟 PWA & Engagement UI */}
+          {/* 🌟 PWA Registration (100% Silent Background Install) */}
           <PwaRegistration />
 
           {/* 🌟 MANJARI GUIDE (Smart Site Assistant) */}
           <SiteAssistant />
-
-          {/* 🌟 SCROLL-DELAY PUSH PROMPT (Emotional Hook) */}
-          <SlideInPrompt />
 
         </ThemeProvider>
       </body>
