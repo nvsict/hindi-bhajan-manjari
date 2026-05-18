@@ -76,8 +76,9 @@ async function LatestGyanSection() {
   return (
     <div className="mt-16 mb-12">
       <ScrollReveal yOffset={20}>
-        <div className="flex flex-row items-center justify-between border-b border-orange-100 pb-3 md:pb-4 mb-6">
-          <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2 md:gap-3">
+        {/* 🌟 FIX 2: Dark mode borders and text colors added */}
+        <div className="flex flex-row items-center justify-between border-b border-orange-100 dark:border-[#2a1d12] pb-3 md:pb-4 mb-6">
+          <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2 md:gap-3 transition-colors">
             सनातन <span className="text-orange-600">ज्ञान</span>
           </h2>
           <Link href="/gyan" className="text-sm font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 group outline-none focus-visible:ring-2 focus-visible:ring-orange-400 rounded px-1">
@@ -95,23 +96,24 @@ async function LatestGyanSection() {
           return (
             <div key={article.slug}>
               <ScrollReveal delay={index * 0.1} yOffset={30}>
+                {/* 🌟 FIX 3: Dark mode gradient background for cards */}
                 <Link 
                   href={`/gyan/${article.slug}`} 
-                  className="flex flex-col sm:flex-row gap-4 p-5 bg-gradient-to-br from-white to-orange-50/30 rounded-2xl border border-orange-100 hover:border-orange-300 hover:shadow-md transition-all duration-300 group outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                  className="flex flex-col sm:flex-row gap-4 p-5 bg-gradient-to-br from-white to-orange-50/30 dark:from-[#110c08] dark:to-[#1a120b] rounded-2xl border border-orange-100 dark:border-[#2a1d12] hover:border-orange-300 dark:hover:border-orange-900/50 hover:shadow-md transition-all duration-300 group outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-orange-500 group-hover:text-white transition-all duration-300">
+                  <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-950/30 text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-orange-500 group-hover:text-white transition-all duration-300">
                     <FaBookOpen size={20} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">
+                    <div className="flex items-center gap-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1.5 transition-colors">
                       <span className="text-orange-500 flex items-center gap-1"><FaClock /> {article.read_time_minutes} Min</span>
                       <span>&bull;</span>
                       <span>{publishDate}</span>
                     </div>
-                    <h3 className="text-xl font-black text-gray-900 font-hindi leading-tight mb-1 group-hover:text-orange-600 transition-colors line-clamp-1">
+                    <h3 className="text-xl font-black text-gray-900 dark:text-gray-100 font-hindi leading-tight mb-1 group-hover:text-orange-600 dark:group-hover:text-orange-500 transition-colors line-clamp-1">
                       {article.title_hindi}
                     </h3>
-                    <p className="text-sm text-gray-600 line-clamp-2">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 transition-colors">
                       {article.meta_description || article.title_hinglish}
                     </p>
                   </div>
@@ -153,8 +155,8 @@ async function LatestBhajansSection() {
   if (error) {
     console.error("[Homepage] Failed to fetch latest bhajans:", error.message);
     return (
-      <div className="p-8 text-center bg-orange-50 rounded-2xl border border-orange-100">
-        <p className="text-orange-800 font-medium">संग्रह लोड हो रहा है, कृपया कुछ समय बाद पुनः प्रयास करें।</p> 
+      <div className="p-8 text-center bg-orange-50 dark:bg-orange-950/20 rounded-2xl border border-orange-100 dark:border-orange-900/30">
+        <p className="text-orange-800 dark:text-orange-400 font-medium">संग्रह लोड हो रहा है, कृपया कुछ समय बाद पुनः प्रयास करें।</p> 
       </div>
     );
   }
@@ -209,7 +211,8 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    // 🌟 FIX 1: Removed `bg-white` so the layout's dark background can shine through!
+    <div className="min-h-screen bg-transparent transition-colors duration-300">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(homeSchemaGraph) }} />
 
       {/* 1. Hero Section */}
@@ -231,8 +234,8 @@ export default function Home() {
           {/* 3. Core Content: The Bhajans */}
           <div className="mt-8 md:mt-12">
             <ScrollReveal yOffset={20}>
-              <div className="flex flex-row items-center justify-between border-b border-gray-100 pb-3 md:pb-4 mb-6 md:mb-8 mt-4">
-                <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2 md:gap-3">
+              <div className="flex flex-row items-center justify-between border-b border-gray-100 dark:border-[#2a1d12] pb-3 md:pb-4 mb-6 md:mb-8 mt-4">
+                <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2 md:gap-3 transition-colors">
                   <FaMusic className="text-orange-500 text-xl md:text-2xl hidden sm:block" />
                   Latest <span className="text-orange-600">Bhajans</span>
                 </h2>
@@ -259,7 +262,7 @@ export default function Home() {
           </div>
 
           {/* 5. Deep Reading Anchor */}
-          <Suspense fallback={<div className="h-64 bg-gray-50 rounded-2xl animate-pulse mt-16 mb-12 border border-gray-100"></div>}>
+          <Suspense fallback={<div className="h-64 bg-gray-50 dark:bg-[#110c08] rounded-2xl animate-pulse mt-16 mb-12 border border-gray-100 dark:border-[#2a1d12]"></div>}>
             <LatestGyanSection />
           </Suspense>
 
@@ -272,7 +275,7 @@ export default function Home() {
 
         {/* 6. Intelligent Global Sidebar */}
         <Suspense fallback={
-          <div className="hidden lg:block w-[300px] h-[800px] shrink-0 bg-gray-50/50 border border-gray-100 rounded-[2rem] animate-pulse sticky top-28"></div>
+          <div className="hidden lg:block w-[300px] h-[800px] shrink-0 bg-gray-50/50 dark:bg-[#110c08] border border-gray-100 dark:border-[#2a1d12] rounded-[2rem] animate-pulse sticky top-28"></div>
         }>
           <div className="hidden lg:block lg:sticky lg:top-28 h-fit w-[300px] shrink-0 pb-8">
             <Sidebar />

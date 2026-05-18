@@ -50,8 +50,24 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   
   const ogImageUrl = `${baseUrl}/api/og?title=${encodeURIComponent(bhajan.title_hinglish)}`;
 
+  // ==========================================
+  // 🌟 ADVANCED SEO OVERRIDES LOGIC
+  // ==========================================
+
+  // 1. Title Logic
+  const defaultTitle = `${bhajan.title_hindi} - ${bhajan.title_hinglish} Lyrics | Bhajan Sangrah`;
+  const finalTitle = bhajan.seo_title?.trim() ? bhajan.seo_title : defaultTitle;
+
+  // 2. Description Logic
   const hasMeaning = bhajan.explanation ? "Includes spiritual Bhavarth (Meaning). " : "";
-  const dynamicMetaDescription = `Read complete ${bhajan.title_hindi} (${bhajan.title_hinglish}) lyrics. ${hasMeaning}Available in 8+ Indian languages with free PDF download for daily Puja.`;
+  const defaultMetaDescription = `Read complete ${bhajan.title_hindi} (${bhajan.title_hinglish}) lyrics. ${hasMeaning}Available in 8+ Indian languages with free PDF download for daily Puja.`;
+  const finalDescription = bhajan.meta_description?.trim() ? bhajan.meta_description : defaultMetaDescription;
+
+  // 3. Keywords / Alt Queries Logic
+  let altQueriesArray: string[] = [];
+  if (bhajan.alt_queries?.trim()) {
+    altQueriesArray = bhajan.alt_queries.split(',').map((q: string) => q.trim());
+  }
 
   const dynamicKeywords = [
     `${bhajan.title_hinglish} lyrics`,
@@ -60,26 +76,27 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     `${bhajan.title_hinglish} PDF download`,
     bhajan.deities?.name_hinglish ? `${bhajan.deities.name_hinglish} bhajans` : "",
     ...categoryNames,
-    ...tagNames
+    ...tagNames,
+    ...altQueriesArray // 👈 Injecting alternative starting lines here!
   ].filter(Boolean).join(', ');
 
   return {
     metadataBase: new URL(baseUrl),
-    title: `${bhajan.title_hindi} - ${bhajan.title_hinglish} Lyrics | Bhajan Sangrah`,
-    description: dynamicMetaDescription,
-    keywords: dynamicKeywords,
+    title: finalTitle, // 👈 Using override
+    description: finalDescription, // 👈 Using override
+    keywords: dynamicKeywords, // 👈 Includes override
     alternates: { canonical: pageUrl },
     openGraph: {
-      title: `${bhajan.title_hindi} Lyrics & Meaning`,
-      description: dynamicMetaDescription,
+      title: finalTitle,
+      description: finalDescription,
       url: pageUrl,
       type: 'article',
       images: [{ url: ogImageUrl, width: 1200, height: 630, alt: `${bhajan.title_hinglish} Lyrics` }],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${bhajan.title_hindi} Lyrics`,
-      description: dynamicMetaDescription,
+      title: finalTitle,
+      description: finalDescription,
       images: [ogImageUrl],
     },
   };
@@ -156,11 +173,17 @@ export default async function BhajanDetails({ params }: Props) {
     }
   }
 
+  // 🌟 BONUS: Included alternate starting lines in the Graph Schema too!
+  let alternateNamesSchema = [bhajan.title_hinglish];
+  if (bhajan.alt_queries?.trim()) {
+    alternateNamesSchema = [...alternateNamesSchema, ...bhajan.alt_queries.split(',').map((q: string) => q.trim())];
+  }
+
   graphNodes.push({
     "@type": "MusicComposition",
     "@id": `${pageUrl}#composition`,
     "name": bhajan.title_hindi,
-    "alternateName": bhajan.title_hinglish,
+    "alternateName": alternateNamesSchema, // 👈 Used alt queries here
     "genre": ["Hindu Devotional Music", "Bhajan", ...categories.map((c:any) => c.name_hinglish)],
     "inLanguage": ["hi", "en-IN", "gu", "bn", "te", "kn", "ml", "or"],
     "lyrics": { 

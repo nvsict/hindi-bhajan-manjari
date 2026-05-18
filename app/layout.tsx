@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 // 🌟 1. All 5 Devotional Fonts + Base Fonts Imported
 import { 
@@ -11,6 +11,9 @@ import {
   Kalam 
 } from "next/font/google";
 import "./globals.css";
+
+// 🌟 Next.js Built-in Script Optimizer
+import Script from "next/script";
 
 // 🌟 Components
 import ConditionalHeader from "../components/ConditionalHeader";
@@ -86,6 +89,17 @@ const kalamFont = Kalam({
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.hindibhajanmanjari.com";
 
+// 🌟 FIX 1: Explicit Viewport Export (Next.js 14 Best Practice)
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fffcf5" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c0804" }
+  ],
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
@@ -108,7 +122,6 @@ export const metadata: Metadata = {
   },
   manifest: '/manifest.json', 
   other: {
-    // 🌟 Google Verification for AdSense ownership
     "google-adsense-account": "ca-pub-5565563905050993",
   },
   openGraph: {
@@ -143,27 +156,18 @@ export default function RootLayout({
         {/* Google AdSense Servers */}
         <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://googleads.g.doubleclick.net" crossOrigin="anonymous" />
-
-        {/* 🌟 THE ADSENSE FIX: Pure HTML Script tag instead of Next.js <Script> 
-            This single line removes the "data-nscript" error and initializes Auto Ads perfectly. */}
-        <script 
-          async 
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5565563905050993" 
-          crossOrigin="anonymous"
-        ></script>
       </head>
 
       <body 
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} ${hindFont.variable} ${notoSerifDeva.variable} ${amitaFont.variable} ${poppinsFont.variable} ${kalamFont.variable} antialiased bg-orange-50/30 dark:bg-[#0c0804] flex flex-col min-h-screen selection:bg-orange-500 selection:text-white transition-colors duration-300`}
       >
-        {/* 🌟 SMART ADSENSE: Admin panel पर अपने आप छुप जाएगा */}
-        <AdSense />
-
-        {/* 🌟 MICROSOFT CLARITY ANALYTICS */}
-        <ClarityAnalytics />
-
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          
+          {/* 🌟 FIX 2: AdSense and Clarity moved inside ThemeProvider for safety */}
+          <AdSense />
+          <ClarityAnalytics />
+
           <ScrollToTop />
           <NextTopLoader 
             color="#ea580c"
@@ -189,13 +193,21 @@ export default function RootLayout({
             
           <AnalyticsWrapper gaId="G-LVXN7TD3JB" />
           
-          {/* 🌟 PWA Registration (100% Silent Background Install) */}
+          {/* 🌟 PWA Registration */}
           <PwaRegistration />
 
           {/* 🌟 MANJARI GUIDE (Smart Site Assistant) */}
           <SiteAssistant />
 
         </ThemeProvider>
+
+        {/* 🌟 FIX 3: Next.js Script Optimizer ensures AdSense doesn't block page load! */}
+        <Script
+          id="adsbygoogle-init"
+          strategy="afterInteractive"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5565563905050993"
+          crossOrigin="anonymous"
+        />
       </body>
     </html>
   );

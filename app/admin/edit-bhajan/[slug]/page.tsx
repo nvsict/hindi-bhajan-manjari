@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, use } from 'react';
-import { supabase } from '@/utils/supabase'; // Ensure this path is correct for your project
+import { supabase } from '@/utils/supabase'; 
 import { useRouter } from 'next/navigation';
 import { FaPlus, FaTrash } from 'react-icons/fa';
 import BhajanArtistManager from '@/components/admin/BhajanArtistManager';
@@ -26,17 +26,11 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
     lyrics_hinglish: '',
     video_embed_url: '',
     tarz: '',
-    
-    // 🌟 SEO Content
     explanation: '',
     tags: '', 
-    
-    // 🌟 NEW Advanced SEO Overrides
     seo_title: '',
     meta_description: '',
     alt_queries: '',
-    
-    // 🌟 Relations
     selected_categories: [] as string[], 
     deity_id: ''
   });
@@ -46,37 +40,30 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 🌟 OPTIMIZATION: Fetch Categories and Deities in parallel for faster loading
-        const [catResponse, deityResponse] = await Promise.all([
+        // 🌟 OPTIMIZATION: Fetched ALL 3 queries in parallel! (Super Fast Loading)
+        const [catResponse, deityResponse, bhajanResponse] = await Promise.all([
           supabase.from('categories').select('id, name_hinglish'),
-          supabase.from('deities').select('id, name_hinglish')
+          supabase.from('deities').select('id, name_hinglish'),
+          supabase.from('bhajans')
+            .select(`*, bhajan_category_map(category_id), bhajan_tag_map(tags(name))`)
+            .eq('slug', resolvedParams.slug)
+            .single()
         ]);
         
         if (catResponse.data) setCategories(catResponse.data);
         if (deityResponse.data) setDeities(deityResponse.data);
 
-        // Fetch the specific bhajan AND its junction tables
-        const { data: bhajan, error } = await supabase
-          .from('bhajans')
-          .select(`
-            *,
-            bhajan_category_map ( category_id ),
-            bhajan_tag_map ( tags ( name ) )
-          `)
-          .eq('slug', resolvedParams.slug)
-          .single();
+        const bhajan = bhajanResponse.data;
 
-        if (error || !bhajan) {
+        if (bhajanResponse.error || !bhajan) {
           setFetchError("❌ Bhajan not found or database error.");
           setIsLoading(false);
           return;
         }
 
-        // Format previously selected categories and tags
         const fetchedCategories = bhajan.bhajan_category_map?.map((map: any) => map.category_id) || [];
         const fetchedTags = bhajan.bhajan_tag_map?.map((map: any) => map.tags?.name).filter(Boolean).join(', ') || '';
 
-        // Pre-fill the form
         setFormData({
           id: bhajan.id,
           title_hindi: bhajan.title_hindi || '',
@@ -88,17 +75,13 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
           tarz: bhajan.tarj_parody || '',
           explanation: bhajan.explanation || '',
           tags: fetchedTags,
-          
-          // 🌟 Populate SEO Fields
           seo_title: bhajan.seo_title || '',
           meta_description: bhajan.meta_description || '',
           alt_queries: bhajan.alt_queries || '',
-
           selected_categories: fetchedCategories,
           deity_id: bhajan.deity_id || ''
         });
 
-        // Pre-fill FAQs
         if (bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0) {
           setFaqs(bhajan.faqs);
         }
@@ -123,9 +106,11 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
 
   const addFaqRow = () => setFaqs([...faqs, { question: '', answer: '' }]);
   const removeFaqRow = (index: number) => setFaqs(faqs.filter((_, i) => i !== index));
+  
   const updateFaq = (index: number, field: 'question' | 'answer', value: string) => {
+    // 🌟 OPTIMIZATION: Fixed React State Mutation Error
     const newFaqs = [...faqs];
-    newFaqs[index][field] = value;
+    newFaqs[index] = { ...newFaqs[index], [field]: value };
     setFaqs(newFaqs);
   };
 
@@ -137,7 +122,7 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
     try {
       const cleanFaqs = faqs.filter(f => f.question.trim() !== '' && f.answer.trim() !== '');
 
-      // 1. Update the Main Bhajan Table
+      // 🌟 OPTIMIZATION: Removed unnecessary "singer_details: null"
       const { error: bhajanError } = await supabase
         .from('bhajans')
         .update({
@@ -151,18 +136,14 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
           deity_id: formData.deity_id || null,
           explanation: formData.explanation || null,
           faqs: cleanFaqs.length > 0 ? cleanFaqs : null,
-          // 🌟 Push Updated SEO Fields to DB
           seo_title: formData.seo_title || null,
           meta_description: formData.meta_description || null,
-          alt_queries: formData.alt_queries || null,
-          // We set singer_details to null here since we moved to the new relational tables
-          singer_details: null 
+          alt_queries: formData.alt_queries || null
         })
         .eq('id', formData.id);
 
       if (bhajanError) throw new Error(bhajanError.message);
 
-      // 2. Refresh Category Mappings
       await supabase.from('bhajan_category_map').delete().eq('bhajan_id', formData.id);
       if (formData.selected_categories.length > 0) {
         const categoryMapData = formData.selected_categories.map(catId => ({
@@ -172,7 +153,6 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
         await supabase.from('bhajan_category_map').insert(categoryMapData);
       }
 
-      // 3. Refresh Tag Mappings
       await supabase.from('bhajan_tag_map').delete().eq('bhajan_id', formData.id);
       if (formData.tags.trim()) {
         const tagNames = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
@@ -196,11 +176,7 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
       }
 
       setMessage("✅ Bhajan updated successfully!");
-      
-      // Auto-hide the success message after 4 seconds
-      setTimeout(() => {
-        setMessage("");
-      }, 4000);
+      setTimeout(() => setMessage(""), 4000);
 
     } catch (err: any) {
       setMessage(`❌ ${err.message}`);
@@ -227,12 +203,8 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
         <button onClick={() => router.push('/admin')} className="text-gray-500 hover:text-gray-800 font-bold">Back to Dashboard</button>
       </div>
 
-      {/* =========================================================
-          MAIN BHAJAN FORM
-          ========================================================= */}
       <form onSubmit={handleSubmit} className="space-y-8">
         
-        {/* --- 1. Basic Info --- */}
         <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
           <div className="grid md:grid-cols-2 gap-6 mb-6">
             <div>
@@ -257,7 +229,6 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
           </div>
         </div>
 
-        {/* --- 2. Lyrics & Meaning --- */}
         <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
           <div className="grid md:grid-cols-2 gap-6 mb-6">
             <div>
@@ -275,7 +246,6 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
           </div>
         </div>
 
-        {/* --- 3. Classification & SEO --- */}
         <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
           <div className="mb-6">
             <label className="block text-sm font-bold text-gray-700 mb-3">Categories (Select Multiple)</label>
@@ -303,7 +273,6 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
             </div>
           </div>
 
-          {/* 🌟 NEW SEO FIELDS BLOCK ADDED HERE */}
           <div className="pt-6 border-t border-gray-200">
             <h3 className="text-lg font-bold text-gray-800 mb-4">Advanced SEO Overrides</h3>
             
@@ -332,7 +301,6 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
           </div>
         </div>
 
-        {/* --- 4. FAQs & Media --- */}
         <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
           <div className="mb-8">
             <label className="block text-sm font-bold text-gray-700 mb-2">Video URL (YouTube or Instagram Reel)</label>
@@ -363,9 +331,7 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
           </div>
         </div>
 
-        {/* 🌟 OPTIMIZED SUBMIT AREA: Message is now directly above the button */}
         <div className="pt-4 pb-8 border-b border-gray-200 flex flex-col items-start gap-4">
-          
           {message && (
             <div className={`px-5 py-3 rounded-xl font-bold w-full md:w-auto flex items-center shadow-sm border ${message.includes('❌') ? 'bg-red-50 text-red-600 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
               {message}
@@ -379,9 +345,6 @@ export default function EditBhajanPage({ params }: { params: Promise<{ slug: str
 
       </form>
 
-      {/* =========================================================
-          ARTIST / SINGER MANAGER (The New Addition!)
-          ========================================================= */}
       {formData.id && (
         <div className="mt-12">
           <BhajanArtistManager bhajanId={formData.id} />

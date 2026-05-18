@@ -3,16 +3,24 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../utils/supabase';
 import { FaPlus, FaTrash } from 'react-icons/fa';
+import { useRouter } from 'next/navigation'; // 🌟 1. Added useRouter for redirection
+
 // 🌟 IMPORT YOUR COMPONENT HERE (Adjust the path as needed)
 import BhajanArtistManager from '@/components/admin/BhajanArtistManager'; 
 
+// 🌟 HELPER FUNCTION: To keep code clean and avoid repeating long Regex
+const generateSlug = (text: string) => {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+};
+
 export default function AddBhajanPage() {
+  const router = useRouter(); // 🌟 2. Initialized router
+
   const [categories, setCategories] = useState<any[]>([]);
   const [deities, setDeities] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
-  // 🌟 NEW: State to hold artists selected from the manager before submission
   const [selectedArtists, setSelectedArtists] = useState<{ artist_id: string; role: string }[]>([]);
 
   const [formData, setFormData] = useState({
@@ -31,7 +39,6 @@ export default function AddBhajanPage() {
     new_category_hindi: '',
     new_deity_hinglish: '',
     new_deity_hindi: '',
-    // 🌟 NEW SEO FIELDS ADDED HERE
     seo_title: '',
     meta_description: '',
     alt_queries: '',
@@ -41,10 +48,14 @@ export default function AddBhajanPage() {
 
   useEffect(() => {
     const fetchDropdownData = async () => {
-      const { data: catData } = await supabase.from('categories').select('id, name_hinglish');
-      const { data: deityData } = await supabase.from('deities').select('id, name_hinglish');
-      if (catData) setCategories(catData);
-      if (deityData) setDeities(deityData);
+      // 🌟 FIX: Fetching in Parallel for 2x Speed!
+      const [catResponse, deityResponse] = await Promise.all([
+        supabase.from('categories').select('id, name_hinglish'),
+        supabase.from('deities').select('id, name_hinglish')
+      ]);
+      
+      if (catResponse.data) setCategories(catResponse.data);
+      if (deityResponse.data) setDeities(deityResponse.data);
     };
     fetchDropdownData();
   }, []);
@@ -60,7 +71,7 @@ export default function AddBhajanPage() {
           ...prev,
           title_hindi: titleParam || '',
           title_hinglish: titleParam || '',
-          slug: (titleParam || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
+          slug: generateSlug(titleParam || ''),
           lyrics_hindi: lyricsParam || '',
         }));
       }
@@ -69,8 +80,7 @@ export default function AddBhajanPage() {
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const title = e.target.value;
-    const generatedSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-    setFormData({ ...formData, title_hinglish: title, slug: generatedSlug });
+    setFormData({ ...formData, title_hinglish: title, slug: generateSlug(title) });
   };
 
   const handleCategoryToggle = (catId: string) => {
@@ -84,9 +94,11 @@ export default function AddBhajanPage() {
 
   const addFaqRow = () => setFaqs([...faqs, { question: '', answer: '' }]);
   const removeFaqRow = (index: number) => setFaqs(faqs.filter((_, i) => i !== index));
+  
   const updateFaq = (index: number, field: 'question' | 'answer', value: string) => {
+    // 🌟 FIX: Resolved React State Mutation Bug
     const newFaqs = [...faqs];
-    newFaqs[index][field] = value;
+    newFaqs[index] = { ...newFaqs[index], [field]: value };
     setFaqs(newFaqs);
   };
 
@@ -101,7 +113,7 @@ export default function AddBhajanPage() {
 
       // 1. Create New Deity if requested
       if (formData.deity_id === 'new') {
-        const deitySlug = formData.new_deity_hinglish.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        const deitySlug = generateSlug(formData.new_deity_hinglish);
         const { data: newDeity, error: deityError } = await supabase
           .from('deities')
           .insert([{ name_hinglish: formData.new_deity_hinglish, name_hindi: formData.new_deity_hindi, slug: deitySlug }])
@@ -112,7 +124,7 @@ export default function AddBhajanPage() {
 
       // 2. Create New Category if requested
       if (formData.new_category_hinglish) {
-        const catSlug = formData.new_category_hinglish.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        const catSlug = generateSlug(formData.new_category_hinglish);
         const { data: newCat, error: catError } = await supabase
           .from('categories')
           .insert([{ name_hinglish: formData.new_category_hinglish, name_hindi: formData.new_category_hindi, slug: catSlug }])
@@ -133,11 +145,10 @@ export default function AddBhajanPage() {
           lyrics_hinglish: formData.lyrics_hinglish,
           video_embed_url: formData.video_embed_url,
           tarj_parody: formData.tarz,
-          singer_details: null, // 🌟 Legacy field, left as null
+          singer_details: null, // Legacy field, left as null
           deity_id: finalDeityId === 'new' ? null : finalDeityId || null,
           explanation: formData.explanation || null, 
           faqs: cleanFaqs.length > 0 ? cleanFaqs : null,
-          // 🌟 INJECTED SEO COLUMNS 
           seo_title: formData.seo_title || null,
           meta_description: formData.meta_description || null,
           alt_queries: formData.alt_queries || null
@@ -156,7 +167,7 @@ export default function AddBhajanPage() {
         await supabase.from('bhajan_category_map').insert(categoryMapData);
       }
 
-      // 🌟 5. Insert Junction Table: Artists (From BhajanArtistManager)
+      // 5. Insert Junction Table: Artists
       if (selectedArtists.length > 0) {
         const artistMapData = selectedArtists.map(artist => ({
           bhajan_id: newBhajanId,
@@ -172,7 +183,7 @@ export default function AddBhajanPage() {
         const tagNames = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
         const tagsToUpsert = tagNames.map(name => ({
           name: name,
-          slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
+          slug: generateSlug(name)
         }));
 
         const { data: upsertedTags, error: tagError } = await supabase
@@ -189,23 +200,17 @@ export default function AddBhajanPage() {
         }
       }
 
-      setMessage("✅ Bhajan, Artists & SEO data published successfully!");
+      setMessage("✅ Bhajan, Artists & SEO data published successfully! Redirecting...");
       
-      // Reset Form (Including SEO fields)
-      setFormData({ 
-        title_hindi: '', title_hinglish: '', slug: '', lyrics_hindi: '', lyrics_hinglish: '', 
-        video_embed_url: '', tarz: '', explanation: '', tags: '', selected_categories: [], deity_id: '', 
-        new_category_hinglish: '', new_category_hindi: '', new_deity_hinglish: '', new_deity_hindi: '',
-        seo_title: '', meta_description: '', alt_queries: '' 
-      });
-      setFaqs([{ question: '', answer: '' }]);
-      setSelectedArtists([]); // Reset artists
+      // 🌟 AUTO REDIRECT: Redirects back to dashboard after 1.5 seconds
+      setTimeout(() => {
+        router.push('/admin');
+      }, 1500);
 
     } catch (err: any) {
       setMessage(`❌ ${err.message}`);
-    } finally {
-      setIsSubmitting(false);
-    }
+      setIsSubmitting(false); // Only re-enable button if there's an error
+    } 
   };
 
   return (
@@ -312,7 +317,6 @@ export default function AddBhajanPage() {
             </div>
           </div>
 
-          {/* 🌟 NEW SEO FIELDS ADDED HERE */}
           <div className="mt-8 border-t border-gray-200 pt-6">
             <h3 className="text-lg font-bold text-gray-800 mb-4">Advanced SEO Overrides</h3>
             
@@ -377,7 +381,6 @@ export default function AddBhajanPage() {
             <input type="text" value={formData.video_embed_url} onChange={(e) => setFormData({...formData, video_embed_url: e.target.value})} className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:outline-orange-500" placeholder="https://youtube.com/..." />
           </div>
 
-          {/* 🌟 INTEGRATED BHAJAN ARTIST MANAGER */}
           <div className="mt-8 border-t border-gray-200 pt-6">
             <h3 className="text-lg font-bold text-gray-800 mb-4">Assign Artists to this Bhajan</h3>
             <p className="text-sm text-gray-500 mb-4">Select singers, writers, or composers. They will be linked to this bhajan upon publishing.</p>

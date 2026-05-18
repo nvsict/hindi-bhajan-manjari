@@ -11,7 +11,7 @@ import { GiLotusFlower } from 'react-icons/gi';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
+  const router = useRouter(); // 🌟 अब हम इसका सही इस्तेमाल करेंगे!
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -38,17 +38,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setLogoutError("");
     
     try {
-      // 1. Destroy the secure JWT cookie
+      // 1. ब्राउज़र से एडमिन कुकी (Cookie) डिलीट करें
       document.cookie = "admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
       
-      // 2. Clear Supabase session
-      await supabase.auth.signOut();
+      // 2. Supabase सेशन क्लियर करें (Promise.race ताकि नेटवर्क स्लो हो तो भी न अटके)
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise(resolve => setTimeout(resolve, 2000)) // 2 सेकंड का टाइमआउट फॉलबैक
+      ]);
       
-      // 3. Force hard redirect to clear memory
+      // 🌟 THE FIX: Hard Reload is actually the safest way for Auth Logouts!
+      // यह ब्राउज़र की मेमोरी साफ करके सीधे लॉगिन पेज पर फेंक देगा।
       window.location.href = '/admin/login';
       
     } catch (error) {
-      setLogoutError("Something went wrong. Please clear your browser cookies manually.");
+      setLogoutError("Logout failed. Please clear your browser cookies manually.");
       setIsLoggingOut(false); 
     }
   };
@@ -74,7 +78,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </header>
 
       {/* ==========================================
-          🖥️ DESKTOP / MOBILE SIDEBAR (Light Premium Theme)
+          🖥️ DESKTOP / MOBILE SIDEBAR
           ========================================== */}
       <aside className={`
         fixed top-0 left-0 h-full w-72 bg-white text-gray-700 flex flex-col z-50 
@@ -85,7 +89,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         
         {/* Logo Area */}
         <div className="hidden md:flex items-center gap-4 px-8 py-8 mb-2 border-b border-gray-50 bg-white relative overflow-hidden">
-          {/* Subtle background glow */}
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-orange-50/50 to-transparent pointer-events-none" />
           
           <GiLotusFlower className="text-orange-600 text-4xl drop-shadow-sm relative z-10" />
@@ -102,7 +105,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <p className="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4 mt-4 md:mt-0">Main Menu</p>
           
           {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            // 🌟 FIX 1: Strict match for Dashboard ('/admin'), startsWith for others!
+            const isActive = item.href === '/admin' 
+              ? pathname === '/admin' 
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
+              
             return (
               <Link 
                 key={item.name} 
