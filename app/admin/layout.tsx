@@ -5,13 +5,13 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
 import { 
-  FaChartBar, FaPlus, FaTags, FaGlobe, FaBars, FaTimes, FaSignOutAlt, FaNewspaper, FaUserShield, FaBell, FaExclamationTriangle 
+  FaChartBar, FaPlus, FaTags, FaGlobe, FaBars, FaTimes, FaSignOutAlt, FaNewspaper, FaUserShield, FaBell, FaExclamationTriangle, FaBookOpen 
 } from 'react-icons/fa';
 import { GiLotusFlower } from 'react-icons/gi';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter(); // 🌟 अब हम इसका सही इस्तेमाल करेंगे!
+  const router = useRouter(); 
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -31,6 +31,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Site Metadata', href: '/admin/manage', icon: FaTags },
     { name: 'Gyan Articles', href: '/admin/articles', icon: FaNewspaper },
     { name: 'Broadcast Push', href: '/admin/broadcast', icon: FaBell },
+    { name: 'Dictionary', href: '/admin/dictionary', icon: FaBookOpen }, // 🌟 NEW: Dictionary Link Added
   ];
 
   const confirmLogout = async () => {
