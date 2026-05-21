@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/utils/supabase';
+import { upsertDictionaryWords } from '@/app/actions/dictionary'; // 🌟 Server Action Import
+
 import { 
   FaUpload, FaDownload, FaFileDownload, FaSearch, 
   FaCheckSquare, FaRegSquare, FaChartPie, FaPlus, FaTimes, FaInfoCircle
 } from 'react-icons/fa';
 import Papa from 'papaparse';
-
 export default function DictionaryManager() {
   const [activeTab, setActiveTab] = useState<'studio' | 'bulk'>('studio');
   const [bhajans, setBhajans] = useState<any[]>([]);
@@ -136,6 +137,8 @@ export default function DictionaryManager() {
     setLoading(false);
   };
 
+  // --- BULK ACTIONS LOGIC ---
+
   const handleImport = async () => {
     if (!inputText.trim()) {
       setMsg({ type: 'error', text: 'Please paste some CSV data first.' });
@@ -146,9 +149,10 @@ export default function DictionaryManager() {
     setMsg({ type: '', text: '' });
     
     try {
+      // 1. Parse CSV
       const parsed = Papa.parse(inputText, { header: true, skipEmptyLines: true });
       
-      // Filter out invalid rows and auto-generate slugs
+      // 2. Filter out invalid rows and auto-generate slugs
       const finalData = parsed.data
         .filter((row: any) => row.word_hi && row.word_hi.trim() !== '')
         .map((row: any) => ({
@@ -160,15 +164,17 @@ export default function DictionaryManager() {
         throw new Error("No valid data found. Ensure your CSV has a 'word_hi' column.");
       }
 
-      const { error: dbError } = await supabase
-        .from('dictionary')
-        .upsert(finalData, { onConflict: 'word_hi' });
+      // 🌟 3. Call Server Action (No Supabase client needed here)
+      const result = await upsertDictionaryWords(finalData);
 
-      if (dbError) throw dbError;
+      // 4. Handle Server Response
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update dictionary via server.');
+      }
 
-      setMsg({ type: 'success', text: `Successfully processed ${finalData.length} words! Duplicates were merged.` });
+      setMsg({ type: 'success', text: `Successfully processed ${finalData.length} words via Server Action! Duplicates were merged.` });
       setInputText('');
-      fetchData(); // Refresh the dictionary set
+      fetchData(); // Refresh the dictionary set on the UI
       
     } catch (err: any) {
       setMsg({ type: 'error', text: err.message || 'An error occurred during import.' });
