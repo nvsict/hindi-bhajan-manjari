@@ -24,10 +24,13 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanj
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   
+  // 🚀 THE FIX: Decode the URL parameter so Hindi matches the database
+  const decodedSlug = decodeURIComponent(slug);
+  
   const { data: word } = await supabase
     .from('dictionary')
     .select('*')
-    .eq('slug', slug)
+    .eq('slug', decodedSlug) // Use decoded slug here
     .single();
 
   if (!word) return { title: 'Word Not Found' };
@@ -64,11 +67,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ShabdkoshWordPage({ params }: Props) {
   const { slug } = await params;
 
+  // 🚀 THE FIX: Decode the URL parameter so Hindi matches the database
+  const decodedSlug = decodeURIComponent(slug);
+
   // Fetch the specific word
   const { data: word, error } = await supabase
     .from('dictionary')
     .select('*')
-    .eq('slug', slug)
+    .eq('slug', decodedSlug) // Use decoded slug here
     .single();
 
   if (error || !word) {
@@ -79,7 +85,7 @@ export default async function ShabdkoshWordPage({ params }: Props) {
   const { data: relatedWords } = await supabase
     .from('dictionary')
     .select('word_hi, word_en, slug')
-    .neq('slug', slug)
+    .neq('slug', decodedSlug) // Use decoded slug here too
     .limit(3);
 
   const breadcrumbItems = [
