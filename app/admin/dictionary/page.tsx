@@ -155,18 +155,41 @@ export default function DictionaryManager() {
     setLoading(false);
   };
 
+  // 🌟 BULK IMPORT (With Smart Deduplication Fix)
   const handleBulkImport = async () => {
     if (!inputText.trim()) return;
     setLoading(true); setMsg({ type: '', text: '' });
+    
     try {
       const parsed = Papa.parse(inputText, { header: true, skipEmptyLines: true });
-      const finalData = parsed.data.map((row: any) => ({
-          ...row,
-          slug: generateSlug(row.word_hi, row.word_en)
-      }));
+      
+      // 🚀 THE FIX: Remove duplicates from the pasted data BEFORE sending to Supabase
+      const uniqueDataMap = new Map();
+
+      parsed.data.forEach((row: any) => {
+        if (row.word_hi && row.word_hi.trim()) {
+          const cleanWordHi = row.word_hi.trim();
+          
+          // Map will automatically overwrite the old entry if a duplicate word_hi comes up
+          uniqueDataMap.set(cleanWordHi, {
+            ...row,
+            word_hi: cleanWordHi,
+            slug: generateSlug(cleanWordHi, row.word_en)
+          });
+        }
+      });
+
+      // Convert Map back to an Array
+      const finalData = Array.from(uniqueDataMap.values());
+
+      if (finalData.length === 0) throw new Error("No valid data found to upload.");
+
+      // Send the clean, unique data to Server Action
       const result = await upsertDictionaryWords(finalData);
+      
       if (!result.success) throw new Error(result.error);
-      setMsg({ type: 'success', text: `Successfully processed ${finalData.length} words!` });
+      
+      setMsg({ type: 'success', text: `Successfully processed ${finalData.length} unique words! (Duplicates ignored)` });
       setInputText('');
       fetchData();
     } catch (err: any) {
