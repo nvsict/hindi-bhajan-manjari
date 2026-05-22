@@ -28,8 +28,8 @@ export const AUTHORS: Record<string, any> = {
     image: "https://i.ibb.co/NddGCY05/Whats-App-Image-2026-02-28-at-12-37-16-AM.jpg",
     verified: true,
     stats: {
-      articles: "5+",
-      bhajans: "100+",
+      articles: "10+",
+      bhajans: "300+",
       experience: "5+ Years"
     },
     // 🌟 आपका नया Social Data

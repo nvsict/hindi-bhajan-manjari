@@ -22,53 +22,52 @@ const hind = Hind({
   display: 'swap',
 });
 
-// ─── 🌟 DEFAULT FALLBACK NAV DATA (SEO OPTIMIZED) ────────
+// ─── 🌟 DEFAULT FALLBACK NAV DATA (BILINGUAL) ────────
 const DEFAULT_NAV_ITEMS = [
-  { name: 'Home', href: '/', title: 'Go to Homepage' },
+  { name: 'होम (Home)', href: '/', title: 'Go to Homepage' },
   {
-    name: 'Deities',
+    name: 'देवता (Deities)',
     title: 'Explore Deity Specific Bhajans',
     megaMenu: {
       featured: {
-        title: 'Divine Darshan',
-        desc: 'Explore our sacred collection of deity-specific Bhajans, Aartis, and Mantras for deep spiritual connection.',
+        title: 'दिव्य दर्शन',
+        desc: 'गहरे आध्यात्मिक जुड़ाव के लिए हमारे देवी-देवताओं के विशेष भजन, आरती और मंत्रों का संग्रह।',
         icon: <FaOm className="text-5xl text-orange-600 mb-5 opacity-90 drop-shadow-sm" />,
         href: '/deity',
         bg: 'from-orange-500 to-red-600',
       },
       links: [
-        { name: 'Shri Hanuman', href: '/deity/hanuman', icon: '🚩', desc: 'Sankat Mochan Bhajans' },
-        { name: 'Shri Ram', href: '/deity/shri-ram', icon: '🏹', desc: 'Maryada Purushottam' },
-        { name: 'Shri Krishna', href: '/deity/shri-krishna', icon: '🦚', desc: 'Bhakti & Leela' },
-        { name: 'Shiv Ji', href: '/deity/shiv-ji', icon: '🔱', desc: 'Mahadev Chants & Stotras' },
-        { name: 'Mata Rani', href: '/deity/mata-rani', icon: '🦁', desc: 'Shakti & Devotion Songs' },
-        { name: 'Shri Hari', href: '/deity/shri-hari', icon: '🐚', desc: 'Vishnu Mantras & Path' },
+        { name: 'श्री हनुमान', href: '/deity/hanuman', icon: '🚩', desc: 'Sankat Mochan Bhajans' },
+        { name: 'श्री राम', href: '/deity/shri-ram', icon: '🏹', desc: 'Maryada Purushottam' },
+        { name: 'श्री कृष्ण', href: '/deity/shri-krishna', icon: '🦚', desc: 'Bhakti & Leela' },
+        { name: 'शिव जी', href: '/deity/shiv-ji', icon: '🔱', desc: 'Mahadev Chants & Stotras' },
+        { name: 'माता रानी', href: '/deity/mata-rani', icon: '🦁', desc: 'Shakti & Devotion Songs' },
+        { name: 'श्री हरि', href: '/deity/shri-hari', icon: '🐚', desc: 'Vishnu Mantras & Path' },
       ]
     }
   },
   {
-    name: 'Categories',
+    name: 'श्रेणियां (Categories)',
     title: 'Browse Bhajan Categories',
     megaMenu: {
       featured: {
-        title: 'Daily Devotion',
-        desc: 'Start your morning with powerful Aartis and peaceful Chalisa recitations tailored for daily worship.',
+        title: 'नित्य उपासना',
+        desc: 'अपनी सुबह की शुरुआत शक्तिशाली आरती और शांतिपूर्ण चालीसा पाठ के साथ करें।',
         icon: <FaHandsPraying className="text-5xl text-amber-200 mb-5 opacity-90 drop-shadow-sm" />,
         href: '/category/aarti',
         bg: 'from-amber-500 to-orange-500',
       },
       links: [
-        { name: 'Devi Maa', href: '/category/mata-ke-bhajan', icon: <FaMusic/>, desc: 'Mata Rani Devotional Songs' },
-        { name: 'Aarti', href: '/category/aarti', icon: <GiLotusFlower/>, desc: 'Morning & Evening Prayers' },
-        { name: 'Chalisa', href: '/category/chalisa', icon: <FaBookOpen/>, desc: 'Powerful 40-Verse Hymns' },
-        { name: 'Stotram', href: '/category/stotram', icon: <FaOm/>, desc: 'Ancient Sanskrit Chants' },
-        { name: 'Pad', href: '/category/pad', icon: <FaPenNib/>, desc: 'Classical Poetic Verses' },
+        { name: 'माता के भजन', href: '/category/mata-ke-bhajan', icon: <FaMusic/>, desc: 'Mata Rani Devotional Songs' },
+        { name: 'आरती (Aarti)', href: '/category/aarti', icon: <GiLotusFlower/>, desc: 'Morning & Evening Prayers' },
+        { name: 'चालीसा (Chalisa)', href: '/category/chalisa', icon: <FaBookOpen/>, desc: 'Powerful 40-Verse Hymns' },
+        { name: 'स्तोत्रम् (Stotram)', href: '/category/stotram', icon: <FaOm/>, desc: 'Ancient Sanskrit Chants' },
+        { name: 'पद (Pad)', href: '/category/pad', icon: <FaPenNib/>, desc: 'Classical Poetic Verses' },
       ]
     }
   },
-  { name: 'Bhajans', href: '/bhajan', title: 'A-Z Hindi Bhajans Collection' }, 
-  { name: 'Gyan Hub', href: '/gyan', title: 'Sanatan Gyan & Spiritual Articles' },
-  // 🌟 FIX: Removed the Emoji, only text now (Icon is handled by code)
+  { name: 'भजन (Bhajans)', href: '/bhajan', title: 'A-Z Hindi Bhajans Collection' }, 
+  { name: 'ज्ञान (Gyan)', href: '/gyan', title: 'Sanatan Gyan & Spiritual Articles' },
   { name: 'Wisdom (EN)', href: '/en/gyan', title: 'Read Spiritual Articles in English' }, 
 ];
 
@@ -134,7 +133,6 @@ export default function Header() {
   const pathname = usePathname();
   const lenis = useLenis();
 
-  // 🌟 DYNAMIC FETCHING LOGIC (Using Supabase Views)
   useEffect(() => {
     const fetchDynamicNav = async () => {
       try {
@@ -143,9 +141,9 @@ export default function Header() {
 
         if (topDeities && topCategories) {
           const dynamicNav = [
-            { name: 'Home', href: '/', title: 'Go to Homepage' },
+            { name: 'होम (Home)', href: '/', title: 'Go to Homepage' },
             {
-              name: 'Deities',
+              name: 'देवता (Deities)',
               title: 'Explore Deity Specific Bhajans',
               megaMenu: {
                 featured: DEFAULT_NAV_ITEMS[1].megaMenu!.featured, 
@@ -158,7 +156,7 @@ export default function Header() {
               }
             },
             {
-              name: 'Categories',
+              name: 'श्रेणियां (Categories)',
               title: 'Browse Bhajan Categories',
               megaMenu: {
                 featured: DEFAULT_NAV_ITEMS[2].megaMenu!.featured, 
@@ -170,9 +168,8 @@ export default function Header() {
                 }))
               }
             },
-            { name: 'Bhajans', href: '/bhajan', title: 'A-Z Hindi Bhajans Collection' }, 
-            { name: 'Gyan Hub', href: '/gyan', title: 'Sanatan Gyan & Spiritual Articles' },
-            // 🌟 FIX: Removed the Emoji from name string for dynamic fetch as well
+            { name: 'भजन (Bhajans)', href: '/bhajan', title: 'A-Z Hindi Bhajans Collection' }, 
+            { name: 'ज्ञान (Gyan)', href: '/gyan', title: 'Sanatan Gyan & Spiritual Articles' },
             { name: 'Wisdom (EN)', href: '/en/gyan', title: 'Read Spiritual Articles in English' },
           ];
           setNavItems(dynamicNav);
@@ -184,7 +181,6 @@ export default function Header() {
     fetchDynamicNav();
   }, []);
 
-  // PWA Logic
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => { e.preventDefault(); setDeferredPrompt(e); };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -198,7 +194,6 @@ export default function Header() {
     if (outcome === 'accepted') setDeferredPrompt(null);
   };
 
-  // Scroll & Lenis Logic
   useLenis(({ scroll }) => {
     setScrolled(scroll > 10);
     if (scroll < 120) setIsHidden(false); 
@@ -268,20 +263,20 @@ export default function Header() {
           <div className="flex items-center justify-between h-[80px]">
             
             {/* 🌟 Logo */}
-            <Link href="/" title="Hindi Bhajan Manjari Home" className="flex items-center gap-3.5 group shrink-0 outline-none rounded-lg z-10 relative py-2">
-              <div className={`relative flex items-center justify-center origin-left transition-transform duration-400 ease-out group-hover:-rotate-6 w-12 h-12 ${scrolled ? 'scale-[0.85]' : 'scale-100'} bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-2xl shadow-sm border border-orange-100/50`}>
-                <Image src="/favicon.ico" alt="Hindi Bhajan Manjari" width={36} height={36} className="object-contain drop-shadow-md brightness-110" />
+            <Link href="/" title="Hindi Bhajan Manjari Home" className="flex items-center gap-2.5 xl:gap-3 group shrink-0 outline-none rounded-lg z-10 relative py-2">
+              <div className={`relative flex items-center justify-center origin-left transition-transform duration-400 ease-out group-hover:-rotate-6 w-10 h-10 xl:w-12 xl:h-12 ${scrolled ? 'scale-[0.85]' : 'scale-100'} bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-2xl shadow-sm border border-orange-100/50`}>
+                <Image src="/favicon.ico" alt="Hindi Bhajan Manjari" width={32} height={32} className="object-contain drop-shadow-md brightness-110 xl:w-[36px] xl:h-[36px]" />
               </div>
               <div className="flex flex-col leading-none justify-center">
-                <span className={`font-black tracking-tight text-gray-900 text-xl md:text-[26px] origin-left inline-block transition-all duration-400 ${scrolled ? 'scale-[0.9]' : 'scale-100'}`}>
+                <span className={`font-black tracking-tight text-gray-900 text-lg xl:text-[24px] origin-left inline-block transition-all duration-400 ${scrolled ? 'scale-[0.9]' : 'scale-100'}`}>
                   HINDI<span className="text-orange-600">BHAJAN</span>
                 </span>
-                <span className="text-[9px] md:text-[10px] font-extrabold text-gray-500 tracking-[0.35em] uppercase mt-1">Manjari</span>
+                <span className="text-[8px] xl:text-[10px] font-extrabold text-gray-500 tracking-[0.35em] uppercase mt-1">Manjari</span>
               </div>
             </Link>
 
-            {/* 🌟 PREMIUM DESKTOP NAV (Fixed Text Wrapping & Spacing) */}
-            <nav className="hidden lg:flex items-center gap-1 xl:gap-2 mx-4 xl:mx-6 relative h-full" onMouseLeave={handleNavMouseLeave}>
+            {/* 🌟 PREMIUM DESKTOP NAV (Hidden until 'xl' 1280px to prevent overflow) */}
+            <nav className="hidden xl:flex items-center gap-1 mx-4 relative h-full" onMouseLeave={handleNavMouseLeave}>
               <div 
                 className="absolute h-10 bg-orange-50 rounded-full transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] pointer-events-none"
                 style={{
@@ -295,25 +290,22 @@ export default function Header() {
               {navItems.map((item) => {
                 const isItemActive = item.href ? isActive(item.href) : item.megaMenu?.links.some((d: any) => isActive(d.href));
                 const isHovered = hoveredMenu === item.name;
-                // English Link identifier 
                 const isEnglishLink = item.name.includes('(EN)');
                 
                 return (
                   <div key={item.name} className="relative flex items-center h-full" ref={(el) => { navRefs.current[item.name] = el; }} onMouseEnter={() => handleNavMouseEnter(item.name)}>
                     {item.megaMenu ? (
-                      <button title={item.title} className={`relative z-10 flex items-center gap-1.5 px-4 xl:px-5 py-2.5 text-[13px] font-black uppercase tracking-widest whitespace-nowrap rounded-full transition-colors duration-200 ${isItemActive || isHovered ? 'text-orange-700' : 'text-gray-700'}`}>
+                      <button title={item.title} className={`relative z-10 flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-black uppercase tracking-widest whitespace-nowrap rounded-full transition-colors duration-200 ${isItemActive || isHovered ? 'text-orange-700' : 'text-gray-700'}`}>
                         {item.name}
                         <FaChevronDown size={10} className={`transition-transform duration-300 opacity-60 ${isHovered ? 'rotate-180 text-orange-600' : ''}`} />
                       </button>
                     ) : (
-                      // 🌟 FIX: Added whitespace-nowrap to prevent text wrapping!
-                      <Link href={item.href!} title={item.title} className={`relative z-10 flex items-center gap-1.5 px-4 xl:px-5 py-2.5 text-[13px] font-black uppercase tracking-widest whitespace-nowrap rounded-full transition-all duration-200 ${
+                      <Link href={item.href!} title={item.title} className={`relative z-10 flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-black uppercase tracking-widest whitespace-nowrap rounded-full transition-all duration-200 ${
                         isItemActive || isHovered 
                           ? isEnglishLink ? 'text-blue-700' : 'text-orange-700' 
                           : isEnglishLink ? 'text-blue-600' : 'text-gray-700'
                       }`}>
-                        {/* Render FaGlobe icon dynamically ONLY here, since emoji is removed */}
-                        {isEnglishLink && <FaGlobe className="text-blue-500 text-sm" />}
+                        {isEnglishLink && <FaGlobe className="text-blue-500 text-[13px]" />}
                         {item.name}
                       </Link>
                     )}
@@ -321,7 +313,7 @@ export default function Header() {
                 );
               })}
 
-              {/* SHARED MEGA MENU DROPDOWN CONTAINER */}
+              {/* MEGA MENU DROPDOWN */}
               <div 
                 className={`absolute top-[90%] left-1/2 -translate-x-1/2 pt-5 transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] origin-top z-50 ${hasActiveMegaMenu ? 'opacity-100 visible translate-y-0 scale-100' : 'opacity-0 invisible translate-y-4 scale-95 pointer-events-none'}`}
                 onMouseEnter={() => { if (hoverTimeout.current) clearTimeout(hoverTimeout.current); }}
@@ -331,7 +323,6 @@ export default function Header() {
                     const isContentActive = hoveredMenu === item.name;
                     return (
                       <div key={item.name} className={`col-start-1 row-start-1 flex transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] ${isContentActive ? 'opacity-100 translate-x-0 z-10' : 'opacity-0 -translate-x-6 z-0 pointer-events-none'}`}>
-                        {/* Left Featured Column */}
                         <div className={`w-[280px] shrink-0 bg-gradient-to-br ${item.megaMenu!.featured.bg} p-10 rounded-[2rem] flex flex-col justify-between relative overflow-hidden shadow-inner`}>
                           <div className="absolute -right-12 -top-12 w-48 h-48 bg-white/20 rounded-full blur-3xl pointer-events-none" />
                           <div className="relative z-10">
@@ -343,7 +334,6 @@ export default function Header() {
                             Explore All <FaChevronRight size={12} />
                           </Link>
                         </div>
-                        {/* Right Grid Column */}
                         <div className="flex-1 p-8 grid grid-cols-2 gap-x-6 gap-y-5 content-start">
                           {item.megaMenu!.links.map((subItem: any) => (
                             <Link key={subItem.name} href={subItem.href} title={subItem.desc} onClick={closeMenu} className={`group/link flex items-start gap-4 p-4 rounded-2xl transition-all duration-200 ${isActive(subItem.href) ? 'bg-orange-50 ring-1 ring-orange-200/50' : 'hover:bg-gray-50 hover:shadow-sm'}`}>
@@ -364,22 +354,22 @@ export default function Header() {
               </div>
             </nav>
 
-            {/* 🌟 Desktop Actions */}
-            <div className="hidden lg:flex items-center gap-2 xl:gap-3 shrink-0 z-10">
-              <Link href="/donate" title="Support Hindi Bhajan Manjari" className="mr-2 flex items-center gap-2 px-4 xl:px-6 py-2.5 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white text-[14px] font-black tracking-wide rounded-full transition-all shadow-md outline-none focus-visible:ring-4 focus-visible:ring-orange-400/50 active:scale-95 whitespace-nowrap">
-                <FaHandHoldingHeart size={18} /> Support Us
+            {/* 🌟 Desktop Actions (Hidden until 'xl') */}
+            <div className="hidden xl:flex items-center gap-2 shrink-0 z-10">
+              <Link href="/donate" title="Support Hindi Bhajan Manjari" className="mr-2 flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white text-[13px] font-black tracking-wide rounded-full transition-all shadow-md outline-none focus-visible:ring-4 focus-visible:ring-orange-400/50 active:scale-95 whitespace-nowrap">
+                <FaHandHoldingHeart className="text-[16px]" /> Support Us
               </Link>
               <button onClick={openSearch} aria-label="Open search" title="Search Bhajans & Articles" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors bg-gray-50/50 border border-gray-100">
-                <FaSearch size={16} />
+                <FaSearch size={15} />
               </button>
               <div className="w-px h-6 bg-gray-200 mx-0.5" />
               <Link href="/saved" aria-label="View saved bhajans" title="My Saved Bhajans" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-600 hover:text-red-500 hover:bg-red-50 transition-colors bg-gray-50/50 border border-gray-100">
-                <FaHeart size={16} />
+                <FaHeart size={15} />
               </Link>
             </div>
 
-            {/* 🌟 Mobile Actions */}
-            <div className="lg:hidden flex items-center gap-1.5 z-10 relative">
+            {/* 🌟 Mobile/Tablet Actions (Visible up to 1279px) */}
+            <div className="xl:hidden flex items-center gap-1.5 z-10 relative">
               <Link href="/donate" className="w-11 h-11 flex items-center justify-center rounded-full text-orange-600 hover:bg-orange-50 transition-colors relative" aria-label="Support Us" title="Support Us">
                 <FaHandHoldingHeart size={22} />
               </Link>
@@ -408,10 +398,10 @@ export default function Header() {
 
       {/* Overlays */}
       {isSearchOpen && <div onClick={closeSearch} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 transition-opacity duration-300" />}
-      {isMenuOpen && <div onClick={closeMenu} className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110] lg:hidden transition-opacity duration-300" />}
+      {isMenuOpen && <div onClick={closeMenu} className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110] xl:hidden transition-opacity duration-300" />}
 
-      {/* 🌟 MOBILE DRAWER WITH PREMIUM SPACING */}
-      <aside className={`fixed top-0 right-0 h-full w-[88%] max-w-[400px] z-[120] lg:hidden flex flex-col bg-white shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      {/* 🌟 MOBILE DRAWER */}
+      <aside className={`fixed top-0 right-0 h-full w-[88%] max-w-[400px] z-[120] xl:hidden flex flex-col bg-white shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex items-center justify-between px-7 py-6 border-b border-gray-100 bg-white z-10">
           <div className="flex items-center gap-3.5">
             <Image src="/favicon.ico" alt="Menu Logo" width={40} height={40} className="object-contain drop-shadow-sm brightness-110" />
@@ -422,7 +412,6 @@ export default function Header() {
           </button>
         </div>
 
-        {/* 🌟 FIX: Added pb-24 for Safe Bottom Breathing Space! */}
         <nav data-lenis-prevent="true" className="flex-1 overflow-y-auto px-5 pt-6 pb-24 flex flex-col gap-3 bg-gray-50/50">
           {navItems.map((item) => {
             const isEnglishLink = item.name.includes('(EN)');
@@ -459,7 +448,6 @@ export default function Header() {
                     }`}
                   >
                     <span className="flex items-center gap-2.5">
-                      {/* 🌟 FIX: Ensuring Icon doesn't get squished with shrink-0 */}
                       {isEnglishLink && <FaGlobe className="text-blue-500 text-lg shrink-0" />}
                       <span className="truncate">{item.name}</span>
                     </span>
