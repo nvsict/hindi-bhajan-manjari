@@ -2,19 +2,29 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// यह की केवल सर्वर पर चलती है, ब्राउज़र तक नहीं पहुँचती
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function upsertDictionaryWords(data: any[]) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  // 🌟 यहाँ हमें पता चल जाएगा कि की है या नहीं
+  console.log("URL:", url ? "Set" : "MISSING");
+  console.log("Key Length:", key ? key.length : "MISSING");
+
+  if (!key) {
+    return { success: false, error: "Critical Error: Service Role Key is undefined!" };
+  }
+
+  const supabaseAdmin = createClient(url!, key);
+
   try {
-    const { data: result, error } = await supabaseAdmin
+    const { error } = await supabaseAdmin
       .from('dictionary')
       .upsert(data, { onConflict: 'word_hi' });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase DB Error Details:", error); // यह टर्मिनल में असली वजह बताएगा
+      throw error;
+    }
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };

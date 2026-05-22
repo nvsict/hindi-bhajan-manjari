@@ -2,29 +2,36 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/utils/supabase';
-import { upsertDictionaryWords } from '@/app/actions/dictionary'; // 🌟 Server Action Import
-
 import { 
-  FaUpload, FaDownload, FaFileDownload, FaSearch, 
-  FaCheckSquare, FaRegSquare, FaChartPie, FaPlus, FaTimes, FaInfoCircle
+  FaBookOpen, FaUpload, FaCheck, FaExclamationTriangle, FaMagic, FaList, 
+  FaDownload, FaFileDownload, FaPlus, FaSave, FaSearch, FaTimes, FaLayerGroup 
 } from 'react-icons/fa';
-import Papa from 'papaparse';
+import Papa from 'papaparse'; 
+import { upsertDictionaryWords } from '@/app/actions/dictionary'; 
+
 export default function DictionaryManager() {
   const [activeTab, setActiveTab] = useState<'studio' | 'bulk'>('studio');
+  
+  // Data State
   const [bhajans, setBhajans] = useState<any[]>([]);
   const [dictionaryWords, setDictionaryWords] = useState<Set<string>>(new Set());
   
-  // Smart States
+  // Studio Selection & Search State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [quickAddWord, setQuickAddWord] = useState<string | null>(null);
-  const [newWordData, setNewWordData] = useState({ word_hi: '', word_en: '', meaning_hi: '', meaning_en: '' });
   
-  // Bulk States
+  // Quick Add Form State
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [newWord, setNewWord] = useState({ word_hi: '', word_en: '', meaning_hi: '', meaning_en: '' });
+  const [isSavingWord, setIsSavingWord] = useState(false);
+  const [wordMsg, setWordMsg] = useState('');
+
+  // Bulk State
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ type: '', text: '' });
 
+  // 🌟 INITIAL FETCH
   useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
@@ -35,15 +42,18 @@ export default function DictionaryManager() {
     if (dData) setDictionaryWords(new Set(dData.map(d => d.word_hi)));
   };
 
-  // --- STUDIO MODE LOGIC ---
+  // 🌟 SLUG GENERATOR
+  const generateSlug = (word_hi: string, word_en: string) => {
+    const cleanEn = (word_en || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    const cleanHi = (word_hi || '').replace(/[^a-zA-Z0-9\u0900-\u097F]+/g, '-').replace(/(^-|-$)+/g, '');
+    if (cleanEn && cleanHi) return `${cleanEn}-${cleanHi}`;
+    return cleanEn || cleanHi; 
+  };
 
+  // 🌟 FILTERING & SELECTION LOGIC
   const filteredBhajans = useMemo(() => {
-    return bhajans.filter(b => b.title_hindi.includes(searchQuery));
+    return bhajans.filter(b => b.title_hindi.includes(searchQuery) || b.title_hindi.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [bhajans, searchQuery]);
-
-  const selectedBhajansList = useMemo(() => {
-    return bhajans.filter(b => selectedIds.has(b.id));
-  }, [bhajans, selectedIds]);
 
   const toggleSelection = (id: string) => {
     const next = new Set(selectedIds);
@@ -52,370 +62,360 @@ export default function DictionaryManager() {
     setSelectedIds(next);
   };
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filteredBhajans.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filteredBhajans.map(b => b.id)));
-    }
-  };
+  const selectedBhajansData = useMemo(() => {
+    return bhajans.filter(b => selectedIds.has(b.id));
+  }, [bhajans, selectedIds]);
 
+  // 🌟 COVERAGE CALCULATOR
   const calculateCoverage = (lyrics: string) => {
     if (!lyrics) return 0;
-    const words = lyrics.split(/[\s\n]+/).map(w => w.replace(/[.,!?'"(){}\[\]|;:\-\n\r]/g, '')).filter(Boolean);
+    const words = lyrics.split(/\s+/).map(w => w.replace(/[.,!?'"(){}\[\]|;:\-\n\r]/g, '')).filter(Boolean);
     if (words.length === 0) return 0;
-    const known = words.filter(w => dictionaryWords.has(w)).length;
-    return ((known / words.length) * 100).toFixed(1);
+    const knownCount = words.filter(w => dictionaryWords.has(w)).length;
+    return Math.round((knownCount / words.length) * 100);
   };
 
-  const handleExportSelectedLyrics = () => {
-    if (selectedBhajansList.length === 0) return;
-    const combinedText = selectedBhajansList.map(b => 
-      `--- TITLE: ${b.title_hindi} ---\n${b.lyrics_hindi}\n\n`
-    ).join('');
-
+  // 🌟 BATCH EXPORT: Combined Lyrics
+  const handleExportCombinedLyrics = () => {
+    if (selectedBhajansData.length === 0) return;
+    const combinedText = selectedBhajansData.map(b => `=== ${b.title_hindi} ===\n\n${b.lyrics_hindi}\n\n`).join('\n');
     const blob = new Blob([combinedText], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `Batch_Lyrics_Export_${selectedBhajansList.length}_files.txt`;
+    a.href = window.URL.createObjectURL(blob);
+    a.download = `Batch_${selectedBhajansData.length}_Bhajans_Lyrics.txt`;
     a.click();
   };
 
-  const handleExtractMissingWords = () => {
-    const missing = new Set<string>();
-    selectedBhajansList.forEach(b => {
-      b.lyrics_hindi.split(/[\s\n]+/).forEach((w: string) => {
-        const clean = w.replace(/[.,!?'"(){}\[\]|;:\-\n\r]/g, '');
-        if (clean && !dictionaryWords.has(clean)) missing.add(clean);
-      });
-    });
-
-    const csvContent = Array.from(missing).map(word => `${word},,,`).join('\n');
-    const header = "word_hi,word_en,meaning_hi,meaning_en\n";
+  // 🌟 BATCH EXPORT: Extract Unknown Words (The Magic Gap Finder)
+  const handleExtractUnknownWords = () => {
+    if (selectedBhajansData.length === 0) return;
     
-    const blob = new Blob([header + csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
+    // Combine all lyrics
+    const allLyrics = selectedBhajansData.map(b => b.lyrics_hindi).join('\n');
+    // Extract unique words
+    const allWords = allLyrics.split(/\s+/).map(w => w.replace(/[.,!?'"(){}\[\]|;:\-\n\r]/g, '').trim()).filter(Boolean);
+    const uniqueWords = Array.from(new Set(allWords));
+    
+    // Find gaps
+    const unknownWords = uniqueWords.filter(w => !dictionaryWords.has(w));
+    
+    // Create CSV Template
+    const csvData = unknownWords.map(w => ({ word_hi: w, word_en: '', meaning_hi: '', meaning_en: '' }));
+    const csv = Papa.unparse(csvData);
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a');
-    a.href = url;
+    a.href = window.URL.createObjectURL(blob);
     a.download = `Missing_Words_Template.csv`;
     a.click();
   };
 
-  const handleQuickAddWord = async (e: React.FormEvent) => {
+  // 🌟 QUICK ADD SUBMIT
+  const handleSaveSingleWord = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    const payload = {
-      ...newWordData,
-      slug: newWordData.word_hi.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-    };
+    if (!newWord.word_hi || !newWord.meaning_hi) return;
+    setIsSavingWord(true); setWordMsg('');
 
-    const { error } = await supabase.from('dictionary').upsert([payload], { onConflict: 'word_hi' });
-    
-    if (!error) {
-      setDictionaryWords(prev => new Set(prev).add(newWordData.word_hi));
-      setQuickAddWord(null);
-      setNewWordData({ word_hi: '', word_en: '', meaning_hi: '', meaning_en: '' });
+    try {
+      const payload = {
+        ...newWord,
+        word_hi: newWord.word_hi.trim(),
+        meaning_hi: newWord.meaning_hi.trim(),
+        slug: generateSlug(newWord.word_hi, newWord.word_en)
+      };
+
+      const result = await upsertDictionaryWords([payload]);
+      if (!result.success) throw new Error(result.error);
+
+      setWordMsg('✅ Saved!');
+      setDictionaryWords(prev => new Set(prev).add(payload.word_hi));
+      
+      setTimeout(() => {
+        setWordMsg('');
+        setShowQuickAdd(false);
+      }, 1000);
+    } catch (err: any) {
+      setWordMsg(`❌ ${err.message}`);
+    } finally {
+      setIsSavingWord(false);
     }
-    setLoading(false);
   };
 
-  // --- BULK ACTIONS LOGIC ---
-
-  const handleExportDictionary = async () => {
+  // 🌟 BULK ACTIONS (Export/Import)
+  const handleExportFullDictionary = async () => {
     setLoading(true);
     const { data } = await supabase.from('dictionary').select('word_hi, word_en, meaning_hi, meaning_en');
     if (data) {
       const csv = Papa.unparse(data);
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `sanatan_dictionary_${new Date().toISOString().split('T')[0]}.csv`;
+      a.href = window.URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      a.download = `Full_Dictionary_${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
     }
     setLoading(false);
   };
 
-  // --- BULK ACTIONS LOGIC ---
-
-  const handleImport = async () => {
-    if (!inputText.trim()) {
-      setMsg({ type: 'error', text: 'Please paste some CSV data first.' });
-      return;
-    }
-    
-    setLoading(true);
-    setMsg({ type: '', text: '' });
-    
+  const handleBulkImport = async () => {
+    if (!inputText.trim()) return;
+    setLoading(true); setMsg({ type: '', text: '' });
     try {
-      // 1. Parse CSV
       const parsed = Papa.parse(inputText, { header: true, skipEmptyLines: true });
-      
-      // 2. Filter out invalid rows and auto-generate slugs
-      const finalData = parsed.data
-        .filter((row: any) => row.word_hi && row.word_hi.trim() !== '')
-        .map((row: any) => ({
+      const finalData = parsed.data.map((row: any) => ({
           ...row,
-          slug: row.word_hi.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-        }));
-
-      if (finalData.length === 0) {
-        throw new Error("No valid data found. Ensure your CSV has a 'word_hi' column.");
-      }
-
-      // 🌟 3. Call Server Action (No Supabase client needed here)
+          slug: generateSlug(row.word_hi, row.word_en)
+      }));
       const result = await upsertDictionaryWords(finalData);
-
-      // 4. Handle Server Response
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to update dictionary via server.');
-      }
-
-      setMsg({ type: 'success', text: `Successfully processed ${finalData.length} words via Server Action! Duplicates were merged.` });
+      if (!result.success) throw new Error(result.error);
+      setMsg({ type: 'success', text: `Successfully processed ${finalData.length} words!` });
       setInputText('');
-      fetchData(); // Refresh the dictionary set on the UI
-      
+      fetchData();
     } catch (err: any) {
-      setMsg({ type: 'error', text: err.message || 'An error occurred during import.' });
+      setMsg({ type: 'error', text: err.message });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-10 px-4">
+    <div className="max-w-7xl mx-auto py-10 px-4 mb-20 relative">
+      
       {/* HEADER & TABS */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div>
-          <h1 className="text-3xl font-black text-gray-900">Dictionary Studio</h1>
-          <p className="text-gray-500">Manage spiritual words & prepare content for AI processing.</p>
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Dictionary Command Center</h1>
+          <p className="text-gray-500 font-medium">Smart workflows for Bhajans and Vocabulary.</p>
         </div>
-        <div className="flex bg-gray-200 p-1.5 rounded-xl">
-          <button 
-            onClick={() => setActiveTab('studio')} 
-            className={`px-6 py-2.5 rounded-lg font-bold transition-all ${activeTab === 'studio' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-800'}`}
-          >
-            Studio Mode
-          </button>
-          <button 
-            onClick={() => setActiveTab('bulk')} 
-            className={`px-6 py-2.5 rounded-lg font-bold transition-all ${activeTab === 'bulk' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-800'}`}
-          >
-            Bulk Actions
-          </button>
+        <div className="flex bg-gray-200 p-1.5 rounded-2xl shadow-inner">
+          <button onClick={() => setActiveTab('studio')} className={`px-6 py-2.5 rounded-xl font-bold transition-all ${activeTab === 'studio' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>Studio Mode</button>
+          <button onClick={() => setActiveTab('bulk')} className={`px-6 py-2.5 rounded-xl font-bold transition-all ${activeTab === 'bulk' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>Bulk Actions</button>
         </div>
       </div>
 
-      {/* TAB VIEWS */}
       {activeTab === 'studio' ? (
-        
-        /* ---------------- STUDIO MODE ---------------- */
         <div className="grid lg:grid-cols-12 gap-6 h-[750px]">
-          {/* LEFT PANEL: Selection & Search */}
-          <div className="lg:col-span-4 bg-white rounded-3xl border border-gray-100 flex flex-col shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-gray-100 bg-gray-50">
-              <div className="relative mb-3">
-                <FaSearch className="absolute left-3 top-3 text-gray-400" />
+          
+          {/* ==========================================
+              LEFT: BHAJAN SELECTOR (Step 1)
+              ========================================== */}
+          <div className="lg:col-span-4 bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col overflow-hidden">
+            <div className="p-5 border-b border-gray-100 bg-gray-50/50">
+              <div className="relative">
+                <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input 
                   type="text" 
-                  placeholder="Search bhajans..." 
+                  placeholder="Search Bhajans..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm font-bold"
                 />
               </div>
-              <div className="flex justify-between items-center text-sm font-bold text-gray-600 px-1">
-                <button onClick={toggleSelectAll} className="hover:text-blue-600 transition-colors">
-                  {selectedIds.size === filteredBhajans.length && filteredBhajans.length > 0 ? 'Deselect All' : 'Select All'}
-                </button>
-                <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md">{selectedIds.size} selected</span>
-              </div>
             </div>
-            
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
               {filteredBhajans.map(b => (
-                <div key={b.id} 
-                  className={`flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer ${selectedIds.has(b.id) ? 'bg-blue-50 border border-blue-100' : 'hover:bg-gray-50 border border-transparent'}`}
-                  onClick={() => toggleSelection(b.id)}
-                >
-                  <button className="text-blue-600 text-lg flex-shrink-0">
-                    {selectedIds.has(b.id) ? <FaCheckSquare /> : <FaRegSquare className="text-gray-300" />}
-                  </button>
-                  <span className={`font-bold flex-1 truncate ${selectedIds.has(b.id) ? 'text-blue-900' : 'text-gray-700'}`}>{b.title_hindi}</span>
-                </div>
+                <label key={b.id} className={`flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all border ${selectedIds.has(b.id) ? 'bg-blue-50/50 border-blue-200' : 'border-transparent hover:bg-gray-50'}`}>
+                  <input 
+                    type="checkbox" 
+                    checked={selectedIds.has(b.id)}
+                    onChange={() => toggleSelection(b.id)}
+                    className="mt-1 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <span className={`font-bold font-hindi text-lg leading-tight ${selectedIds.has(b.id) ? 'text-blue-900' : 'text-gray-700'}`}>{b.title_hindi}</span>
+                </label>
               ))}
+            </div>
+            <div className="p-4 bg-gray-50 border-t border-gray-100 text-sm font-bold text-gray-500 text-center">
+              {selectedIds.size} Selected
             </div>
           </div>
 
-          {/* RIGHT PANEL: Workspace */}
-          <div className="lg:col-span-8 bg-white rounded-3xl border border-gray-100 p-6 flex flex-col shadow-sm relative overflow-hidden">
+          {/* ==========================================
+              RIGHT: DYNAMIC WORKSPACE (Step 2A / 2B)
+              ========================================== */}
+          <div className="lg:col-span-8 bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col overflow-hidden relative">
             
-            {/* Multi-Select View */}
-            {selectedIds.size > 1 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
-                <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-4xl mb-2">
-                  <FaChartPie />
-                </div>
-                <div>
-                  <h2 className="text-3xl font-black text-gray-900 mb-3">{selectedIds.size} Bhajans Selected</h2>
-                  <p className="text-gray-500 max-w-md mx-auto">You are in batch processing mode. Choose an action below to process multiple files at once.</p>
-                </div>
-                <div className="flex gap-4 mt-4">
-                  <button onClick={handleExportSelectedLyrics} className="flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition-all shadow-md">
-                    <FaFileDownload /> Export Combined Lyrics
-                  </button>
-                  <button onClick={handleExtractMissingWords} className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md">
-                    <FaDownload /> Extract Unknown Words CSV
-                  </button>
-                </div>
+            {selectedIds.size === 0 && (
+              <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-8 text-center">
+                <FaMagic className="text-5xl mb-4 opacity-20" />
+                <h3 className="text-xl font-bold text-gray-700 mb-2">Workspace Empty</h3>
+                <p>Check the box next to one or more bhajans to begin.</p>
               </div>
-            ) : selectedIds.size === 1 ? (
-              
-              /* Single Select View */
-              <>
-                <div className="flex justify-between items-start mb-6 pb-4 border-b border-gray-100">
-                  <div>
-                    <h2 className="font-black text-2xl text-gray-900">{selectedBhajansList[0].title_hindi}</h2>
-                    <span className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-green-100 text-green-800 text-sm font-bold rounded-full">
-                      <FaChartPie /> {calculateCoverage(selectedBhajansList[0].lyrics_hindi)}% Dictionary Coverage
-                    </span>
+            )}
+
+            {/* 🌟 STEP 2A: SINGLE SELECTION (DEEP DIVE) */}
+            {selectedIds.size === 1 && selectedBhajansData[0] && (() => {
+              const b = selectedBhajansData[0];
+              const coverage = calculateCoverage(b.lyrics_hindi);
+              return (
+                <>
+                  <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50/50">
+                    <div>
+                      <h2 className="font-black text-2xl text-gray-900 font-hindi">{b.title_hindi}</h2>
+                      <div className="flex items-center gap-3 mt-2">
+                        <div className="w-32 h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${coverage > 80 ? 'bg-green-500' : coverage > 40 ? 'bg-yellow-400' : 'bg-red-400'}`} style={{ width: `${coverage}%` }}></div>
+                        </div>
+                        <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">{coverage}% Coverage</span>
+                      </div>
+                    </div>
+                    <button onClick={handleExportCombinedLyrics} className="flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition-all shrink-0">
+                      <FaFileDownload /> Export .txt
+                    </button>
                   </div>
-                  <button onClick={handleExportSelectedLyrics} className="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-800 transition-all">
-                    <FaFileDownload /> Export .txt
-                  </button>
-                </div>
-                
-                <div className="flex-1 overflow-y-auto p-6 bg-gray-50 rounded-2xl border border-gray-100 font-hindi text-lg leading-relaxed text-gray-700 shadow-inner">
-                   {selectedBhajansList[0].lyrics_hindi.split('\n').map((line: string, i: number) => (
-                      <div key={i} className="mb-2">
+                  
+                  <div className="flex-1 overflow-y-auto p-6 lg:p-10 bg-white font-hindi text-xl leading-[2.2] text-gray-700 custom-scrollbar">
+                    {b.lyrics_hindi.split('\n').map((line: string, i: number) => (
+                      <div key={i} className="mb-2 min-h-[1.5em]">
                         {line.split(' ').map((word: string, j: number) => {
                           const clean = word.replace(/[.,!?'"(){}\[\]|;:\-\n\r]/g, '');
                           const isKnown = dictionaryWords.has(clean);
                           return (
-                            <span 
-                              key={j} 
-                              onClick={() => {
-                                if (!isKnown && clean) {
-                                  setQuickAddWord(clean);
-                                  setNewWordData({ word_hi: clean, word_en: '', meaning_hi: '', meaning_en: '' });
-                                }
-                              }}
-                              className={`transition-all rounded px-0.5 ${isKnown ? 'bg-green-200 text-green-900 font-bold border-b-2 border-green-500' : 'cursor-pointer hover:bg-red-100 hover:text-red-700 border-b border-transparent hover:border-red-400'}`}
-                              title={isKnown ? 'In Dictionary' : 'Click to add to dictionary'}
-                            >
-                              {word}{' '}
+                            <span key={j}>
+                              <span 
+                                onClick={() => {
+                                  if (!isKnown && clean.length > 1) {
+                                    setNewWord({ word_hi: clean, word_en: '', meaning_hi: '', meaning_en: '' });
+                                    setShowQuickAdd(true);
+                                  }
+                                }}
+                                className={`transition-all rounded px-1 py-0.5 ${
+                                  isKnown 
+                                    ? 'bg-green-100 text-green-900 font-bold border-b-2 border-green-400 cursor-default' 
+                                    : 'cursor-pointer hover:bg-blue-100 hover:text-blue-900 hover:shadow-sm'
+                                }`}
+                                title={isKnown ? 'Saved in Dictionary' : 'Click to Add'}
+                              >
+                                {word}
+                              </span>
+                              {' '}
                             </span>
                           );
                         })}
                       </div>
                     ))}
-                </div>
-
-                {/* Inline Add Word Modal */}
-                {quickAddWord && (
-                  <div className="absolute bottom-6 left-6 right-6 bg-white shadow-[0_0_40px_rgba(0,0,0,0.1)] rounded-2xl p-6 border border-gray-100 z-10 transition-all">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="font-bold text-gray-900 flex items-center gap-2 text-lg">
-                        <span className="bg-blue-100 p-2 rounded-lg text-blue-600"><FaPlus size={14}/></span> 
-                        Add Word: <span className="text-blue-600 ml-1">{quickAddWord}</span>
-                      </h3>
-                      <button onClick={() => setQuickAddWord(null)} className="p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-800 transition-colors">
-                        <FaTimes />
-                      </button>
-                    </div>
-                    <form onSubmit={handleQuickAddWord} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <input required placeholder="English Transliteration (e.g. Ram)" value={newWordData.word_en} onChange={e => setNewWordData({...newWordData, word_en: e.target.value})} className="p-3 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
-                      <input required placeholder="Meaning in English" value={newWordData.meaning_en} onChange={e => setNewWordData({...newWordData, meaning_en: e.target.value})} className="p-3 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
-                      <input placeholder="Meaning in Hindi (Optional)" value={newWordData.meaning_hi} onChange={e => setNewWordData({...newWordData, meaning_hi: e.target.value})} className="p-3 border border-gray-200 rounded-xl bg-gray-50 outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
-                      <button type="submit" disabled={loading} className="bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-md">
-                        {loading ? 'Saving...' : 'Save to Dictionary'}
-                      </button>
-                    </form>
                   </div>
-                )}
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center space-y-4 text-gray-400">
-                <FaCheckSquare className="text-6xl text-gray-200 mb-2" />
-                <p className="text-lg font-medium text-gray-500">Select a bhajan from the left to inspect.</p>
+                </>
+              );
+            })()}
+
+            {/* 🌟 STEP 2B: MULTI SELECTION (BATCH MODE) */}
+            {selectedIds.size > 1 && (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gray-50/30">
+                <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
+                  <FaLayerGroup className="text-4xl text-blue-500" />
+                </div>
+                <h2 className="text-3xl font-black text-gray-900 mb-2">Batch Processing</h2>
+                <p className="text-gray-500 font-medium mb-10 max-w-md">
+                  You have selected <strong className="text-blue-600 text-lg">{selectedIds.size} bhajans</strong>. Choose a batch action below to manage them instantly.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-xl">
+                  {/* Action 1: Export Combined */}
+                  <div onClick={handleExportCombinedLyrics} className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-300 cursor-pointer transition-all group text-left">
+                    <FaFileDownload className="text-2xl text-gray-400 group-hover:text-blue-500 mb-4" />
+                    <h3 className="font-bold text-gray-900 mb-1">Export Combined Lyrics</h3>
+                    <p className="text-xs text-gray-500">Packages all selected songs into a single .txt file for AI context.</p>
+                  </div>
+
+                  {/* Action 2: Extract Unknowns (Gap Finder) */}
+                  <div onClick={handleExtractUnknownWords} className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm hover:shadow-md hover:border-orange-300 cursor-pointer transition-all group text-left">
+                    <FaMagic className="text-2xl text-gray-400 group-hover:text-orange-500 mb-4" />
+                    <h3 className="font-bold text-gray-900 mb-1">Extract Unknown Words</h3>
+                    <p className="text-xs text-gray-500">Scans all songs and downloads a CSV template of words missing from the dictionary.</p>
+                  </div>
+                </div>
               </div>
             )}
           </div>
         </div>
-
       ) : (
-
-        /* ---------------- BULK ACTIONS MODE ---------------- */
-        <div className="grid md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+        /* ==========================================
+           AREA 2: BULK ACTIONS (Database Admin)
+           ========================================== */
+        <div className="bg-white p-8 md:p-12 rounded-[2.5rem] border border-gray-100 shadow-sm max-w-4xl mx-auto">
           
-          {/* EXPORT CARD */}
-          <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="w-14 h-14 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center text-2xl mb-6">
-                <FaDownload />
-              </div>
-              <h2 className="text-2xl font-black text-gray-900 mb-3">Export Database</h2>
-              <p className="text-gray-500 mb-6 leading-relaxed">
-                Download your entire spiritual dictionary as a standard CSV file. You can use this for external backups, sharing with translators, or editing in Excel/Google Sheets before re-uploading.
-              </p>
-            </div>
-            
-            <button 
-              onClick={handleExportDictionary} 
-              disabled={loading} 
-              className="w-full px-6 py-4 bg-green-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-md disabled:opacity-50"
-            >
-              <FaFileDownload /> Export Full Dictionary (CSV)
+          {/* Workflow 1: Export */}
+          <div className="mb-10 pb-10 border-b border-gray-100">
+            <h2 className="text-xl font-black text-gray-900 mb-2">Workflow 1: Backup & Export</h2>
+            <p className="text-sm text-gray-500 mb-6">Download your entire dictionary database as a spreadsheet.</p>
+            <button onClick={handleExportFullDictionary} disabled={loading} className="px-8 py-3.5 bg-gray-900 hover:bg-black text-white rounded-xl font-bold flex items-center gap-3 shadow-md transition-all active:scale-95">
+              <FaDownload /> Export Full Dictionary (CSV)
             </button>
           </div>
 
-          {/* IMPORT CARD */}
-          <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-2xl">
-                <FaUpload />
-              </div>
-              <div>
-                <h2 className="text-2xl font-black text-gray-900">Bulk Import Data</h2>
-                <p className="text-sm text-gray-500">Paste CSV data to update or add words.</p>
-              </div>
-            </div>
-
-            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-6 flex items-start gap-3">
-              <FaInfoCircle className="text-blue-500 mt-1 flex-shrink-0" />
-              <div className="text-sm text-blue-900">
-                <p className="font-bold mb-1">Required CSV Header Format:</p>
-                <code className="bg-white px-2 py-1 rounded text-blue-700 block text-xs">word_hi, word_en, meaning_hi, meaning_en</code>
-                <p className="mt-2 text-xs opacity-80">Existing Hindi words will be updated; new ones will be added.</p>
-              </div>
+          {/* Workflow 2: Import */}
+          <div>
+            <h2 className="text-xl font-black text-gray-900 mb-2">Workflow 2: Mass Update & Import</h2>
+            <p className="text-sm text-gray-500 mb-6">Paste data from your spreadsheet (Excel/Google Sheets) to add or update words instantly.</p>
+            
+            <div className="mb-4 p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+              <p className="text-[11px] font-bold text-blue-800 uppercase tracking-widest mb-2">Required First Row Headers:</p>
+              <code className="text-xs bg-white px-3 py-1.5 rounded border border-blue-200 text-blue-600 font-mono">
+                word_hi, word_en, meaning_hi, meaning_en
+              </code>
             </div>
 
             <textarea 
-              rows={6} 
+              rows={8} 
               value={inputText} 
               onChange={(e) => setInputText(e.target.value)} 
-              className="w-full p-4 border border-gray-200 rounded-xl mb-4 font-mono text-sm bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none" 
-              placeholder="word_hi,word_en,meaning_hi,meaning_en&#10;राम,Ram,भगवान,God"
-            ></textarea>
+              className="w-full p-5 bg-gray-50 border border-gray-200 rounded-2xl mb-4 font-mono text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all custom-scrollbar" 
+              placeholder="word_hi, word_en, meaning_hi, meaning_en&#10;अमृत, Amrit, अमरत्व देने वाला रस, Nectar of immortality..."
+            />
             
-            <button 
-              onClick={handleImport} 
-              disabled={loading || !inputText.trim()} 
-              className="w-full px-6 py-4 bg-gray-900 text-white rounded-xl font-black hover:bg-gray-800 transition-all shadow-md disabled:opacity-50"
-            >
+            <button onClick={handleBulkImport} disabled={loading || !inputText.trim()} className="w-full sm:w-auto px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black shadow-[0_4px_20px_rgba(37,99,235,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                {loading ? 'Processing Data...' : 'Run Bulk Import'}
             </button>
 
             {msg.text && (
-              <div className={`mt-4 p-4 rounded-xl font-bold text-sm animate-fade-in-up ${msg.type === 'error' ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100'}`}>
+              <div className={`mt-6 p-5 rounded-xl font-bold flex items-center gap-3 ${msg.type === 'error' ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100'}`}>
+                {msg.type === 'success' ? <FaCheck className="text-xl" /> : <FaExclamationTriangle className="text-xl" />}
                 {msg.text}
               </div>
             )}
           </div>
-
         </div>
       )}
+
+      {/* ==========================================
+          MODAL: QUICK ADD (Step 2A Inline Add)
+          ========================================== */}
+      {showQuickAdd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setShowQuickAdd(false)} />
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="font-black text-lg text-gray-900 flex items-center gap-2"><FaPlus className="text-blue-500"/> Quick Add Word</h3>
+              <button onClick={() => setShowQuickAdd(false)} className="text-gray-400 hover:text-gray-900 transition-colors p-2"><FaTimes /></button>
+            </div>
+            
+            <form onSubmit={handleSaveSingleWord} className="p-6 flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Word (Hindi) *</label>
+                <input required type="text" value={newWord.word_hi} onChange={(e) => setNewWord({...newWord, word_hi: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none font-hindi text-lg transition-all" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Word (English)</label>
+                <input type="text" value={newWord.word_en} onChange={(e) => setNewWord({...newWord, word_en: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm transition-all" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Meaning (Hindi) *</label>
+                <textarea required rows={2} value={newWord.meaning_hi} onChange={(e) => setNewWord({...newWord, meaning_hi: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none font-hindi text-sm transition-all" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Meaning (English)</label>
+                <textarea rows={2} value={newWord.meaning_en} onChange={(e) => setNewWord({...newWord, meaning_en: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm transition-all" />
+              </div>
+
+              {wordMsg && <div className={`text-center text-sm font-bold mt-2 ${wordMsg.includes('❌') ? 'text-red-500' : 'text-green-600'}`}>{wordMsg}</div>}
+              
+              <button type="submit" disabled={isSavingWord || !newWord.word_hi} className="w-full mt-2 py-4 bg-gray-900 hover:bg-black text-white font-black rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg active:scale-95">
+                {isSavingWord ? 'Saving...' : <><FaSave /> Save to Dictionary</>}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
