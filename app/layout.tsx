@@ -36,6 +36,9 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 // 🌟 SMART SITE ASSISTANT
 import SiteAssistant from '@/components/SiteAssistant';
 
+// 🌟 NEW: CAMPAIGN MODAL (GLOBAL POPUP)
+import CampaignModal from '@/components/CampaignModal';
+
 // --- BASE FONTS ---
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -196,7 +199,8 @@ export default function RootLayout({
           {/* 🌟 PWA Registration */}
           <PwaRegistration />
 
-          {/* 🌟 MANJARI GUIDE (Smart Site Assistant) */}
+          {/* 🌟 GLOBAL MODAL & ASSISTANT */}
+          <CampaignModal />
           <SiteAssistant />
 
         </ThemeProvider>
