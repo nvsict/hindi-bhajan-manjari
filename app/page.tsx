@@ -13,12 +13,6 @@ import TrendingArtists from '../components/home/TrendingArtists';
 import { FaBookOpen, FaClock, FaArrowRight, FaMusic } from 'react-icons/fa';
 import ScrollReveal from '../components/ScrollReveal';
 
-// 🌟 SMART AD COMPONENTS
-import AdDisplay from '@/components/AdDisplay';
-import AdInArticle from '@/components/AdInArticle';
-import AdMultiplex from '@/components/AdMultiplex';
-import AdStickySidebar from '@/components/AdStickySidebar';
-import AdInFeed from '@/components/AdInFeed';
 
 // VPS Native ISR (Incremental Static Regeneration)
 export const revalidate = 300; 
@@ -120,12 +114,6 @@ async function LatestGyanSection() {
                 </Link>
               </ScrollReveal>
               
-              {/* 🌟 SMART INJECTION: AdInFeed appears gracefully after the first article */}
-              {index === 0 && (
-                <div className="my-4 w-full">
-                  <AdInFeed />
-                </div>
-              )}
             </div>
           );
         })}
@@ -226,11 +214,6 @@ export default function Home() {
           {/* 2. Visual Hook: Who to pray to? */}
           <DeityBrowse /> 
 
-          {/* 🌟 HIGH VISIBILITY DISPLAY AD: Placed right after the visual hook */}
-          <div className="my-10 w-full max-w-full overflow-hidden block">
-            <AdDisplay />
-          </div>
-
           {/* 3. Core Content: The Bhajans */}
           <div className="mt-8 md:mt-12">
             <ScrollReveal yOffset={20}>
@@ -251,11 +234,7 @@ export default function Home() {
           <div className="mt-16">
             <PopularCategories />
           </div>
-          
-          {/* 🌟 MID-PAGE BREAK AD: Breaks up the UI beautifully between categories and artists */}
-          <div className="my-12 w-full max-w-full overflow-hidden block">
-            <AdInArticle />
-          </div>
+
 
           <div className="mt-8 md:mt-12">
             <TrendingArtists />
@@ -266,11 +245,6 @@ export default function Home() {
             <LatestGyanSection />
           </Suspense>
 
-          {/* 🌟 THE ANCHOR MULTIPLEX: Catches users before they bounce off the homepage */}
-          <div className="mt-12 mb-8 w-full max-w-full overflow-hidden block">
-            <AdMultiplex />
-          </div>
-
         </main>
 
         {/* 6. Intelligent Global Sidebar */}
@@ -280,10 +254,6 @@ export default function Home() {
           <div className="hidden lg:block lg:sticky lg:top-28 h-fit w-[300px] shrink-0 pb-8">
             <Sidebar />
             
-            {/* 🌟 THE SIDEBAR POWER-UP: Vertical sticky ad locks in below your sidebar content */}
-            <div className="mt-8 w-full max-w-full overflow-hidden block">
-              <AdStickySidebar />
-            </div>
           </div>
         </Suspense>
 

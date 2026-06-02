@@ -11,11 +11,6 @@ import CommentsSection from '@/components/CommentsSection';
 import AuthorBox from '@/components/AuthorBox';
 import RelatedContent from '@/components/RelatedContent';
 
-// 🌟 AD COMPONENTS IMPORTS (Updated with all 4 strategic units)
-import AdDisplay from '@/components/AdDisplay';
-import AdInArticle from '@/components/AdInArticle';
-import AdMultiplex from '@/components/AdMultiplex';
-import AdStickySidebar from '@/components/AdStickySidebar';
 
 export const revalidate = 3600;
 
@@ -306,10 +301,6 @@ export default async function BhajanDetails({ params }: Props) {
 
             <div className="p-4 md:p-8">
               
-              {/* 🌟 ABOVE THE FOLD PLACEMENT */}
-              <div className="mb-8 md:mb-10 w-full max-w-full overflow-hidden block">
-                <AdDisplay />
-              </div>
 
               <LyricsViewer 
                 title={bhajan.title_hindi} 
@@ -319,11 +310,7 @@ export default async function BhajanDetails({ params }: Props) {
                 videoEmbedUrl={bhajan.video_embed_url} 
                 tarz={bhajan.tarj_parody}
               />
-              
-              {/* 🌟 MID-CONTENT PLACEMENT (Fluid In-Article layout) */}
-              <div className="mt-8 mb-6 md:mt-10 md:mb-8 w-full max-w-full overflow-hidden block">
-                <AdInArticle />
-              </div>
+
               
               {bhajan.explanation && (
                 <div className="mt-6 bg-gradient-to-br from-orange-50 to-orange-100/50 p-6 md:p-8 rounded-2xl border border-orange-200 shadow-sm">
@@ -385,10 +372,6 @@ export default async function BhajanDetails({ params }: Props) {
                 </div>
               )}
 
-              {/* 🌟 BOTTOM OF SCREEN PLACEMENT */}
-              <div className="mt-12 w-full max-w-full overflow-hidden block">
-                <AdMultiplex />
-              </div>
 
               <div className="mt-8">
                 <CommentsSection bhajanSlug={slug} />
@@ -414,10 +397,6 @@ export default async function BhajanDetails({ params }: Props) {
               filterValue={bhajan.deity_id}
               currentBhajanSlug={bhajan.slug}
             />
-            {/* 🌟 THE VERTICAL AD UNIT (High-paying sticky placement) */}
-            <div className="mt-6 w-full max-w-full overflow-hidden block">
-              <AdStickySidebar />
-            </div>
           </aside>
           
         </div>

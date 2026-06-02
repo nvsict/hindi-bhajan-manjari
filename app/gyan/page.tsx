@@ -6,10 +6,6 @@ import { Fragment } from 'react';
 import Breadcrumbs from '../../components/Breadcrumbs';
 import { FaBookOpen, FaClock, FaCalendarAlt, FaChevronRight, FaGlobe } from 'react-icons/fa';
 
-// 🌟 IMPORT AD COMPONENTS
-import AdDisplay from '@/components/AdDisplay';
-import AdInFeed from '@/components/AdInFeed';
-import AdMultiplex from '@/components/AdMultiplex';
 
 // ==========================================
 // 🌟 1. HIGH-CTR SEO METADATA
@@ -102,11 +98,6 @@ export default async function GyanIndexPage() {
           </p>
         </header>
 
-        {/* 🌟 TOP DISPLAY AD */}
-        <div className="w-full mb-12 max-w-full overflow-hidden block">
-          <AdDisplay />
-        </div>
-
         {/* --- ARTICLES GRID --- */}
         {error || !articles || articles.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl border border-gray-100">
@@ -192,22 +183,11 @@ export default async function GyanIndexPage() {
                     </Link>
                   </article>
 
-                  {/* 🌟 NATIVE IN-FEED AD (Injects every 5th item) */}
-                  {(index + 1) % 5 === 0 && index !== articles.length - 1 && (
-                    <div className="h-full flex flex-col justify-center bg-white rounded-3xl border border-gray-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] p-4 md:p-6 overflow-hidden">
-                      <AdInFeed />
-                    </div>
-                  )}
                 </Fragment>
               );
             })}
           </section>
         )}
-
-        {/* 🌟 BOTTOM MULTIPLEX AD */}
-        <div className="w-full mt-16 max-w-full overflow-hidden block">
-          <AdMultiplex />
-        </div>
 
       </div>
     </main>

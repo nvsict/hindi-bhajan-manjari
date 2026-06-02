@@ -23,9 +23,6 @@ import AnalyticsWrapper from '@/components/AnalyticsWrapper';
 import NextTopLoader from 'nextjs-toploader';
 import ScrollToTop from '@/components/ScrollToTop';
 
-// 🌟 THE NEW SMART ADSENSE COMPONENT
-import AdSense from '@/components/AdSense';
-
 // 🌟 MICROSOFT CLARITY
 import ClarityAnalytics from '@/components/ClarityAnalytics';
 
@@ -168,7 +165,6 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           
           {/* 🌟 FIX 2: AdSense and Clarity moved inside ThemeProvider for safety */}
-          <AdSense />
           <ClarityAnalytics />
 
           <ScrollToTop />
