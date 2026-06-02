@@ -7,8 +7,6 @@ import { FaArrowRight, FaArrowLeft, FaExclamationTriangle, FaPlay, FaMusic, FaCo
 import ScrollReveal from './ScrollReveal'; 
 import Image from 'next/image';
 
-// 🌟 NEW: IMPORT THE IN-FEED AD
-import AdInFeed from './AdInFeed';
 
 interface Bhajan {
   title_hinglish: string;
@@ -262,12 +260,6 @@ export default function BhajanList({
               index={index} 
               itemsPerPage={itemsPerPage} 
             />
-            {/* 🌟 INJECT IN-FEED AD: After every 4th bhajan (index 3, 7, 11...) */}
-            {(index + 1) % 4 === 0 && index !== bhajans.length - 1 && (
-              <ScrollReveal yOffset={10}>
-                <AdInFeed />
-              </ScrollReveal>
-            )}
           </Fragment>
         ))}
       </div>

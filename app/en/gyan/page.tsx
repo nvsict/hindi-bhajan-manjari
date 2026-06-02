@@ -6,10 +6,6 @@ import { Fragment } from 'react';
 import Breadcrumbs from '../../../components/Breadcrumbs';
 import { FaBookOpen, FaClock, FaCalendarAlt, FaChevronRight, FaLanguage } from 'react-icons/fa';
 
-// 🌟 IMPORT AD COMPONENTS
-import AdDisplay from '@/components/AdDisplay';
-import AdInFeed from '@/components/AdInFeed';
-import AdMultiplex from '@/components/AdMultiplex';
 
 export const metadata: Metadata = {
   title: 'Sanatan Gyan - Spiritual Articles & Meanings | Hindi Bhajan Manjari',
@@ -69,10 +65,6 @@ export default async function EnglishGyanIndexPage() {
           </p>
         </div>
 
-        {/* 🌟 TOP DISPLAY AD */}
-        <div className="w-full mb-12 max-w-full overflow-hidden block">
-          <AdDisplay />
-        </div>
 
         {/* --- ARTICLES GRID --- */}
         {error || !articles || articles.length === 0 ? (
@@ -134,23 +126,11 @@ export default async function EnglishGyanIndexPage() {
                       </div>
                     </div>
                   </Link>
-
-                  {/* 🌟 NATIVE IN-FEED AD (Injects every 5th item) */}
-                  {(index + 1) % 5 === 0 && index !== articles.length - 1 && (
-                    <div className="h-full flex flex-col justify-center bg-white rounded-3xl border border-blue-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] p-4 md:p-6 overflow-hidden">
-                      <AdInFeed />
-                    </div>
-                  )}
                 </Fragment>
               );
             })}
           </div>
         )}
-
-        {/* 🌟 BOTTOM MULTIPLEX AD */}
-        <div className="w-full mt-16 max-w-full overflow-hidden block">
-          <AdMultiplex />
-        </div>
 
       </div>
     </div>

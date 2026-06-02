@@ -10,8 +10,6 @@ import PdfDownloadButton from './PdfDownloadButton';
 import { supabase } from '@/utils/supabase';
 import Link from 'next/link';
 
-// 🌟 THE NEW AD COMPONENT IMPORT
-import AdInArticle from './AdInArticle';
 import PushPrompt from './PushPrompt';
 
 interface LyricsViewerProps {
@@ -446,12 +444,6 @@ export default function LyricsViewer({
                   </div>
                 )}
 
-                {/* 🌟 IN-ARTICLE AD UNIT */}
-                {isAllowedAd && index < array.length - 1 && (
-                  <div className="w-full mb-4 md:mb-6">
-                    <AdInArticle />
-                  </div>
-                )}
               </div>
             );
           })}

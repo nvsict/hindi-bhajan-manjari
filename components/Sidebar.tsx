@@ -3,8 +3,6 @@ import { supabase } from '@/utils/supabase';
 import { FaFire, FaWhatsapp, FaStar, FaChevronRight, FaBookOpen } from 'react-icons/fa';
 import { FaWandSparkles } from 'react-icons/fa6';
 
-// 🌟 IMPORT THE AD COMPONENT
-import ManualAdUnit from '@/components/AdInArticle';
 
 interface SidebarProps {
   topicName?: string;           // e.g., "Hanuman" or "Aarti"
@@ -114,12 +112,6 @@ export default async function Sidebar({
         </div>
       )}
 
-      {/* 🌟 AD SLOT 1: HIGH VISIBILITY (Desktop & Mobile) */}
-      <div className="w-full bg-slate-50/60 rounded-[2rem] p-4 border border-slate-100 flex flex-col items-center justify-center overflow-hidden min-h-[280px]">
-        <div className="w-full flex justify-center items-center">
-          <ManualAdUnit />
-        </div>
-      </div>
 
       {/* --- SECTION 2: NEW ARRIVALS --- */}
       {latestBhajans && latestBhajans.length > 0 && (
@@ -169,12 +161,6 @@ export default async function Sidebar({
         </div>
       )}
 
-      {/* 🌟 AD SLOT 2: STICKY BOTTOM (Great for long reads) */}
-      <div className="w-full bg-slate-50/60 rounded-[2rem] p-4 border border-slate-100 flex flex-col items-center justify-center overflow-hidden min-h-[280px]">
-        <div className="w-full flex justify-center items-center">
-          <ManualAdUnit />
-        </div>
-      </div>
 
       {/* --- SECTION 4: PREMIUM COMMUNITY BANNER --- */}
       <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#128C7E] to-[#075E54] p-8 text-white shadow-xl shadow-[#128C7E]/20 group">
