@@ -15,28 +15,7 @@ export default function Footer() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   
-  // 🌟 State for our Smart Simulated Live Counter
-  const [liveCount, setLiveCount] = useState(0);
   const lenis = useLenis();
-
-  // 🌟 The Smart Simulator Engine
-  useEffect(() => {
-    let currentBase = 28; 
-    setLiveCount(currentBase);
-
-    const interval = setInterval(() => {
-      const fluctuation = Math.floor(Math.random() * 5) - 2; 
-      let nextCount = currentBase + fluctuation;
-      
-      if (nextCount < 15) nextCount = 15;
-      if (nextCount > 55) nextCount = 55;
-      
-      currentBase = nextCount;
-      setLiveCount(nextCount);
-    }, 6000); 
-
-    return () => clearInterval(interval);
-  }, []);
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -207,19 +186,6 @@ export default function Footer() {
             <br className="md:hidden" /> दुनिया भर के भक्तों के लिए भक्ति भाव से निर्मित।
           </p>
 
-          {/* 🌟 THE LIVE COUNTER UI */}
-          {liveCount > 0 && (
-            <div className="flex items-center gap-2.5 bg-white/[0.03] border border-white/10 px-4 py-2 rounded-full shadow-inner">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-              </span>
-              <span className="text-sm font-bold text-slate-300 font-hindi flex items-center gap-1.5">
-                <FaUsers className="text-slate-400 pb-0.5" />
-                {liveCount} भक्त अभी लाइव हैं
-              </span>
-            </div>
-          )}
 
           {/* 🌟 FIX: Changed text-slate-500 to text-slate-300 */}
           <div className="flex items-center gap-6 text-[13px] font-bold text-slate-300 font-hindi">
