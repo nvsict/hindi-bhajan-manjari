@@ -89,7 +89,7 @@ const kalamFont = Kalam({
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.hindibhajanmanjari.com";
 
-// 🌟 FIX 1: Explicit Viewport Export (Next.js 14 Best Practice)
+// 🌟 Explicit Viewport Export (Next.js 14 Best Practice)
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -121,9 +121,6 @@ export const metadata: Metadata = {
     apple: '/logo.png', 
   },
   manifest: '/manifest.json', 
-  other: {
-    "google-adsense-account": "ca-pub-5565563905050993",
-  },
   openGraph: {
     type: 'website',
     locale: 'hi_IN',
@@ -153,9 +150,6 @@ export default function RootLayout({
         <link rel="preconnect" href="https://vjylssvpxjhzjkmqzvjz.supabase.co" crossOrigin="anonymous" />
         {/* YouTube Thumbnails */}
         <link rel="preconnect" href="https://img.youtube.com" crossOrigin="anonymous" />
-        {/* Google AdSense Servers */}
-        <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://googleads.g.doubleclick.net" crossOrigin="anonymous" />
       </head>
 
       <body 
@@ -164,7 +158,6 @@ export default function RootLayout({
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           
-          {/* 🌟 FIX 2: AdSense and Clarity moved inside ThemeProvider for safety */}
           <ClarityAnalytics />
 
           <ScrollToTop />
@@ -200,14 +193,6 @@ export default function RootLayout({
           <SiteAssistant />
 
         </ThemeProvider>
-
-        {/* 🌟 FIX 3: Next.js Script Optimizer ensures AdSense doesn't block page load! */}
-        <Script
-          id="adsbygoogle-init"
-          strategy="afterInteractive"
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5565563905050993"
-          crossOrigin="anonymous"
-        />
       </body>
     </html>
   );
