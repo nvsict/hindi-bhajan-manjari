@@ -146,9 +146,26 @@ export default function RootLayout({
     <html lang="hi" suppressHydrationWarning>
       
       <head>
-        {/* Supabase API */}
+        {/* ==========================================
+            🌟 EZOIC PRIVACY SCRIPTS (MUST BE FIRST)
+            ========================================== */}
+        <script data-cfasync="false" src="https://cmp.gatekeeperconsent.com/min.js"></script>
+        <script data-cfasync="false" src="https://the.gatekeeperconsent.com/cmp.min.js"></script>
+
+        {/* ==========================================
+            🌟 EZOIC HEADER SYSTEM INIT
+            ========================================== */}
+        <script async src="//www.ezojs.com/ezoic/sa.min.js"></script>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            window.ezstandalone = window.ezstandalone || {};
+            ezstandalone.cmd = ezstandalone.cmd || [];
+          `
+        }} />
+        <script src="//ezoicanalytics.com/analytics.js"></script>
+
+        {/* Supabase & Media API Preconnects */}
         <link rel="preconnect" href="https://vjylssvpxjhzjkmqzvjz.supabase.co" crossOrigin="anonymous" />
-        {/* YouTube Thumbnails */}
         <link rel="preconnect" href="https://img.youtube.com" crossOrigin="anonymous" />
       </head>
 

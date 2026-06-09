@@ -22,6 +22,19 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  // ==========================================
+  // 🌟 ADDED: EZOIC ADS.TXT REDIRECT
+  // ==========================================
+  async redirects() {
+    return [
+      {
+        source: '/ads.txt',
+        destination: 'https://srv.adstxtmanager.com/19390/hindibhajanmanjari.com',
+        permanent: true, // Ezoic requires a 301 Permanent Redirect
+      },
+    ];
+  },
+
   // 🛡️ SECURITY HEADERS SHIELD 🛡️
   async headers() {
     return [
@@ -54,9 +67,9 @@ const nextConfig: NextConfig = {
             value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()'
           },
           {
-            // 🌟 ULTIMATE CSP: Added 'blob:' in script-src and 'https://news.google.com' in style-src
+            // 🌟 ULTIMATE CSP: Added Ezoic & Gatekeeper domains to script-src & frame-src
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.instagram.com https://*.googlesyndication.com https://*.doubleclick.net https://*.googletagmanager.com https://static.cloudflareinsights.com https://*.clarity.ms https://*.google.com https://*.adtrafficquality.google; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://news.google.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com https://*.adtrafficquality.google;"
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.instagram.com https://*.googlesyndication.com https://*.doubleclick.net https://*.googletagmanager.com https://static.cloudflareinsights.com https://*.clarity.ms https://*.google.com https://*.adtrafficquality.google https://*.ezoic.com https://*.ezojs.com https://*.ezoicanalytics.com https://*.gatekeeperconsent.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://news.google.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com https://*.adtrafficquality.google https://*.ezoic.com;"
           }
         ],
       },
