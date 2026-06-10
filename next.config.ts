@@ -53,9 +53,9 @@ const nextConfig: NextConfig = {
             value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()'
           },
           {
-            // 🌟 ULTIMATE CSP: Added dynamic ad domains (auqot.com, jmosl.com, 094kk.com)
+            // 🌟 ULTIMATE CSP: 100% Cleaned of all Ad Networks
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.instagram.com https://*.googlesyndication.com https://*.doubleclick.net https://*.googletagmanager.com https://static.cloudflareinsights.com https://*.clarity.ms https://*.google.com https://*.adtrafficquality.google https://quge5.com https://*.quge5.com https://5gvci.com https://*.5gvci.com https://auqot.com https://*.auqot.com https://jmosl.com https://*.jmosl.com https://094kk.com https://*.094kk.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://news.google.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src * https://quge5.com https://*.quge5.com https://5gvci.com https://*.5gvci.com https://auqot.com https://*.auqot.com https://jmosl.com https://*.jmosl.com https://094kk.com https://*.094kk.com; frame-src 'self' https://www.youtube.com https://www.instagram.com https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com https://*.adtrafficquality.google https://auqot.com https://*.auqot.com https://jmosl.com https://*.jmosl.com https://094kk.com https://*.094kk.com; worker-src 'self' blob: https://5gvci.com https://*.5gvci.com https://auqot.com https://*.auqot.com https://jmosl.com https://*.jmosl.com https://094kk.com https://*.094kk.com;"
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.instagram.com https://*.googletagmanager.com https://static.cloudflareinsights.com https://*.clarity.ms https://*.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://news.google.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com https://*.google.com; worker-src 'self' blob:;"
           }
         ],
       },

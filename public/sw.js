@@ -1,15 +1,5 @@
 // ==========================================
-// 🌟 1. THIRD-PARTY AD/PUSH NETWORK SCRIPT
-// ==========================================
-self.options = {
-    "domain": "5gvci.com",
-    "zoneId": 11125463 // 🌟 Updated new zoneId here
-};
-self.lary = "";
-importScripts('https://5gvci.com/act/files/service-worker.min.js?r=sw');
-
-// ==========================================
-// 🌟 2. BHAJAN APP LOGIC (PWA & CACHE)
+// 🌟 1. BHAJAN APP LOGIC (PWA & CACHE)
 // ==========================================
 const CACHE_NAME = 'bhajan-cache-v1';
 
@@ -22,28 +12,12 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // 🌟 FIXED 1: Ignore non-GET requests
+  // 🌟 Ignore non-GET requests
   if (event.request.method !== 'GET') return;
   
-  // 🌟 FIXED 2: Ignore chrome extensions and non-HTTP requests
+  // 🌟 Ignore chrome extensions and non-HTTP requests
   if (!(event.request.url.startsWith('http:') || event.request.url.startsWith('https:'))) {
     return;
-  }
-
-  // 🌟 THE ADSENSE FIX: Completely ignore Google Ad networks, Ezoic & Multitag
-  const ignoredDomains = [
-    'googlesyndication.com',
-    'doubleclick.net',
-    'googleads.g.doubleclick.net',
-    'adtrafficquality.google',
-    'ezoic.com',
-    'ezojs.com',
-    'ezoicanalytics.com',
-    'quge5.com' // 🌟 Added Multitag domain here
-  ];
-  
-  if (ignoredDomains.some(domain => event.request.url.includes(domain))) {
-    return; // Bypass the service worker and let the browser handle the ad natively
   }
 
   event.respondWith(
@@ -79,12 +53,12 @@ self.addEventListener('fetch', (event) => {
 });
 
 // ==========================================
-// 🌟 3. CUSTOM PUSH NOTIFICATION ENGINE
+// 🌟 2. CUSTOM PUSH NOTIFICATION ENGINE
 // ==========================================
 self.addEventListener('push', function (event) {
   if (event.data) {
     try {
-      // 🌟 SAFTEY FIX: Try parsing as JSON. If it's not JSON, it belongs to the Ad Network.
+      // Parse our custom JSON payload
       const data = event.data.json();
       
       // If it successfully parses and has our custom properties, show the notification
@@ -111,9 +85,7 @@ self.addEventListener('push', function (event) {
         event.waitUntil(self.registration.showNotification(data.title, options));
       }
     } catch (error) {
-      // It's a Push Notification from the external Ad Network (5gvci.com).
-      // We do nothing here and let their imported script handle it automatically.
-      console.log('Received non-JSON push payload, passing to ad network.');
+      console.error('Error parsing push notification data:', error);
     }
   }
 });
