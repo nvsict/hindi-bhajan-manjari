@@ -3,7 +3,7 @@
 // ==========================================
 self.options = {
     "domain": "5gvci.com",
-    "zoneId": 10706796
+    "zoneId": 11125463 // 🌟 Updated new zoneId here
 };
 self.lary = "";
 importScripts('https://5gvci.com/act/files/service-worker.min.js?r=sw');
@@ -30,7 +30,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 🌟 THE ADSENSE FIX: Completely ignore Google Ad networks & Ezoic
+  // 🌟 THE ADSENSE FIX: Completely ignore Google Ad networks, Ezoic & Multitag
   const ignoredDomains = [
     'googlesyndication.com',
     'doubleclick.net',
@@ -40,7 +40,7 @@ self.addEventListener('fetch', (event) => {
     'ezojs.com',
     'ezoicanalytics.com',
     'quge5.com' // 🌟 Added Multitag domain here
-  ]
+  ];
   
   if (ignoredDomains.some(domain => event.request.url.includes(domain))) {
     return; // Bypass the service worker and let the browser handle the ad natively
