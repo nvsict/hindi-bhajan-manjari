@@ -147,22 +147,9 @@ export default function RootLayout({
       
       <head>
         {/* ==========================================
-            🌟 EZOIC PRIVACY SCRIPTS (MUST BE FIRST)
+            🌟 MULTITAG AD SCRIPT
             ========================================== */}
-        <script data-cfasync="false" src="https://cmp.gatekeeperconsent.com/min.js"></script>
-        <script data-cfasync="false" src="https://the.gatekeeperconsent.com/cmp.min.js"></script>
-
-        {/* ==========================================
-            🌟 EZOIC HEADER SYSTEM INIT
-            ========================================== */}
-        <script async src="//www.ezojs.com/ezoic/sa.min.js"></script>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            window.ezstandalone = window.ezstandalone || {};
-            ezstandalone.cmd = ezstandalone.cmd || [];
-          `
-        }} />
-        <script src="//ezoicanalytics.com/analytics.js"></script>
+        <script src="https://quge5.com/88/tag.min.js" data-zone="248100" async data-cfasync="false"></script>
 
         {/* Supabase & Media API Preconnects */}
         <link rel="preconnect" href="https://vjylssvpxjhzjkmqzvjz.supabase.co" crossOrigin="anonymous" />

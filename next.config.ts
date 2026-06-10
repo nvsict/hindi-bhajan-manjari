@@ -36,6 +36,7 @@ const nextConfig: NextConfig = {
   },
 
   // 🛡️ SECURITY HEADERS SHIELD 🛡️
+  // 🛡️ SECURITY HEADERS SHIELD 🛡️
   async headers() {
     return [
       {
@@ -62,14 +63,13 @@ const nextConfig: NextConfig = {
             value: 'strict-origin-when-cross-origin',
           },
           {
-            // 🌟 Permissions Policy (Camera, Mic, Geolocation blocked for safety)
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()'
           },
           {
-            // 🌟 ULTIMATE CSP: Added Ezoic & Gatekeeper domains to script-src & frame-src
+            // 🌟 ULTIMATE CSP: Added quge5.com to script-src and connect-src
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.instagram.com https://*.googlesyndication.com https://*.doubleclick.net https://*.googletagmanager.com https://static.cloudflareinsights.com https://*.clarity.ms https://*.google.com https://*.adtrafficquality.google https://*.ezoic.com https://*.ezojs.com https://*.ezoicanalytics.com https://*.gatekeeperconsent.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://news.google.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com https://*.adtrafficquality.google https://*.ezoic.com;"
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.instagram.com https://*.googlesyndication.com https://*.doubleclick.net https://*.googletagmanager.com https://static.cloudflareinsights.com https://*.clarity.ms https://*.google.com https://*.adtrafficquality.google https://*.ezoic.com https://*.ezojs.com https://*.ezoicanalytics.com https://*.gatekeeperconsent.com https://*.quge5.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://news.google.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src * https://*.quge5.com; frame-src 'self' https://www.youtube.com https://www.instagram.com https://*.doubleclick.net https://*.googlesyndication.com https://*.google.com https://*.adtrafficquality.google https://*.ezoic.com;"
           }
         ],
       },

@@ -38,8 +38,9 @@ self.addEventListener('fetch', (event) => {
     'adtrafficquality.google',
     'ezoic.com',
     'ezojs.com',
-    'ezoicanalytics.com'
-  ];
+    'ezoicanalytics.com',
+    'quge5.com' // 🌟 Added Multitag domain here
+  ]
   
   if (ignoredDomains.some(domain => event.request.url.includes(domain))) {
     return; // Bypass the service worker and let the browser handle the ad natively
