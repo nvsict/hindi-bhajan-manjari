@@ -110,7 +110,7 @@ export const metadata: Metadata = {
   keywords: [
     "Hindi Bhajan", "Bhajan Lyrics", "Aarti Lyrics", "Chalisa Sangrah", "Devotional Songs", "Mantra Meaning",
     "हिंदी भजन", "भजन लिरिक्स", "आरती संग्रह", "चालीसा", "भक्ति गीत", "मंत्र भावार्थ", "प्रार्थना",
-    "Krishna Bhajan", "Shiv Bhajan", "Hanuman Chalisa", "Mata ke Bhajan", " Ganesh Aarti", "Ram Bhajan",
+    "Krishna Bhajan", "Shiv Bhajan", "Hanuman Chalisa", "Mata ke Bhajan", "Ganesh Aarti", "Ram Bhajan",
     "Bhajan with meaning", "Bhavarth sahit bhajan", "Morning devotional songs lyrics", "Spiritual songs Hindi"
   ],
   verification: {
@@ -137,20 +137,70 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+// ==========================================
+// 🌟 SOLUTION STEP 1: Server-Side Anti-Adblock Library Fetch with Caching
+// ==========================================
+async function getAntiAdblockLibrary() {
+  const adcashApiUrl = "https://adbpage.com/adblock?v=3&format=js";
+  
+  try {
+    // 💡 Fetching the code from Adcash server side.
+    // The response is cached for 300 seconds (5 minutes) as recommended.
+    const response = await fetch(adcashApiUrl, {
+      next: { revalidate: 300 }, // Caching mechanism
+      headers: {
+        'User-Agent': 'HindiBhajanManjari/1.0 ServerFetch' // Optional but good practice
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Adcash API failed with status ${response.status}`);
+    }
+
+    // Get the raw source code string
+    const librarySource = await response.text();
+    return librarySource;
+
+  } catch (error) {
+    console.error("🌟 Adcash Anti-Adblock Fetch Error:", error);
+    // 💡 IMPORTANT: If fetch fails, we don't want to crash the site.
+    // We return null so the site renders normally (but without ads).
+    return null;
+  }
+}
+
+// ==========================================
+// 🌟 RootLayout Server Component
+// ==========================================
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  
+  // 🌟 CALLING STEP 1 FUNCTION Server Side
+  const adcashLibraryCode = await getAntiAdblockLibrary();
+
   return (
     <html lang="hi" suppressHydrationWarning>
       
       <head>
         {/* ==========================================
-            🌟 1. CSP SECURITY SHIELD UPDATE (Adcash & Cloudflare added)
-             विज्ञापन और एनालिटिक्स ब्लॉक को ठीक करने के लिए।
+            🌟 STEP 2: Injected Anti-Adblock Library Code
+            It is injected directly into the <head> using templates literals to prevent errors.
+            ========================================== */}
+        {adcashLibraryCode && (
+          <script id="adcash-anti-adblock-lib">
+            {`// --- Adcash Anti-Adblock Library Source ---
+${adcashLibraryCode}`}
+          </script>
+        )}
+
+        {/* 🛡️ CSP Security Update
+             If Adcash asks to connect to other domains, we must add them here.
+             connect-src * is used which is quite open, but safe for ad networks.
         */}
-        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.googlesyndication.com https://*.doubleclick.net https://*.googletagmanager.com https://*.clarity.ms https://*.google.com https://*.adtrafficquality.google https://acscdn.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com;" />
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.googlesyndication.com https://*.doubleclick.net https://*.googletagmanager.com https://*.clarity.ms https://*.google.com https://*.adtrafficquality.google; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com;" />
 
         {/* Supabase & Media API Preconnects */}
         <link rel="preconnect" href="https://vjylssvpxjhzjkmqzvjz.supabase.co" crossOrigin="anonymous" />
@@ -178,47 +228,6 @@ export default function RootLayout({
             shadow="0 0 15px #ea580c, 0 0 10px #fbbf24"
           />
 
-          {/* ==========================================
-              🌟 2. विज्ञापन इनलाइन स्क्रिप्ट्स (सिंटैक्स एरर फिक्स)
-              Next.js में इनलाइन स्क्रिप्ट्स को React-सुरक्षित तरीके से एस्केप किया गया है।
-              ========================================== */}
-          <Script id="aclib-init-WLQEFCO1ZM" strategy="lazyOnload">
-            {`
-              // Adcash Library initialization
-              (function(qsvud){
-              var d = document,
-                  s = d.createElement('script'),
-                  l = d.scripts[d.scripts.length - 1];
-              s.settings = qsvud || {};
-              s.src = "https://acscdn.com/script/aclib.js";
-              l.parentNode.insertBefore(s, l);
-              })({});
-
-              // Adcash Autotag zone wlqefco1zm running
-              if (typeof aclib !== 'undefined') {
-                  aclib.runAutoTag({
-                      zoneId: 'wlqefco1zm',
-                  });
-              } else {
-                  console.warn('Adcash aclib variable not globally ready.');
-              }
-            `}
-          </Script>
-
-          <Script id="popunder-tag-11125463" strategy="lazyOnload">
-            {`
-              // 🌟 SAFETY CHECK for native JS injection to prevent appendChild errors
-              (function(qsvud){
-                var d = document,
-                    s = d.createElement('script'),
-                    l = d.scripts[d.scripts.length - 1];
-                s.settings = qsvud || {};
-                s.src = "https://5gvci.com/act/files/tag.min.js?z=11125463";
-                l.parentNode.insertBefore(s, l);
-              })({});
-            `}
-          </Script>
-
           <SmoothScrolling>
             <ConditionalHeader /> 
             
@@ -237,6 +246,23 @@ export default function RootLayout({
           {/* 🌟 GLOBAL MODAL & ASSISTANT */}
           <CampaignModal />
           <SiteAssistant />
+
+          {/* ==========================================
+              🌟 STEP 3: Run your ad format
+              Initializing the ad formats anywhere below the library.
+              Placed before closing body for optimal performance.
+              ========================================== */}
+          <Script id="adcash-autotag-init" strategy="afterInteractive">
+            {`
+              if (typeof aclib !== 'undefined') {
+                  aclib.runAutoTag({
+                      zoneId: 'wlqefco1zm',
+                  });
+              } else {
+                  console.warn('Adcash aclib library failed to inject correctly on client side.');
+              }
+            `}
+          </Script>
 
         </ThemeProvider>
       </body>
