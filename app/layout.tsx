@@ -146,14 +146,14 @@ export default function RootLayout({
     <html lang="hi" suppressHydrationWarning>
       
       <head>
-        {/* ==========================================
-            🌟 MULTITAG AD SCRIPT
-            ========================================== */}
-        <script src="https://quge5.com/88/tag.min.js" data-zone="248100" async data-cfasync="false"></script>
-
         {/* Supabase & Media API Preconnects */}
         <link rel="preconnect" href="https://vjylssvpxjhzjkmqzvjz.supabase.co" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://img.youtube.com" crossOrigin="anonymous" />
+
+        {/* 🌟 1. CSP SECURITY SHIELD UPDATE (Ad Traffic Quality Google added)
+             विज्ञापन स्क्रिप्ट (Ad Script) को लोड करने की अनुमति देने के लिए।
+        */}
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.googlesyndication.com https://*.doubleclick.net https://*.googletagmanager.com https://*.clarity.ms https://*.google.com https://*.adtrafficquality.google; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com;" />
       </head>
 
       <body 
@@ -195,6 +195,22 @@ export default function RootLayout({
           {/* 🌟 GLOBAL MODAL & ASSISTANT */}
           <CampaignModal />
           <SiteAssistant />
+
+          {/* ==========================================
+              🌟 2. NEW AD SCRIPT ZONE ID: wlqefco1zm
+              Next.js बेस्ट प्रैक्टिस के लिए 'Script' कॉम्पोनेंट का उपयोग करना।
+              ========================================== */}
+          <Script id="aclib-autotag-zone-wlqefco1zm" strategy="lazyOnload">
+            {`
+              if (typeof aclib !== 'undefined') {
+                  aclib.runAutoTag({
+                      zoneId: 'wlqefco1zm',
+                  });
+              } else {
+                  console.warn('वादा किया गया aclib.js लोड नहीं हो पाया।');
+              }
+            `}
+          </Script>
 
         </ThemeProvider>
       </body>
