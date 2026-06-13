@@ -110,7 +110,7 @@ export const metadata: Metadata = {
   keywords: [
     "Hindi Bhajan", "Bhajan Lyrics", "Aarti Lyrics", "Chalisa Sangrah", "Devotional Songs", "Mantra Meaning",
     "हिंदी भजन", "भजन लिरिक्स", "आरती संग्रह", "चालीसा", "भक्ति गीत", "मंत्र भावार्थ", "प्रार्थना",
-    "Krishna Bhajan", "Shiv Bhajan", "Hanuman Chalisa", "Mata ke Bhajan", "Ganesh Aarti", "Ram Bhajan",
+    "Krishna Bhajan", "Shiv Bhajan", "Hanuman Chalisa", "Mata ke Bhajan", " Ganesh Aarti", "Ram Bhajan",
     "Bhajan with meaning", "Bhavarth sahit bhajan", "Morning devotional songs lyrics", "Spiritual songs Hindi"
   ],
   verification: {
@@ -147,19 +147,10 @@ export default function RootLayout({
       
       <head>
         {/* ==========================================
-            🌟 STEP 1: ADCASH LIBRARY (MUST BE AS HIGH AS POSSIBLE)
-            'beforeInteractive' रणनीति यह सुनिश्चित करती है कि यह React हाइड्रेशन से पहले लोड हो।
-            ========================================== */}
-        <Script
-          src="https://acscdn.com/script/aclib.js"
-          strategy="beforeInteractive"
-          crossOrigin="anonymous"
-        />
-
-        {/* 🌟 CSP SECURITY SHIELD UPDATE
-             Adcash लाइब्रेरी डोमेन (https://acscdn.com) को 'script-src' में जोड़ा गया है।
+            🌟 1. CSP SECURITY SHIELD UPDATE (Adcash & Cloudflare added)
+             विज्ञापन और एनालिटिक्स ब्लॉक को ठीक करने के लिए।
         */}
-        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.googlesyndication.com https://*.doubleclick.net https://*.googletagmanager.com https://*.clarity.ms https://*.google.com https://*.adtrafficquality.google https://acscdn.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com;" />
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.googlesyndication.com https://*.doubleclick.net https://*.googletagmanager.com https://*.clarity.ms https://*.google.com https://*.adtrafficquality.google https://acscdn.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com;" />
 
         {/* Supabase & Media API Preconnects */}
         <link rel="preconnect" href="https://vjylssvpxjhzjkmqzvjz.supabase.co" crossOrigin="anonymous" />
@@ -188,19 +179,43 @@ export default function RootLayout({
           />
 
           {/* ==========================================
-              🌟 STEP 2: Put the tag script on the page
-              Next.js में इनलाइन स्क्रिप्ट्स के लिए Best Practice।
-              यह रणनीति लाइब्रेरी लोड होने के बाद चलती है।
+              🌟 2. विज्ञापन इनलाइन स्क्रिप्ट्स (सिंटैक्स एरर फिक्स)
+              Next.js में इनलाइन स्क्रिप्ट्स को React-सुरक्षित तरीके से एस्केप किया गया है।
               ========================================== */}
-          <Script id="adcash-autotag-init" strategy="afterInteractive">
+          <Script id="aclib-init-WLQEFCO1ZM" strategy="lazyOnload">
             {`
+              // Adcash Library initialization
+              (function(qsvud){
+              var d = document,
+                  s = d.createElement('script'),
+                  l = d.scripts[d.scripts.length - 1];
+              s.settings = qsvud || {};
+              s.src = "https://acscdn.com/script/aclib.js";
+              l.parentNode.insertBefore(s, l);
+              })({});
+
+              // Adcash Autotag zone wlqefco1zm running
               if (typeof aclib !== 'undefined') {
-                aclib.runAutoTag({
-                    zoneId: 'wlqefco1zm',
-                });
+                  aclib.runAutoTag({
+                      zoneId: 'wlqefco1zm',
+                  });
               } else {
-                console.error('Adcash 'aclib' लाइब्रेरी लोड नहीं हो पाई।');
+                  console.warn('Adcash aclib variable not globally ready.');
               }
+            `}
+          </Script>
+
+          <Script id="popunder-tag-11125463" strategy="lazyOnload">
+            {`
+              // 🌟 SAFETY CHECK for native JS injection to prevent appendChild errors
+              (function(qsvud){
+                var d = document,
+                    s = d.createElement('script'),
+                    l = d.scripts[d.scripts.length - 1];
+                s.settings = qsvud || {};
+                s.src = "https://5gvci.com/act/files/tag.min.js?z=11125463";
+                l.parentNode.insertBefore(s, l);
+              })({});
             `}
           </Script>
 
