@@ -138,38 +138,6 @@ export const metadata: Metadata = {
 };
 
 // ==========================================
-// 🌟 SOLUTION STEP 1: Server-Side Anti-Adblock Library Fetch with Caching
-// ==========================================
-async function getAntiAdblockLibrary() {
-  const adcashApiUrl = "https://adbpage.com/adblock?v=3&format=js";
-  
-  try {
-    // 💡 Fetching the code from Adcash server side.
-    // The response is cached for 300 seconds (5 minutes) as recommended.
-    const response = await fetch(adcashApiUrl, {
-      next: { revalidate: 300 }, // Caching mechanism
-      headers: {
-        'User-Agent': 'HindiBhajanManjari/1.0 ServerFetch' // Optional but good practice
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Adcash API failed with status ${response.status}`);
-    }
-
-    // Get the raw source code string
-    const librarySource = await response.text();
-    return librarySource;
-
-  } catch (error) {
-    console.error("🌟 Adcash Anti-Adblock Fetch Error:", error);
-    // 💡 IMPORTANT: If fetch fails, we don't want to crash the site.
-    // We return null so the site renders normally (but without ads).
-    return null;
-  }
-}
-
-// ==========================================
 // 🌟 RootLayout Server Component
 // ==========================================
 export default async function RootLayout({
@@ -178,30 +146,10 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   
-  // 🌟 CALLING STEP 1 FUNCTION Server Side
-  const adcashLibraryCode = await getAntiAdblockLibrary();
-
   return (
     <html lang="hi" suppressHydrationWarning>
       
       <head>
-        {/* ==========================================
-            🌟 STEP 2: Injected Anti-Adblock Library Code
-            It is injected directly into the <head> using templates literals to prevent errors.
-            ========================================== */}
-        {adcashLibraryCode && (
-          <script id="adcash-anti-adblock-lib">
-            {`// --- Adcash Anti-Adblock Library Source ---
-${adcashLibraryCode}`}
-          </script>
-        )}
-
-        {/* 🛡️ CSP Security Update
-             If Adcash asks to connect to other domains, we must add them here.
-             connect-src * is used which is quite open, but safe for ad networks.
-        */}
-        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.googlesyndication.com https://*.doubleclick.net https://*.googletagmanager.com https://*.clarity.ms https://*.google.com https://*.adtrafficquality.google; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com;" />
-
         {/* Supabase & Media API Preconnects */}
         <link rel="preconnect" href="https://vjylssvpxjhzjkmqzvjz.supabase.co" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://img.youtube.com" crossOrigin="anonymous" />
@@ -246,23 +194,6 @@ ${adcashLibraryCode}`}
           {/* 🌟 GLOBAL MODAL & ASSISTANT */}
           <CampaignModal />
           <SiteAssistant />
-
-          {/* ==========================================
-              🌟 STEP 3: Run your ad format
-              Initializing the ad formats anywhere below the library.
-              Placed before closing body for optimal performance.
-              ========================================== */}
-          <Script id="adcash-autotag-init" strategy="afterInteractive">
-            {`
-              if (typeof aclib !== 'undefined') {
-                  aclib.runAutoTag({
-                      zoneId: 'wlqefco1zm',
-                  });
-              } else {
-                  console.warn('Adcash aclib library failed to inject correctly on client side.');
-              }
-            `}
-          </Script>
 
         </ThemeProvider>
       </body>
