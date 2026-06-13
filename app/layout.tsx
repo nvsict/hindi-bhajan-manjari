@@ -146,14 +146,24 @@ export default function RootLayout({
     <html lang="hi" suppressHydrationWarning>
       
       <head>
+        {/* ==========================================
+            🌟 STEP 1: ADCASH LIBRARY (MUST BE AS HIGH AS POSSIBLE)
+            'beforeInteractive' रणनीति यह सुनिश्चित करती है कि यह React हाइड्रेशन से पहले लोड हो।
+            ========================================== */}
+        <Script
+          src="https://acscdn.com/script/aclib.js"
+          strategy="beforeInteractive"
+          crossOrigin="anonymous"
+        />
+
+        {/* 🌟 CSP SECURITY SHIELD UPDATE
+             Adcash लाइब्रेरी डोमेन (https://acscdn.com) को 'script-src' में जोड़ा गया है।
+        */}
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.googlesyndication.com https://*.doubleclick.net https://*.googletagmanager.com https://*.clarity.ms https://*.google.com https://*.adtrafficquality.google https://acscdn.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com;" />
+
         {/* Supabase & Media API Preconnects */}
         <link rel="preconnect" href="https://vjylssvpxjhzjkmqzvjz.supabase.co" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://img.youtube.com" crossOrigin="anonymous" />
-
-        {/* 🌟 1. CSP SECURITY SHIELD UPDATE (Ad Traffic Quality Google added)
-             विज्ञापन स्क्रिप्ट (Ad Script) को लोड करने की अनुमति देने के लिए।
-        */}
-        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.googlesyndication.com https://*.doubleclick.net https://*.googletagmanager.com https://*.clarity.ms https://*.google.com https://*.adtrafficquality.google; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src *; frame-src 'self' https://www.youtube.com https://www.instagram.com;" />
       </head>
 
       <body 
@@ -177,6 +187,23 @@ export default function RootLayout({
             shadow="0 0 15px #ea580c, 0 0 10px #fbbf24"
           />
 
+          {/* ==========================================
+              🌟 STEP 2: Put the tag script on the page
+              Next.js में इनलाइन स्क्रिप्ट्स के लिए Best Practice।
+              यह रणनीति लाइब्रेरी लोड होने के बाद चलती है।
+              ========================================== */}
+          <Script id="adcash-autotag-init" strategy="afterInteractive">
+            {`
+              if (typeof aclib !== 'undefined') {
+                aclib.runAutoTag({
+                    zoneId: 'wlqefco1zm',
+                });
+              } else {
+                console.error('Adcash 'aclib' लाइब्रेरी लोड नहीं हो पाई।');
+              }
+            `}
+          </Script>
+
           <SmoothScrolling>
             <ConditionalHeader /> 
             
@@ -195,22 +222,6 @@ export default function RootLayout({
           {/* 🌟 GLOBAL MODAL & ASSISTANT */}
           <CampaignModal />
           <SiteAssistant />
-
-          {/* ==========================================
-              🌟 2. NEW AD SCRIPT ZONE ID: wlqefco1zm
-              Next.js बेस्ट प्रैक्टिस के लिए 'Script' कॉम्पोनेंट का उपयोग करना।
-              ========================================== */}
-          <Script id="aclib-autotag-zone-wlqefco1zm" strategy="lazyOnload">
-            {`
-              if (typeof aclib !== 'undefined') {
-                  aclib.runAutoTag({
-                      zoneId: 'wlqefco1zm',
-                  });
-              } else {
-                  console.warn('वादा किया गया aclib.js लोड नहीं हो पाया।');
-              }
-            `}
-          </Script>
 
         </ThemeProvider>
       </body>
