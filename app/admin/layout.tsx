@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
 import { 
-  FaChartBar, FaPlus, FaTags, FaGlobe, FaBars, FaTimes, FaSignOutAlt, FaNewspaper, FaUserShield, FaBell, FaExclamationTriangle, FaBookOpen 
+  FaChartBar, FaPlus, FaTags, FaGlobe, FaBars, FaTimes, FaSignOutAlt, FaNewspaper, FaUserShield, FaBell, FaExclamationTriangle, FaBookOpen,FaBullhorn, FaShoppingBag
 } from 'react-icons/fa';
 import { GiLotusFlower } from 'react-icons/gi';
 
@@ -25,13 +25,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setMounted(true);
   }, []);
 
+  // 🌟 Updated Navigation Items
   const navItems = [
     { name: 'Dashboard', href: '/admin', icon: FaChartBar },
     { name: 'Add New Bhajan', href: '/admin/add-bhajan', icon: FaPlus },
     { name: 'Site Metadata', href: '/admin/manage', icon: FaTags },
     { name: 'Gyan Articles', href: '/admin/articles', icon: FaNewspaper },
     { name: 'Broadcast Push', href: '/admin/broadcast', icon: FaBell },
-    { name: 'Dictionary', href: '/admin/dictionary', icon: FaBookOpen }, // 🌟 NEW: Dictionary Link Added
+    { name: 'Dictionary', href: '/admin/dictionary', icon: FaBookOpen },
+    { name: 'Campaigns', href: '/admin/campaign', icon: FaBullhorn },    // 🌟 New
+    { name: 'Affiliates', href: '/admin/affiliates', icon: FaShoppingBag }, // 🌟 New
   ];
 
   const confirmLogout = async () => {
