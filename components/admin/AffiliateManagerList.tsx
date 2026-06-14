@@ -62,13 +62,13 @@ export default function AffiliateManagerList() {
   return (
     <div className="w-full p-4 sm:p-6 overflow-hidden">
       <h2 className="text-2xl font-black text-gray-900 dark:text-orange-50 mb-6">
-        मैनेज एफिलिएट प्रोडक्ट्स ({products.length})
+        Manage Affiliate Products ({products.length})
       </h2>
 
       <div className="grid gap-4 w-full">
         {products.length === 0 ? (
           <div className="bg-white dark:bg-[#1a120b] p-8 text-center rounded-3xl border border-gray-100 dark:border-white/10 text-gray-500 shadow-sm">
-            अभी तक कोई प्रोडक्ट ऐड नहीं किया गया है।
+            No product added yet!
           </div>
         ) : (
           products.map((product) => (
