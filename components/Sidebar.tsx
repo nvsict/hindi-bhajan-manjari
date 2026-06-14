@@ -3,6 +3,8 @@ import { supabase } from '@/utils/supabase';
 import { FaFire, FaWhatsapp, FaStar, FaChevronRight, FaBookOpen } from 'react-icons/fa';
 import { FaWandSparkles } from 'react-icons/fa6';
 
+// 🌟 IMPORT SMART AFFILIATE SLOT
+import AffiliateSlot from './AffiliateSlot';
 
 interface SidebarProps {
   topicName?: string;           // e.g., "Hanuman" or "Aarti"
@@ -64,18 +66,23 @@ export default async function Sidebar({
   const trendingTitle = topicName ? `Trending ${topicName}` : 'Top Trending';
   const latestTitle = topicName ? `New ${topicName}` : 'New Additions';
 
+  // Extract Specific Deity ID for Targeted Ads
+  const specificDeityId = filterColumn === 'deity_id' ? filterValue?.toString() : undefined;
+
   return (
-    <aside className="w-full lg:w-[340px] shrink-0 space-y-6 lg:sticky lg:top-28 h-fit pb-10">
+    // 🌟 FIX: Removed `lg:sticky lg:top-28 h-fit`. 
+    // Added `flex flex-col gap-6 lg:gap-8` for smooth natural scrolling and perfect spacing!
+    <aside className="w-full lg:w-[340px] shrink-0 flex flex-col gap-6 lg:gap-8 pb-10">
       
       {/* --- SECTION 1: TOP TRENDING --- */}
       {trendingBhajans && trendingBhajans.length > 0 && (
-        <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 sm:p-7 border border-orange-100/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group">
+        <div className="bg-white/80 dark:bg-[#1a120b]/80 backdrop-blur-xl rounded-[2rem] p-6 sm:p-7 border border-orange-100/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group">
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-400/10 rounded-full blur-3xl group-hover:bg-orange-500/20 transition-colors duration-700"></div>
           
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-black text-gray-900 flex items-center gap-3 tracking-tighter">
-                <span className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500 shadow-inner">
+              <h3 className="text-xl font-black text-gray-900 dark:text-orange-50 flex items-center gap-3 tracking-tighter">
+                <span className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-500 shadow-inner">
                   <FaFire size={20} />
                 </span>
                 {trendingTitle}
@@ -87,20 +94,20 @@ export default async function Sidebar({
                 <Link 
                   key={bhajan.slug} 
                   href={`/bhajan/${bhajan.slug}`}
-                  className="group/item flex items-center gap-4 p-3 -mx-2 rounded-2xl hover:bg-white hover:shadow-md border border-transparent hover:border-orange-50 transition-all duration-300"
+                  className="group/item flex items-center gap-4 p-3 -mx-2 rounded-2xl hover:bg-white dark:hover:bg-[#0c0804] hover:shadow-md border border-transparent hover:border-orange-50 dark:hover:border-white/5 transition-all duration-300"
                 >
                   <div className={`w-10 h-10 rounded-full text-base font-black flex items-center justify-center shrink-0 shadow-sm transition-transform duration-300 group-hover/item:scale-110 ${
-                    index === 0 ? 'bg-gradient-to-br from-orange-400 to-amber-500 text-white' : 'bg-gray-50 text-gray-500 group-hover/item:text-orange-500'
+                    index === 0 ? 'bg-gradient-to-br from-orange-400 to-amber-500 text-white' : 'bg-gray-50 dark:bg-white/5 text-gray-500 dark:text-gray-400 group-hover/item:text-orange-500'
                   }`}>
                     {index === 0 ? <FaStar size={14} /> : index + 1}
                   </div>
                   
                   <div className="flex-1 min-w-0 transition-transform duration-300 group-hover/item:translate-x-1">
-                    <h4 className="font-black font-hindi text-gray-800 text-lg group-hover/item:text-orange-600 transition-colors line-clamp-1 leading-tight mb-1">
+                    <h4 className="font-black font-hindi text-gray-800 dark:text-gray-200 text-lg group-hover/item:text-orange-600 transition-colors line-clamp-1 leading-tight mb-1">
                       {bhajan.title_hindi}
                     </h4>
                     <div className="flex items-center gap-2">
-                      <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold line-clamp-1">
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-widest font-bold line-clamp-1">
                         {bhajan.title_hinglish}
                       </p>
                     </div>
@@ -112,12 +119,16 @@ export default async function Sidebar({
         </div>
       )}
 
+      {/* --- 🌟 AD SLOT 1 (Fills the gap between Trending and New Arrivals) --- */}
+      <div className="w-full">
+        <AffiliateSlot deityId={specificDeityId} layout="sidebar" />
+      </div>
 
       {/* --- SECTION 2: NEW ARRIVALS --- */}
       {latestBhajans && latestBhajans.length > 0 && (
-        <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 sm:p-7 border border-orange-100/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-          <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-3 tracking-tighter">
-            <span className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 shadow-inner">
+        <div className="bg-white/80 dark:bg-[#1a120b]/80 backdrop-blur-xl rounded-[2rem] p-6 sm:p-7 border border-orange-100/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+          <h3 className="text-xl font-black text-gray-900 dark:text-orange-50 mb-6 flex items-center gap-3 tracking-tighter">
+            <span className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-500 shadow-inner">
               <FaWandSparkles size={18} />
             </span>
             {latestTitle}
@@ -127,12 +138,12 @@ export default async function Sidebar({
               <Link 
                 key={bhajan.slug} 
                 href={`/bhajan/${bhajan.slug}`}
-                className="group flex flex-col gap-1 border-b border-gray-100 last:border-0 pb-4 last:pb-0"
+                className="group flex flex-col gap-1 border-b border-gray-100 dark:border-white/10 last:border-0 pb-4 last:pb-0"
               >
-                <h4 className="font-black font-hindi text-gray-800 text-[17px] group-hover:text-blue-600 transition-colors line-clamp-1">
+                <h4 className="font-black font-hindi text-gray-800 dark:text-gray-200 text-[17px] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
                   {bhajan.title_hindi}
                 </h4>
-                <p className="text-[11px] text-gray-500 uppercase tracking-wider font-bold line-clamp-1">
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-bold line-clamp-1">
                   {bhajan.title_hinglish}
                 </p>
               </Link>
@@ -143,24 +154,28 @@ export default async function Sidebar({
 
       {/* --- SECTION 3: SPIRITUAL WISDOM --- */}
       {latestArticle && (
-        <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-[2rem] p-6 sm:p-7 border border-orange-200/50 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-          <h3 className="text-sm font-black text-orange-600 mb-4 flex items-center gap-2 uppercase tracking-widest">
+        <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-[#1a120b] dark:to-[#0c0804] rounded-[2rem] p-6 sm:p-7 border border-orange-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
+          <h3 className="text-sm font-black text-orange-600 dark:text-orange-500 mb-4 flex items-center gap-2 uppercase tracking-widest">
             <FaBookOpen size={14} /> Sanatan Gyan
           </h3>
           <Link href={`/gyan/${latestArticle.slug}`} className="group block">
-            <h4 className="text-xl font-black text-gray-900 leading-tight mb-2 group-hover:text-orange-700 transition-colors">
+            <h4 className="text-xl font-black text-gray-900 dark:text-orange-50 leading-tight mb-2 group-hover:text-orange-700 dark:group-hover:text-orange-400 transition-colors">
               {latestArticle.title}
             </h4>
-            <p className="text-sm text-gray-600 font-medium line-clamp-3 mb-4 leading-relaxed">
+            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium line-clamp-3 mb-4 leading-relaxed">
               {latestArticle.excerpt || "Dive deep into the spiritual meanings and stories behind our sacred texts..."}
             </p>
-            <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-orange-600 group-hover:translate-x-1 transition-transform">
+            <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-orange-600 dark:text-orange-500 group-hover:translate-x-1 transition-transform">
               Read Article <FaChevronRight size={10} />
             </span>
           </Link>
         </div>
       )}
 
+      {/* --- 🌟 AD SLOT 2 (Smartly fills the gap before WhatsApp banner) --- */}
+      <div className="w-full">
+        <AffiliateSlot deityId={specificDeityId} layout="sidebar" />
+      </div>
 
       {/* --- SECTION 4: PREMIUM COMMUNITY BANNER --- */}
       <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#128C7E] to-[#075E54] p-8 text-white shadow-xl shadow-[#128C7E]/20 group">
