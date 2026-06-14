@@ -7,6 +7,8 @@ import { FaArrowRight, FaArrowLeft, FaExclamationTriangle, FaPlay, FaMusic, FaCo
 import ScrollReveal from './ScrollReveal'; 
 import Image from 'next/image';
 
+// 🌟 SMART AFFILIATE AD SLOT IMPORTED
+import AffiliateSlot from './AffiliateSlot'; 
 
 interface Bhajan {
   title_hinglish: string;
@@ -46,11 +48,11 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
   return (
     <ScrollReveal delay={(index % itemsPerPage) * 0.05} yOffset={30}>
       <Link href={`/bhajan/${bhajan.slug}`}>
-        <div className="group bg-white p-4 md:p-5 rounded-[2rem] border border-gray-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-orange-200 transition-all duration-300 flex flex-col sm:flex-row sm:items-center gap-5 md:gap-6 relative overflow-hidden hover:-translate-y-1">
+        <div className="group bg-white dark:bg-[#0c0804] p-4 md:p-5 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-orange-200 dark:hover:border-orange-900/50 transition-all duration-300 flex flex-col sm:flex-row sm:items-center gap-5 md:gap-6 relative overflow-hidden hover:-translate-y-1">
           
           {/* YOUTUBE THUMBNAIL */}
           {thumbnailUrl ? (
-            <div className="relative w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl overflow-hidden bg-gray-900 group-hover:shadow-md transition-all border border-gray-100/50">
+            <div className="relative w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl overflow-hidden bg-gray-900 group-hover:shadow-md transition-all border border-gray-100/50 dark:border-white/5">
               <Image 
                 src={thumbnailUrl} 
                 alt={bhajan.title_hinglish}
@@ -91,33 +93,33 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
           {/* CONTENT AREA */}
           <div className="flex flex-col flex-1 min-w-0 justify-center py-1">
             <div className="flex flex-col-reverse md:flex-col gap-1 mb-2.5">
-              <h3 className="text-xl md:text-[22px] font-black font-hindi text-gray-900 group-hover:text-orange-600 transition-colors leading-tight line-clamp-2">
+              <h3 className="text-xl md:text-[22px] font-black font-hindi text-gray-900 dark:text-orange-50 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors leading-tight line-clamp-2">
                 {bhajan.title_hindi}
               </h3>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 line-clamp-1">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 line-clamp-1">
                 {bhajan.title_hinglish}
               </p>
             </div>
             
-            <p className="text-sm text-gray-600 italic font-hindi line-clamp-1 border-l-2 border-orange-200 pl-3 leading-relaxed mb-4">
+            <p className="text-sm text-gray-600 dark:text-gray-300 italic font-hindi line-clamp-1 border-l-2 border-orange-200 dark:border-orange-900/50 pl-3 leading-relaxed mb-4">
               "{bhajan.lyrics_hindi?.split('\n')[0] || 'View full lyrics inside'}"...
             </p>
 
             <div className="mt-auto flex items-center justify-between pt-1">
               <div className="flex flex-wrap gap-2">
                 {bhajan.deities && (
-                  <span className="bg-orange-50 text-orange-700 border border-orange-100 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">
+                  <span className="bg-orange-50 dark:bg-orange-900/10 text-orange-700 dark:text-orange-400 border border-orange-100 dark:border-orange-900/30 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">
                     {bhajan.deities.name_hinglish}
                   </span>
                 )}
                 {bhajan.categories && (
-                  <span className="bg-gray-50 text-gray-600 border border-gray-100 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">
+                  <span className="bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 border border-gray-100 dark:border-white/10 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">
                     {bhajan.categories.name_hinglish}
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center text-orange-600 text-sm font-bold group-hover:translate-x-1 transition-transform shrink-0">
+              <div className="flex items-center text-orange-600 dark:text-orange-500 text-sm font-bold group-hover:translate-x-1 transition-transform shrink-0">
                 Read <FaArrowRight className="ml-1.5" size={12} />
               </div>
             </div>
@@ -253,38 +255,58 @@ export default function BhajanList({
       
       {/* 🌟 List of Bhajans WITH IN-FEED ADS */}
       <div className="flex flex-col gap-5">
-        {bhajans.map((bhajan, index) => (
-          <Fragment key={bhajan.slug}>
-            <BhajanCard 
-              bhajan={bhajan} 
-              index={index} 
-              itemsPerPage={itemsPerPage} 
-            />
-          </Fragment>
-        ))}
+        {bhajans.map((bhajan, index) => {
+          // 🌟 SMART LOGIC: हर 4 भजनों के बाद एक Ad (index 3, 7, 11...) दिखाओ
+          const showAd = (index + 1) % 4 === 0 && index !== 0;
+
+          return (
+            <Fragment key={bhajan.slug}>
+              
+              {/* असली भजन कार्ड */}
+              <BhajanCard 
+                bhajan={bhajan} 
+                index={index} 
+                itemsPerPage={itemsPerPage} 
+              />
+              
+              {/* जादुई एफिलिएट स्लॉट (Ad) */}
+              {showAd && (
+                <ScrollReveal delay={0.1} yOffset={20}>
+                  <div className="w-full">
+                    <AffiliateSlot 
+                      deityId={deityId?.toString()} 
+                      layout="inline" 
+                    />
+                  </div>
+                </ScrollReveal>
+              )}
+
+            </Fragment>
+          );
+        })}
       </div>
 
       {/* SEO Pagination / Load More UI Below... */}
       {isSeoPaginated ? (
         <ScrollReveal yOffset={20}>
-          <div className="flex items-center justify-between pt-8 border-t border-gray-100 mt-4">
+          <div className="flex items-center justify-between pt-8 border-t border-gray-100 dark:border-white/10 mt-4">
             {hasPrevPage ? (
               <Link 
                 href={`${paginationBaseUrl}${currentPage! - 1 === 1 ? '' : `?page=${currentPage! - 1}`}`}
-                className="px-6 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-full hover:border-orange-500 hover:text-orange-600 shadow-sm transition-all flex items-center gap-2"
+                className="px-6 py-3 bg-white dark:bg-[#1a120b] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 font-bold rounded-full hover:border-orange-500 dark:hover:border-orange-500 hover:text-orange-600 dark:hover:text-orange-400 shadow-sm transition-all flex items-center gap-2"
               >
                 <FaArrowLeft size={14} /> Previous
               </Link>
             ) : <div></div>} 
 
-            <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">
+            <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
               Page {currentPage} of {totalPages}
             </span>
 
             {hasNextPage ? (
               <Link 
                 href={`${paginationBaseUrl}?page=${currentPage! + 1}`}
-                className="px-6 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-full hover:border-orange-500 hover:text-orange-600 shadow-sm transition-all flex items-center gap-2"
+                className="px-6 py-3 bg-white dark:bg-[#1a120b] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 font-bold rounded-full hover:border-orange-500 dark:hover:border-orange-500 hover:text-orange-600 dark:hover:text-orange-400 shadow-sm transition-all flex items-center gap-2"
               >
                 Next <FaArrowRight size={14} />
               </Link>
@@ -293,9 +315,9 @@ export default function BhajanList({
         </ScrollReveal>
       ) : hasMore ? (
         <ScrollReveal yOffset={20}>
-          <div className="flex flex-col items-center pt-6 border-t border-gray-50 mt-2">
+          <div className="flex flex-col items-center pt-6 border-t border-gray-50 dark:border-white/5 mt-2">
             {networkError && (
-              <div className="mb-4 flex items-center gap-2 bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-medium border border-red-100">
+              <div className="mb-4 flex items-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm font-medium border border-red-100 dark:border-red-900/30">
                 <FaExclamationTriangle className="shrink-0" />
                 <p>{networkError}</p>
               </div>
@@ -303,10 +325,10 @@ export default function BhajanList({
             <button 
               onClick={loadMoreBhajans}
               disabled={loading}
-              className={`group relative px-8 py-3.5 bg-white border font-bold rounded-full shadow-sm transition-all disabled:opacity-80
+              className={`group relative px-8 py-3.5 bg-white dark:bg-[#1a120b] border font-bold rounded-full shadow-sm transition-all disabled:opacity-80
                 ${networkError 
-                  ? 'border-red-300 text-red-600 hover:bg-red-50' 
-                  : 'border-gray-200 text-gray-700 hover:border-orange-500 hover:text-orange-600 hover:shadow-md'
+                  ? 'border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30' 
+                  : 'border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:border-orange-500 dark:hover:border-orange-500 hover:text-orange-600 dark:hover:text-orange-400 hover:shadow-md'
                 }
               `}
             >
@@ -325,24 +347,24 @@ export default function BhajanList({
         </ScrollReveal>
       ) : (
         <ScrollReveal yOffset={20}>
-          <div className="flex flex-col items-center justify-center pt-10 pb-6 border-t border-gray-100 mt-4 text-center">
-            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-4">
+          <div className="flex flex-col items-center justify-center pt-10 pb-6 border-t border-gray-100 dark:border-white/10 mt-4 text-center">
+            <div className="w-16 h-16 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center text-gray-300 dark:text-gray-600 mb-4">
               <FaCompass size={24} />
             </div>
-            <h4 className="text-lg font-black text-gray-800 mb-2 tracking-tight">You've reached the end!</h4>
-            <p className="text-gray-500 text-sm font-medium mb-6 max-w-sm">
+            <h4 className="text-lg font-black text-gray-800 dark:text-orange-50 mb-2 tracking-tight">You've reached the end!</h4>
+            <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-6 max-w-sm">
               We have shown all the bhajans available in this section. Continue your spiritual journey by exploring other collections.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Link 
                 href="/deity" 
-                className="px-6 py-2.5 bg-orange-50 text-orange-600 font-bold rounded-full hover:bg-orange-100 hover:shadow-sm transition-all text-sm"
+                className="px-6 py-2.5 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 font-bold rounded-full hover:bg-orange-100 dark:hover:bg-orange-900/40 hover:shadow-sm transition-all text-sm border border-transparent dark:border-orange-900/30"
               >
                 Explore Deities
               </Link>
               <Link 
                 href="/category" 
-                className="px-6 py-2.5 bg-blue-50 text-blue-600 font-bold rounded-full hover:bg-blue-100 hover:shadow-sm transition-all text-sm"
+                className="px-6 py-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:shadow-sm transition-all text-sm border border-transparent dark:border-blue-900/30"
               >
                 Browse Categories
               </Link>
