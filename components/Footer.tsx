@@ -175,31 +175,37 @@ export default function Footer() {
           </div>
 
         </div>
-
-        {/* Bottom Bar */}
+{/* Bottom Bar */}
         <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-4">
           
-          {/* 🌟 FIX: Changed text-slate-500 to text-slate-400 */}
-          <p className="text-sm text-slate-400 font-medium text-center md:text-left font-hindi leading-relaxed">
-            © {new Date().getFullYear()}{' '}
-            <span className="text-slate-300 font-bold font-sans">Hindi Bhajan Manjari</span>. 
-            <br className="md:hidden" /> दुनिया भर के भक्तों के लिए भक्ति भाव से निर्मित।
-          </p>
+          {/* Copyright */}
+          <div className="text-center md:text-left">
+            <p className="text-sm text-slate-400 font-medium font-hindi leading-relaxed">
+              © {new Date().getFullYear()}{' '}
+              <span className="text-slate-300 font-bold font-sans">Hindi Bhajan Manjari</span>. 
+              <br className="md:hidden" /> दुनिया भर के भक्तों के लिए भक्ति भाव से निर्मित।
+            </p>
+            
+            {/* 🌟 Amazon Affiliate Disclaimer (इसे यहाँ जोड़ें) */}
+            <p className="text-[11px] text-slate-500 mt-2 max-w-lg leading-tight font-sans">
+              As an Amazon Associate, I earn from qualifying purchases. 
+              <br/>
+              एक अमेज़न एसोसिएट के रूप में, हम योग्य खरीद से कमीशन प्राप्त करते हैं।
+            </p>
+          </div>
 
-
-          {/* 🌟 FIX: Changed text-slate-500 to text-slate-300 */}
+          {/* Links */}
           <div className="flex items-center gap-6 text-[13px] font-bold text-slate-300 font-hindi">
-            <Link href="/sitemap.xml" className="hover:text-orange-400 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded">
+            <Link href="/sitemap.xml" className="hover:text-orange-400 transition-colors">
               साइटमैप (Sitemap)
             </Link>
             <a
               href="mailto:nvsict06@gmail.com"
-              className="hover:text-orange-400 font-sans tracking-wide transition-colors underline underline-offset-4 decoration-orange-500/30 hover:decoration-orange-500 outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded"
+              className="hover:text-orange-400 transition-colors underline underline-offset-4 decoration-orange-500/30"
             >
               nvsict06@gmail.com
             </a>
           </div>
-
         </div>
 
       </div>
