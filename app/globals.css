@@ -223,3 +223,9 @@ html.lenis, html.lenis body {
 ins.adsbygoogle {
   overflow-anchor: none !important;
 }
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
