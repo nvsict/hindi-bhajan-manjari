@@ -36,6 +36,9 @@ import SiteAssistant from '@/components/SiteAssistant';
 // 🌟 NEW: CAMPAIGN MODAL (GLOBAL POPUP)
 import CampaignModal from '@/components/CampaignModal';
 
+// 🌟 NEW: AMBIENT DEVOTIONAL UI (Bells, Diyas, Petals)
+import FestiveDecorations from '@/components/FestiveDecorations';
+
 // --- BASE FONTS ---
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -176,10 +179,13 @@ export default async function RootLayout({
             shadow="0 0 15px #ea580c, 0 0 10px #fbbf24"
           />
 
+          {/* 🌟 THE MAGIC HAPPENS HERE: Devotional Decor */}
+          <FestiveDecorations />
+
           <SmoothScrolling>
             <ConditionalHeader /> 
             
-            <main className="flex-1">
+            <main className="flex-1 relative z-10">
               {children}
             </main>
             
