@@ -48,10 +48,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   
   const ogImageUrl = `${baseUrl}/api/og?title=${encodeURIComponent(bhajan.title_hinglish)}`;
 
-  // ==========================================
-  // 🌟 ADVANCED SEO OVERRIDES LOGIC
-  // ==========================================
-
   // 1. Title Logic
   const defaultTitle = `${bhajan.title_hindi} - ${bhajan.title_hinglish} Lyrics | Bhajan Sangrah`;
   const finalTitle = bhajan.seo_title?.trim() ? bhajan.seo_title : defaultTitle;
@@ -142,6 +138,7 @@ export default async function BhajanDetails({ params }: Props) {
 
   const graphNodes: any[] = [];
 
+  // 1. Breadcrumbs Schema
   graphNodes.push({
     "@type": "BreadcrumbList",
     "@id": `${pageUrl}#breadcrumb`,
@@ -152,6 +149,7 @@ export default async function BhajanDetails({ params }: Props) {
     ]
   });
 
+  // 2. Video Schema
   let ytId = null;
   if (bhajan.video_embed_url) {
     ytId = getYouTubeId(bhajan.video_embed_url);
@@ -171,10 +169,23 @@ export default async function BhajanDetails({ params }: Props) {
     }
   }
 
+  // 3. MusicComposition Schema (🌟 ENHANCED WITH ARTISTS)
   let alternateNamesSchema = [bhajan.title_hinglish];
   if (bhajan.alt_queries?.trim()) {
     alternateNamesSchema = [...alternateNamesSchema, ...bhajan.alt_queries.split(',').map((q: string) => q.trim())];
   }
+
+  const lyricistSchema = lyricists.map((l: any) => ({
+    "@type": "Person",
+    "name": l.name_hinglish,
+    "url": `${baseUrl}/artist/${l.slug}`
+  }));
+
+  const singerSchema = singers.map((s: any) => ({
+    "@type": "Person",
+    "name": s.name_hinglish,
+    "url": `${baseUrl}/artist/${s.slug}`
+  }));
 
   graphNodes.push({
     "@type": "MusicComposition",
@@ -183,6 +194,12 @@ export default async function BhajanDetails({ params }: Props) {
     "alternateName": alternateNamesSchema, 
     "genre": ["Hindu Devotional Music", "Bhajan", ...categories.map((c:any) => c.name_hinglish)],
     "inLanguage": ["hi", "en-IN", "gu", "bn", "te", "kn", "ml", "or"],
+    "lyricist": lyricistSchema.length > 0 ? lyricistSchema : undefined,
+    "composer": lyricistSchema.length > 0 ? lyricistSchema : undefined,
+    "recordedAs": singerSchema.length > 0 ? {
+      "@type": "MusicRecording",
+      "byArtist": singerSchema
+    } : undefined,
     "lyrics": { 
       "@type": "CreativeWork", 
       "text": bhajan.lyrics_hindi, 
@@ -191,6 +208,7 @@ export default async function BhajanDetails({ params }: Props) {
     ...(ytId && { "video": { "@id": `${pageUrl}#video` } }) 
   });
 
+  // 4. FAQ Schema
   if (bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0) {
     graphNodes.push({
       "@type": "FAQPage",
@@ -206,16 +224,30 @@ export default async function BhajanDetails({ params }: Props) {
     });
   }
 
+  // 5. WebSite & WebPage Schema (🌟 ENHANCED WITH DATES & PUBLISHER)
+  graphNodes.push({
+    "@type": "WebSite",
+    "@id": `${baseUrl}/#website`,
+    "url": baseUrl,
+    "name": "Hindi Bhajan Manjari",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Hindi Bhajan Manjari",
+      "logo": {
+        "@type": "ImageObject",
+        "url": `${baseUrl}/logo.png`
+      }
+    }
+  });
+
   graphNodes.push({
     "@type": "WebPage",
     "@id": pageUrl,
     "url": pageUrl,
     "name": `${bhajan.title_hindi} Lyrics`,
-    "isPartOf": {
-      "@type": "WebSite",
-      "name": "Hindi Bhajan Manjari",
-      "url": baseUrl
-    },
+    "datePublished": bhajan.created_at || new Date().toISOString(),
+    "dateModified": bhajan.updated_at || bhajan.created_at || new Date().toISOString(),
+    "isPartOf": { "@id": `${baseUrl}/#website` },
     "breadcrumb": { "@id": `${pageUrl}#breadcrumb` },
     "mainEntity": { "@id": `${pageUrl}#composition` }
   });
@@ -236,6 +268,7 @@ export default async function BhajanDetails({ params }: Props) {
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           <main className="flex-1 w-full bg-white dark:bg-[#120c08] rounded-3xl shadow-sm border border-orange-100 dark:border-white/5 overflow-hidden">
             
+            {/* Header Section */}
             <div className="p-6 md:p-10 border-b border-orange-50 dark:border-white/5 bg-gradient-to-br from-white dark:from-[#120c08] to-orange-50/40 dark:to-orange-900/10 pb-6">
               
               <div className="flex flex-wrap gap-2 mb-4">
@@ -302,6 +335,7 @@ export default async function BhajanDetails({ params }: Props) {
 
             <div className="p-4 md:p-8">
               
+              {/* Lyrics Content */}
               <LyricsViewer 
                 title={bhajan.title_hindi} 
                 lyricsHindi={bhajan.lyrics_hindi} 
@@ -313,10 +347,8 @@ export default async function BhajanDetails({ params }: Props) {
 
               {/* ==========================================
                   🌟 SMART AFFILIATE SLOT (MAIN CONTENT)
-                  ========================================== 
-                  Placed right after the lyrics ends! Perfect timing for user attention.
-              */}
-              <div className="mt-12 mb-8">
+                  ========================================== */}
+              <div className="mt-10 mb-8">
                 <AffiliateSlot deityId={bhajan.deity_id?.toString()} layout="inline" />
               </div>
               
@@ -331,6 +363,7 @@ export default async function BhajanDetails({ params }: Props) {
                 </div>
               )}
 
+              {/* SEO Paragraph */}
               <div className="mt-12 bg-gray-50/50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-3xl p-6 md:p-8 shadow-sm">
                 <p className="text-sm md:text-base text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
                   Read the most authentic and complete <strong>{bhajan.title_hinglish} ({bhajan.title_hindi})</strong> lyrics. 
@@ -346,6 +379,7 @@ export default async function BhajanDetails({ params }: Props) {
                 </p>
               </div>
 
+              {/* FAQs */}
               {bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0 && (
                 <div className="mt-12">
                   <h3 className="text-2xl font-black text-gray-900 dark:text-orange-50 tracking-tighter mb-6 flex items-center gap-2">
@@ -367,6 +401,7 @@ export default async function BhajanDetails({ params }: Props) {
                 </div>
               )}
 
+              {/* Tags */}
               {tags.length > 0 && (
                 <div className="mt-12 pt-8 border-t border-gray-100 dark:border-white/10">
                   <h4 className="text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-widest">Related Tags</h4>
@@ -379,7 +414,6 @@ export default async function BhajanDetails({ params }: Props) {
                   </div>
                 </div>
               )}
-
 
               <div className="mt-8">
                 <CommentsSection bhajanSlug={slug} />
