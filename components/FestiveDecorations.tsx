@@ -49,7 +49,7 @@ export default function AmbientDevotion() {
       {/* ==========================================
           🪔 MODERN MINIMALIST DIYA (BOTTOM LEFT)
           ========================================== */}
-      <div className="absolute bottom-6 left-6 md:bottom-12 md:left-12 drop-shadow-[0_10px_25px_rgba(234,88,12,0.4)]">
+      <div className="absolute bottom-8 left-10  md:bottom-12 md:left-18 drop-shadow-[0_10px_25px_rgba(234,88,12,0.4)]">
         
         {/* 🌿 DIVINE LEAVES EMERGING FROM DIYA FLAME */}
         {leaves.map((leaf) => (

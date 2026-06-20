@@ -5,15 +5,16 @@ import Link from 'next/link';
 import Sidebar from '../../../components/Sidebar';
 import Breadcrumbs from '../../../components/Breadcrumbs';
 import LyricsViewer from '../../../components/LyricsViewer'; 
-import { FaMicrophoneAlt, FaPenNib, FaPhoneAlt, FaMapMarkerAlt, FaQuestionCircle } from 'react-icons/fa';
+import { FaMicrophoneAlt, FaPhoneAlt, FaQuestionCircle } from 'react-icons/fa';
 import ViewCounter from '../../../components/ViewCounter';
 import CommentsSection from '@/components/CommentsSection';
 import AuthorBox from '@/components/AuthorBox';
 import RelatedContent from '@/components/RelatedContent';
-
-// 🌟 IMPORT SMART AFFILIATE SLOT
 import AffiliateSlot from '@/components/AffiliateSlot'; 
 
+// 🌟 NEW: BHAKTI STUDIO & COMMUNITY WALL IMPORTS
+import BhaktiStudio from '@/components/BhaktiStudio';
+import CommunityWall from '@/components/CommunityWall';
 
 export const revalidate = 3600;
 
@@ -21,7 +22,6 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-// 🌟 HELPER: Bulletproof YouTube ID Extractor for Video Schema
 const getYouTubeId = (url?: string) => {
   if (!url) return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -48,16 +48,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   
   const ogImageUrl = `${baseUrl}/api/og?title=${encodeURIComponent(bhajan.title_hinglish)}`;
 
-  // 1. Title Logic
   const defaultTitle = `${bhajan.title_hindi} - ${bhajan.title_hinglish} Lyrics | Bhajan Sangrah`;
   const finalTitle = bhajan.seo_title?.trim() ? bhajan.seo_title : defaultTitle;
 
-  // 2. Description Logic
   const hasMeaning = bhajan.explanation ? "Includes spiritual Bhavarth (Meaning). " : "";
   const defaultMetaDescription = `Read complete ${bhajan.title_hindi} (${bhajan.title_hinglish}) lyrics. ${hasMeaning}Available in 8+ Indian languages with free PDF download for daily Puja.`;
   const finalDescription = bhajan.meta_description?.trim() ? bhajan.meta_description : defaultMetaDescription;
 
-  // 3. Keywords / Alt Queries Logic
   let altQueriesArray: string[] = [];
   if (bhajan.alt_queries?.trim()) {
     altQueriesArray = bhajan.alt_queries.split(',').map((q: string) => q.trim());
@@ -138,7 +135,7 @@ export default async function BhajanDetails({ params }: Props) {
 
   const graphNodes: any[] = [];
 
-  // 1. Breadcrumbs Schema
+  // Breadcrumbs Schema
   graphNodes.push({
     "@type": "BreadcrumbList",
     "@id": `${pageUrl}#breadcrumb`,
@@ -149,7 +146,7 @@ export default async function BhajanDetails({ params }: Props) {
     ]
   });
 
-  // 2. Video Schema
+  // Video Schema
   let ytId = null;
   if (bhajan.video_embed_url) {
     ytId = getYouTubeId(bhajan.video_embed_url);
@@ -169,7 +166,7 @@ export default async function BhajanDetails({ params }: Props) {
     }
   }
 
-  // 3. MusicComposition Schema (🌟 ENHANCED WITH ARTISTS)
+  // MusicComposition Schema
   let alternateNamesSchema = [bhajan.title_hinglish];
   if (bhajan.alt_queries?.trim()) {
     alternateNamesSchema = [...alternateNamesSchema, ...bhajan.alt_queries.split(',').map((q: string) => q.trim())];
@@ -208,23 +205,7 @@ export default async function BhajanDetails({ params }: Props) {
     ...(ytId && { "video": { "@id": `${pageUrl}#video` } }) 
   });
 
-  // 4. FAQ Schema
-  if (bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0) {
-    graphNodes.push({
-      "@type": "FAQPage",
-      "@id": `${pageUrl}#faq`,
-      "mainEntity": bhajan.faqs.map((faq: any) => ({
-        "@type": "Question",
-        "name": faq.question,
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": faq.answer
-        }
-      }))
-    });
-  }
-
-  // 5. WebSite & WebPage Schema (🌟 ENHANCED WITH DATES & PUBLISHER)
+  // WebSite & WebPage Schema
   graphNodes.push({
     "@type": "WebSite",
     "@id": `${baseUrl}/#website`,
@@ -269,7 +250,7 @@ export default async function BhajanDetails({ params }: Props) {
           <main className="flex-1 w-full bg-white dark:bg-[#120c08] rounded-3xl shadow-sm border border-orange-100 dark:border-white/5 overflow-hidden">
             
             {/* Header Section */}
-            <div className="p-6 md:p-10 border-b border-orange-50 dark:border-white/5 bg-gradient-to-br from-white dark:from-[#120c08] to-orange-50/40 dark:to-orange-900/10 pb-6">
+            <div className="p-6 md:p-10 border-b border-orange-50 dark:border-white/5 bg-gradient-to-br from-white dark:from-[#120c08] to-orange-50/40 dark:to-orange-900/10 pb-2">
               
               <div className="flex flex-wrap gap-2 mb-4">
                 {bhajan.deities && (
@@ -333,8 +314,13 @@ export default async function BhajanDetails({ params }: Props) {
               )}
             </div>
 
-            <div className="p-4 md:p-8">
+           <div className="pt-0 px-4 md:px-8 pb-8">
               
+              {/* ==========================================
+                  🌟 NEW PLACEMENT: RECORDING BAR AT THE TOP
+                  ========================================== */}
+              <BhaktiStudio bhajanId={bhajan.id} bhajanSlug={bhajan.slug} />
+
               {/* Lyrics Content */}
               <LyricsViewer 
                 title={bhajan.title_hindi} 
@@ -345,15 +331,26 @@ export default async function BhajanDetails({ params }: Props) {
                 tarz={bhajan.tarj_parody}
               />
 
-              {/* ==========================================
-                  🌟 SMART AFFILIATE SLOT (MAIN CONTENT)
-                  ========================================== */}
               <div className="mt-10 mb-8">
                 <AffiliateSlot deityId={bhajan.deity_id?.toString()} layout="inline" />
               </div>
+
+              {/* ==========================================
+                  🌟 COMMUNITY WALL (LISTEN TO OTHERS)
+                  ========================================== */}
+              <div className="mt-12 space-y-8 border-t border-orange-100 dark:border-white/10 pt-10">
+                <div className="text-center mb-6">
+                  <h2 className="text-2xl md:text-3xl font-black font-hindi text-gray-900 dark:text-orange-50">भक्तों का मंच (Bhakt's Voice)</h2>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mt-2">अन्य भक्तों द्वारा गाए गए मधुर कवर्स सुनें।</p>
+                </div>
+                
+                {/* The Realtime Community Wall */}
+                <CommunityWall bhajanId={bhajan.id} />
+              </div>
               
+              {/* Bhavarth (Meaning) */}
               {bhajan.explanation && (
-                <div className="mt-6 bg-gradient-to-br from-orange-50 dark:from-orange-900/10 to-orange-100/50 dark:to-orange-900/5 p-6 md:p-8 rounded-2xl border border-orange-200 dark:border-orange-900/30 shadow-sm">
+                <div className="mt-12 bg-gradient-to-br from-orange-50 dark:from-orange-900/10 to-orange-100/50 dark:to-orange-900/5 p-6 md:p-8 rounded-2xl border border-orange-200 dark:border-orange-900/30 shadow-sm">
                   <h3 className="text-2xl font-black font-hindi text-gray-900 dark:text-orange-50 mb-4 flex items-center gap-2">
                     <span className="text-orange-600 dark:text-orange-500">अर्थ</span> (Bhavarth)
                   </h3>
