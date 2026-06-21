@@ -6,16 +6,17 @@ import React from "react";
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
-      initial={{ x: 40, opacity: 0, filter: "blur(8px)" }} // पन्ना राइट से आ रहा है और धुंधला है
-      animate={{ x: 0, opacity: 1, filter: "blur(0px)" }} // अपनी जगह पर आकर एकदम साफ़ हो गया
+      // 🌟 FIX: 'x' को हटाकर 'y' कर दिया गया है। 
+      // अब पेज राइट से नहीं, बल्कि नीचे से बहुत सॉफ्टली ऊपर आएगा।
+      initial={{ y: 25, opacity: 0, filter: "blur(8px)" }} 
+      animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
       transition={{
         type: "spring",
         stiffness: 260,
-        damping: 25, // यह बाउंस (झटके) को रोककर Google Books जैसी सॉफ्टनेस देगा
+        damping: 25, 
         mass: 0.5,
       }}
-      // 🌟 PERFORMANCE HACK: यह ब्राउज़र को पहले ही बता देता है कि इसे एनिमेट होना है, जिससे स्लो डिवाइस भी लैग नहीं करते
-      className="will-change-transform will-change-opacity will-change-filter" 
+      className="will-change-transform will-change-opacity will-change-filter"
     >
       {children}
     </motion.div>
