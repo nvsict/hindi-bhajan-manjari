@@ -9,6 +9,8 @@ import {
 import PdfDownloadButton from './PdfDownloadButton';
 import { supabase } from '@/utils/supabase';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+import MagneticButton from '@/components/MagneticButton'; // सुनिश्चित करें कि पाथ सही हो
 
 import PushPrompt from './PushPrompt';
 
@@ -350,13 +352,13 @@ export default function LyricsViewer({
       {/* ACTION BAR */}
       <div className="flex flex-row flex-wrap items-center justify-center gap-3 mb-8 relative z-20 w-full max-w-3xl mx-auto px-4">
         <div className="relative flex-1 min-w-[140px]" ref={scriptDropdownRef}>
-          <button type="button" aria-label="Select Language" onClick={() => { triggerHaptic(); setIsDropdownOpen(!isDropdownOpen); setIsFontMenuOpen(false); }} className="flex items-center justify-between w-full gap-2 bg-white hover:bg-orange-50 border border-orange-100 px-4 py-2.5 rounded-xl shadow-sm transition-all duration-200">
+          <MagneticButton type="button" aria-label="Select Language" onClick={() => { triggerHaptic(); setIsDropdownOpen(!isDropdownOpen); setIsFontMenuOpen(false); }} className="flex items-center justify-between w-full gap-2 bg-white hover:bg-orange-50 border border-orange-100 px-4 py-2.5 rounded-xl shadow-sm transition-all duration-200">
             <div className="flex items-center gap-2 overflow-hidden">
               <FaLanguage className="text-orange-500 text-lg shrink-0" />
               <span className="text-gray-800 font-bold text-sm truncate">{SCRIPT_OPTIONS.find(opt => opt.id === activeScript)?.label}</span>
             </div>
             <FaChevronDown className={`text-orange-400 text-xs shrink-0 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-          </button>
+          </MagneticButton>
           <div className={`absolute top-full left-0 mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] overflow-hidden transition-all duration-200 origin-top z-40 ${isDropdownOpen ? 'opacity-100 scale-y-100 translate-y-0' : 'opacity-0 scale-y-95 -translate-y-2 pointer-events-none'}`}>
             <div className="py-1.5 max-h-[60vh] overflow-y-auto hide-scrollbar">
               {SCRIPT_OPTIONS.map((option) => (
@@ -369,13 +371,13 @@ export default function LyricsViewer({
         </div>
 
         <div className="relative flex-1 min-w-[140px]" ref={fontDropdownRef}>
-          <button type="button" aria-label="Select Font" onClick={() => { triggerHaptic(); setIsFontMenuOpen(!isFontMenuOpen); setIsDropdownOpen(false); }} className="flex items-center justify-between w-full gap-2 bg-white hover:bg-orange-50 border border-orange-100 px-4 py-2.5 rounded-xl shadow-sm transition-all duration-200">
+          <MagneticButton type="button" aria-label="Select Font" onClick={() => { triggerHaptic(); setIsFontMenuOpen(!isFontMenuOpen); setIsDropdownOpen(false); }} className="flex items-center justify-between w-full gap-2 bg-white hover:bg-orange-50 border border-orange-100 px-4 py-2.5 rounded-xl shadow-sm transition-all duration-200">
             <div className="flex items-center gap-2 overflow-hidden">
               <FaFont className="text-orange-500 text-sm shrink-0" />
               <span className="text-gray-800 font-bold text-sm truncate">{FONT_OPTIONS.find(f => f.className === selectedFont)?.name.split(' ')[0]}</span>
             </div>
             <FaChevronDown className={`text-orange-400 text-xs shrink-0 transition-transform duration-300 ${isFontMenuOpen ? 'rotate-180' : ''}`} />
-          </button>
+          </MagneticButton>
           <div className={`absolute top-full left-0 mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] overflow-hidden transition-all duration-200 origin-top z-40 ${isFontMenuOpen ? 'opacity-100 scale-y-100 translate-y-0' : 'opacity-0 scale-y-95 -translate-y-2 pointer-events-none'}`}>
             <div className="py-1.5">
               {FONT_OPTIONS.map((font) => (
@@ -417,8 +419,17 @@ export default function LyricsViewer({
           <FaHeart className="text-red-500 text-[120px] md:text-[180px] drop-shadow-[0_0_40px_rgba(239,68,68,0.5)]" />
         </div>
         
-        <div className={`relative z-10 text-center font-bold tracking-normal text-gray-900 antialiased leading-relaxed ${selectedFont}`} style={{ fontSize: `${fontSize}px` }}>
-          {String(displayLyrics).split(/\n\s*\n/).map((stanza: string, index: number, array: string[]) => {
+        <AnimatePresence mode="wait">
+  <motion.div 
+    key={activeScript} // 🌟 यह key ही जादू करेगी (भाषा बदलते ही एनीमेशन ट्रिगर होगा)
+    initial={{ opacity: 0, filter: "blur(8px)", y: 5 }}
+    animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+    exit={{ opacity: 0, filter: "blur(8px)", y: -5 }}
+    transition={{ duration: 0.3, ease: "easeInOut" }}
+    className={`relative z-10 text-center font-bold tracking-normal text-gray-900 antialiased leading-relaxed ${selectedFont}`} 
+    style={{ fontSize: `${fontSize}px` }}
+  >
+    {String(displayLyrics).split(/\n\s*\n/).map((stanza: string, index: number, array: string[]) => {
             const shouldShowAd = index === 1 || (index > 2 && (index - 1) % 5 === 0);
             const adCount = Math.floor((index - 1) / 5) + 1;
             const isAllowedAd = shouldShowAd && adCount <= 3;
@@ -447,8 +458,9 @@ export default function LyricsViewer({
               </div>
             );
           })}
-        </div>
-      </div>
+  </motion.div>
+</AnimatePresence>
+</div>
 
       {/* MEDIA PLAYERS */}
       <div ref={videoRef} className="scroll-mt-24">

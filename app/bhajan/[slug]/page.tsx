@@ -11,6 +11,7 @@ import CommentsSection from '@/components/CommentsSection';
 import AuthorBox from '@/components/AuthorBox';
 import RelatedContent from '@/components/RelatedContent';
 import AffiliateSlot from '@/components/AffiliateSlot'; 
+import DivineHover from '@/components/DivineHover';
 
 // 🌟 NEW: BHAKTI STUDIO & COMMUNITY WALL IMPORTS
 import BhaktiStudio from '@/components/BhaktiStudio';
@@ -273,9 +274,11 @@ export default async function BhajanDetails({ params }: Props) {
                 ))}
               </div>
               
-              <h1 className="text-3xl md:text-5xl font-black font-hindi text-gray-900 dark:text-orange-50 mb-2 tracking-tighter leading-tight">
-                {bhajan.title_hindi}
-              </h1>
+              <DivineHover>
+  <h1 className="text-3xl md:text-5xl font-black font-hindi text-gray-900 dark:text-orange-50 mb-2 tracking-tighter leading-tight cursor-default">
+    {bhajan.title_hindi}
+  </h1>
+</DivineHover>
               <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-bold uppercase tracking-[0.2em] mb-8">
                 {bhajan.title_hinglish}
               </p>
