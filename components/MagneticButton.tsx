@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, HTMLMotionProps } from "framer-motion"; // 🌟 FIX: Imported HTMLMotionProps
 
-interface MagneticButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+// 🌟 FIX: Extended HTMLMotionProps instead of standard React ButtonHTMLAttributes
+interface MagneticButtonProps extends HTMLMotionProps<"button"> {
   children: React.ReactNode;
   className?: string;
 }
@@ -23,7 +24,6 @@ export default function MagneticButton({ children, className = "", ...props }: M
     const x = clientX - (left + width / 2);
     const y = clientY - (top + height / 2);
     
-    // x * 0.2 means it moves 20% towards the mouse (adjust for more/less magnetism)
     setPosition({ x: x * 0.2, y: y * 0.2 });
     
     // Internal Glow Logic
