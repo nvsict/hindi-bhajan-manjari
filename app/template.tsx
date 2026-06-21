@@ -6,17 +6,17 @@ import React from "react";
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
-      // 🌟 FIX: 'x' को हटाकर 'y' कर दिया गया है। 
-      // अब पेज राइट से नहीं, बल्कि नीचे से बहुत सॉफ्टली ऊपर आएगा।
-      initial={{ y: 25, opacity: 0, filter: "blur(8px)" }} 
-      animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
+      // 🌟 FIX: यहाँ से 'filter: blur' हटा दिया गया है
+      initial={{ y: 25, opacity: 0 }} 
+      animate={{ y: 0, opacity: 1 }}
       transition={{
         type: "spring",
         stiffness: 260,
         damping: 25, 
         mass: 0.5,
       }}
-      className="will-change-transform will-change-opacity will-change-filter"
+      // 🌟 FIX: यहाँ से 'will-change-transform' और 'will-change-filter' क्लास हटा दी गई है
+      // क्योंकि यही क्लास आपके fixed टूलबार को लॉक कर रही थी।
     >
       {children}
     </motion.div>

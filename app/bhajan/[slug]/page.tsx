@@ -248,7 +248,7 @@ export default async function BhajanDetails({ params }: Props) {
         <Breadcrumbs items={breadcrumbItems} />
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
-          <main className="flex-1 w-full bg-white dark:bg-[#120c08] rounded-3xl shadow-sm border border-orange-100 dark:border-white/5 overflow-hidden">
+         <main className="flex-1 min-w-0 w-full lg:w-auto bg-white dark:bg-[#120c08] rounded-3xl shadow-sm border border-orange-100 dark:border-white/5 overflow-hidden">
             
             {/* Header Section */}
             <div className="p-6 md:p-10 border-b border-orange-50 dark:border-white/5 bg-gradient-to-br from-white dark:from-[#120c08] to-orange-50/40 dark:to-orange-900/10 pb-2">

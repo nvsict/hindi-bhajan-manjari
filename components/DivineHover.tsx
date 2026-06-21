@@ -66,15 +66,12 @@ export default function DivineTitle({ children }: DivineTitleProps) {
         className="transition-all duration-100 ease-out"
       >
         {/* 🌟 METALLIC SHIMMER OVERLAY (Applies gradient clip-text to children if they are standard text) */}
+        {/* 🌟 METALLIC SHIMMER OVERLAY */}
         <div 
-          className={`relative transition-all duration-700 ${
-            isHovered 
-              ? 'brightness-125 saturate-110 drop-shadow-[0_10px_20px_rgba(245,158,11,0.15)]' 
-              : ''
+          className={`relative overflow-hidden transition-all duration-700 ${
+            isHovered ? 'brightness-125 saturate-110 drop-shadow-[0_10px_20px_rgba(245,158,11,0.15)]' : ''
           }`}
-          style={{
-            transform: "translateZ(30px)", // Pushes text out in 3D space
-          }}
+          style={{ transform: "translateZ(30px)" }}
         >
           {children}
 
