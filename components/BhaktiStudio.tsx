@@ -23,9 +23,10 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
   const [userName, setUserName] = useState("");
   const [recordingDuration, setRecordingDuration] = useState(0);
 
-  // Tone.js Audio Graph Refs
+  // 🌟 Audio Graph Refs
   const recorderRef = useRef<Tone.Recorder | null>(null);
-  const reverbNodeRef = useRef<Tone.Reverb | null>(null);
+  const reverbRef = useRef<Tone.Reverb | null>(null); // Global Reverb Instance
+  const gateRef = useRef<Tone.Gate | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const finalAudioBlobRef = useRef<Blob | null>(null);
   
@@ -40,12 +41,52 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Live Toggle handler for Reverb while recording
+  // ==========================================
+  // 🌟 CPU OPTIMIZATION: Pre-Generate Reverb
+  // ==========================================
   useEffect(() => {
-    if (reverbNodeRef.current) {
-      reverbNodeRef.current.wet.value = isReverb ? 0.30 : 0;
+    let isMounted = true;
+    
+    const initReverb = async () => {
+      try {
+        const rev = new Tone.Reverb({
+          decay: 3.5, // Perfect Temple/Hall length
+          preDelay: 0.04,
+          wet: 0.30
+        });
+        
+        // Generates the heavy IR buffer quietly in the background
+        await rev.generate(); 
+        
+        if (isMounted) {
+          reverbRef.current = rev;
+        }
+      } catch (err) {
+        console.error("Failed to pre-generate reverb:", err);
+      }
+    };
+
+    initReverb();
+
+    return () => {
+      isMounted = false;
+      // Do NOT dispose reverb here, keep it alive for multiple recordings
+    };
+  }, []);
+
+  // Live Toggle handlers
+  useEffect(() => {
+    if (reverbRef.current) {
+      reverbRef.current.wet.value = isReverb ? 0.30 : 0;
     }
   }, [isReverb]);
+
+  useEffect(() => {
+    if (gateRef.current) {
+      // If Noise Reduction is OFF, lower the threshold so everything passes
+      gateRef.current.threshold.value = isNoiseReduction ? -40 : -100;
+    }
+  }, [isNoiseReduction]);
 
   useEffect(() => {
     if (recordingState === "RECORDING") {
@@ -59,7 +100,7 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
   }, [recordingState]);
 
   // ==========================================
-  // 🎙️ THE MASTER BHAJAN VOCAL CHAIN
+  // 🎙️ THE OPTIMIZED PRO VOCAL CHAIN
   // ==========================================
   const startRecording = async () => {
     try {
@@ -67,10 +108,11 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
 
       const constraints = {
         audio: {
-          echoCancellation: false,  // 🌟 The Golden Rule for singing
-          noiseSuppression: isNoiseReduction,
-          autoGainControl: false,   // Preserves natural vocal dynamics
-          channelCount: 1,          // Pure stable Mono
+          echoCancellation: false, 
+          noiseSuppression: true,
+          autoGainControl: true,    // 🌟 Perfect for singers moving around the mic
+          channelCount: 1,          // 🌟 Pure Mono to save CPU & prevent cracking
+          sampleRate: 48000         // Studio standard
         }
       };
 
@@ -80,34 +122,45 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
 
       const micSource = Tone.context.createMediaStreamSource(stream);
 
-      // 1. High Pass Filter (Cuts muddy stage rumble)
-      const hpf = new Tone.Filter(80, "highpass");
-
-      // 2. Soft Singing Compressor (Preserves emotion)
-      const compressor = new Tone.Compressor({
-        threshold: -22,
-        ratio: 2.5,
-        attack: 0.01,
-        release: 0.25
+      // 1. High Pass Filter
+      const hpf = new Tone.Filter({
+        type: "highpass",
+        frequency: 85,
+        rolloff: -24
       });
 
-      // 3. Presence EQ (Adds that expensive studio 'air' and shine)
+      // 2. Noise Gate (Kills background hiss when not singing)
+      const gate = new Tone.Gate({
+        threshold: isNoiseReduction ? -40 : -100
+      });
+      gateRef.current = gate;
+
+      // 3. Smooth Compressor
+      const compressor = new Tone.Compressor({
+        threshold: -24,
+        ratio: 2.5,
+        attack: 0.01,
+        release: 0.3
+      });
+
+      // 4. Presence EQ
       const eq = new Tone.EQ3({
         low: -2,
         mid: 1,
-        high: 4
+        high: 5
       });
 
-      // 4. Lush Devotional Reverb (Big Temple / Hall feel)
-      const reverb = new Tone.Reverb({
-        decay: 3.0,
-        preDelay: 0.04,
-        wet: isReverb ? 0.30 : 0
-      });
-      await reverb.generate(); 
-      reverbNodeRef.current = reverb;
+      // 5. The Cached Reverb (No generate() calls here!)
+      if (!reverbRef.current) {
+        // Fallback just in case the user clicked record before useEffect finished
+        const rev = new Tone.Reverb({ decay: 3.5, preDelay: 0.04, wet: isReverb ? 0.30 : 0 });
+        await rev.generate();
+        reverbRef.current = rev;
+      }
+      const reverb = reverbRef.current;
+      reverb.wet.value = isReverb ? 0.30 : 0;
 
-      // 5. Master Safety Limiter
+      // 6. Master Limiter
       const limiter = new Tone.Limiter(-1);
       
       const recorder = new Tone.Recorder();
@@ -116,10 +169,10 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
       const analyser = Tone.context.createAnalyser();
       analyser.fftSize = 256;
 
-      // Hooking up the Master Chain
+      // Connect the Optimized Chain
       Tone.connect(micSource, hpf);
-      hpf.chain(compressor, eq, reverb, limiter, recorder);
-      Tone.connect(limiter, analyser); // Visualizer listens to the polished output
+      hpf.chain(gate, compressor, eq, reverb, limiter, recorder);
+      Tone.connect(limiter, analyser); 
 
       // Canvas Visualizer
       const canvas = canvasRef.current;
@@ -187,7 +240,6 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
   const resetStudio = () => {
     setAudioUrl(null);
     finalAudioBlobRef.current = null;
-    reverbNodeRef.current = null;
     setIsPlaying(false);
     setRecordingDuration(0);
     setRecordingState("IDLE");
@@ -258,7 +310,7 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
             <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full lg:w-auto justify-start lg:justify-end">
               <label className="flex items-center gap-1.5 cursor-pointer bg-white dark:bg-black/30 px-3 py-1.5 rounded-full border border-orange-100 dark:border-white/10 shrink-0 hover:bg-orange-50 transition-colors">
                 <input type="checkbox" checked={isReverb} onChange={(e) => setIsReverb(e.target.checked)} className="accent-orange-500 w-3 h-3" />
-                <span className="text-[10px] font-bold uppercase text-gray-600 dark:text-gray-300">Studio Reverb</span>
+                <span className="text-[10px] font-bold uppercase text-gray-600 dark:text-gray-300">Temple Reverb</span>
               </label>
 
               <label className="flex items-center gap-1.5 cursor-pointer bg-white dark:bg-black/30 px-3 py-1.5 rounded-full border border-orange-100 dark:border-white/10 shrink-0 hover:bg-orange-50 transition-colors">
