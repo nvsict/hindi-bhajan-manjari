@@ -84,7 +84,7 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
   useEffect(() => {
     if (gateRef.current) {
       // If Noise Reduction is OFF, lower the threshold so everything passes
-      gateRef.current.threshold.value = isNoiseReduction ? -40 : -100;
+      gateRef.current.threshold = isNoiseReduction ? -40 : -100;
     }
   }, [isNoiseReduction]);
 
