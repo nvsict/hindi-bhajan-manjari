@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaMicrophone, FaStop, FaPlay, FaPause, FaTrash, FaHeadphones } from "react-icons/fa";
 import { supabase } from "@/utils/supabase";
+import * as Tone from "tone";
 
 interface BhaktiStudioProps {
   bhajanId: string;
@@ -14,7 +15,6 @@ interface BhaktiStudioProps {
 export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: BhaktiStudioProps) {
   const [recordingState, setRecordingState] = useState<"IDLE" | "RECORDING" | "PREVIEW" | "UPLOADING">("IDLE");
   
-  // 🌟 NEW: Reverb & Clarity Toggles
   const [isReverb, setIsReverb] = useState(true); 
   const [isNoiseReduction, setIsNoiseReduction] = useState(true); 
 
@@ -23,9 +23,12 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
   const [userName, setUserName] = useState("");
   const [recordingDuration, setRecordingDuration] = useState(0);
 
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  // Tone.js Audio Graph Refs
+  const recorderRef = useRef<Tone.Recorder | null>(null);
+  const reverbNodeRef = useRef<Tone.Reverb | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const finalAudioBlobRef = useRef<Blob | null>(null);
+  
   const animationFrameRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -36,6 +39,13 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
+
+  // Live Toggle handler for Reverb while recording
+  useEffect(() => {
+    if (reverbNodeRef.current) {
+      reverbNodeRef.current.wet.value = isReverb ? 0.30 : 0;
+    }
+  }, [isReverb]);
 
   useEffect(() => {
     if (recordingState === "RECORDING") {
@@ -49,91 +59,69 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
   }, [recordingState]);
 
   // ==========================================
-  // 🎙️ HIGH-FIDELITY STUDIO ENGINE (LIGHT REVERB)
+  // 🎙️ THE MASTER BHAJAN VOCAL CHAIN
   // ==========================================
   const startRecording = async () => {
     try {
-      // 🌟 Voice Clarity (Noise Reduction) Controlled by User Toggle
+      await Tone.start();
+
       const constraints = {
         audio: {
-          echoCancellation: true,
-          noiseSuppression: isNoiseReduction, // Keeps background silent if ON
-          autoGainControl: false,             // Keeps natural vocal dynamics
-          channelCount: 2,
+          echoCancellation: false,  // 🌟 The Golden Rule for singing
+          noiseSuppression: isNoiseReduction,
+          autoGainControl: false,   // Preserves natural vocal dynamics
+          channelCount: 1,          // Pure stable Mono
         }
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      audioChunksRef.current = [];
+      streamRef.current = stream;
       setRecordingDuration(0);
 
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      const audioCtx = new AudioContextClass({ sampleRate: 48000 });
-      audioContextRef.current = audioCtx;
+      const micSource = Tone.context.createMediaStreamSource(stream);
 
-      const source = audioCtx.createMediaStreamSource(stream);
-      const analyser = audioCtx.createAnalyser();
+      // 1. High Pass Filter (Cuts muddy stage rumble)
+      const hpf = new Tone.Filter(80, "highpass");
+
+      // 2. Soft Singing Compressor (Preserves emotion)
+      const compressor = new Tone.Compressor({
+        threshold: -22,
+        ratio: 2.5,
+        attack: 0.01,
+        release: 0.25
+      });
+
+      // 3. Presence EQ (Adds that expensive studio 'air' and shine)
+      const eq = new Tone.EQ3({
+        low: -2,
+        mid: 1,
+        high: 4
+      });
+
+      // 4. Lush Devotional Reverb (Big Temple / Hall feel)
+      const reverb = new Tone.Reverb({
+        decay: 3.0,
+        preDelay: 0.04,
+        wet: isReverb ? 0.30 : 0
+      });
+      await reverb.generate(); 
+      reverbNodeRef.current = reverb;
+
+      // 5. Master Safety Limiter
+      const limiter = new Tone.Limiter(-1);
+      
+      const recorder = new Tone.Recorder();
+      recorderRef.current = recorder;
+
+      const analyser = Tone.context.createAnalyser();
       analyser.fftSize = 256;
 
-      const destination = audioCtx.createMediaStreamDestination();
+      // Hooking up the Master Chain
+      Tone.connect(micSource, hpf);
+      hpf.chain(compressor, eq, reverb, limiter, recorder);
+      Tone.connect(limiter, analyser); // Visualizer listens to the polished output
 
-      // Highpass Filter: Removes low end rumble
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = "highpass";
-      filter.frequency.value = 80;
-
-      // 🌟 TRUE LIGHT REVERB EFFECT (Slapback + Dampening)
-      const delay = audioCtx.createDelay();
-      delay.delayTime.value = 0.08; // 80ms creates a tight room feel, not a distinct echo
-
-      const feedback = audioCtx.createGain();
-      feedback.gain.value = 0.35; // Short tail
-
-      const dampening = audioCtx.createBiquadFilter();
-      dampening.type = "lowpass";
-      dampening.frequency.value = 4000; // Cuts high-end from reverb so it sounds like a warm room
-
-      const mix = audioCtx.createGain();
-      mix.gain.value = 1.0;
-
-      // Audio Graph Connection
-      source.connect(filter);
-      
-      if (isReverb) {
-        filter.connect(delay);
-        delay.connect(dampening);
-        dampening.connect(feedback);
-        feedback.connect(delay); // Loop
-        delay.connect(mix);      // Output to mix
-      }
-      
-      filter.connect(mix);
-      mix.connect(analyser);
-      analyser.connect(destination);
-
-      // High Bitrate Recording
-      const options = { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 256000 };
-      const recorderOptions = MediaRecorder.isTypeSupported(options.mimeType) ? options : {};
-      const mediaRecorder = new MediaRecorder(destination.stream, recorderOptions);
-      
-      mediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorder.onstop = () => {
-        const mimeType = mediaRecorder.mimeType || "audio/webm";
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        const url = URL.createObjectURL(audioBlob);
-        setAudioUrl(url);
-        setRecordingState("PREVIEW");
-        
-        stream.getTracks().forEach(track => track.stop());
-        if (audioCtx.state !== "closed") audioCtx.close();
-      };
-
-      // Responsive Visualizer
+      // Canvas Visualizer
       const canvas = canvasRef.current;
       if (canvas) {
         const canvasCtx = canvas.getContext("2d");
@@ -159,17 +147,27 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
         draw();
       }
 
-      mediaRecorder.start(100);
+      recorder.start();
       setRecordingState("RECORDING");
+
     } catch (err) {
-      console.error("Microphone error:", err);
+      console.error("Studio initialization failed:", err);
       alert("कृपया ब्राउज़र सेटिंग्स में माइक (Microphone) की अनुमति दें।");
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && recordingState === "RECORDING") {
-      mediaRecorderRef.current.stop();
+  const stopRecording = async () => {
+    if (recorderRef.current && recordingState === "RECORDING") {
+      const recordingBlob = await recorderRef.current.stop();
+      finalAudioBlobRef.current = recordingBlob;
+      
+      const url = URL.createObjectURL(recordingBlob);
+      setAudioUrl(url);
+      setRecordingState("PREVIEW");
+      
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     }
   };
@@ -188,6 +186,8 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
 
   const resetStudio = () => {
     setAudioUrl(null);
+    finalAudioBlobRef.current = null;
+    reverbNodeRef.current = null;
     setIsPlaying(false);
     setRecordingDuration(0);
     setRecordingState("IDLE");
@@ -198,17 +198,18 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
       alert("कृपया अपना नाम दर्ज करें!");
       return;
     }
+    if (!finalAudioBlobRef.current) return;
+
     setRecordingState("UPLOADING");
     
     try {
-      const mimeType = mediaRecorderRef.current?.mimeType || "audio/webm";
-      const extension = mimeType.includes("mp4") ? "mp4" : "webm";
-      const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+      const audioBlob = finalAudioBlobRef.current;
+      const extension = audioBlob.type.includes("mp4") ? "mp4" : "webm";
       const fileName = `${bhajanSlug}-${Date.now()}.${extension}`;
 
       const { error: uploadError } = await supabase.storage
         .from('bhajan-covers')
-        .upload(fileName, audioBlob, { contentType: mimeType, cacheControl: '3600' });
+        .upload(fileName, audioBlob, { contentType: audioBlob.type, cacheControl: '3600' });
 
       if (uploadError) throw uploadError;
 
@@ -236,33 +237,28 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
   };
 
   return (
-    // 🌟 FIX: Removed fixed heights/widths, enabled flex-wrap for zero overflow
     <div className="w-full bg-gradient-to-r from-orange-50/80 to-amber-50/50 dark:from-white/5 dark:to-transparent border border-orange-200 dark:border-white/10 rounded-2xl p-4 shadow-sm mb-6 transition-all">
-      
       <AnimatePresence mode="wait">
         
-        {/* STATE 1: IDLE (Sleek Bar) */}
+        {/* STATE 1: IDLE */}
         {recordingState === "IDLE" && (
           <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col lg:flex-row items-start lg:items-center justify-between w-full gap-4">
-            
             <div className="flex items-center gap-3 shrink-0">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 text-white flex items-center justify-center shadow-md animate-pulse shrink-0">
                 <FaMicrophone />
               </div>
               <div>
-                <h4 className="font-bold font-hindi text-gray-800 dark:text-gray-100 text-sm">अपनी आवाज़ में गाएं</h4>
+                <h4 className="font-bold font-hindi text-gray-800 dark:text-gray-100 text-sm">अपनी आवाज़ में गाएं</h4>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
-                  <FaHeadphones /> इयरफ़ोन का प्रयोग करें
+                  <FaHeadphones /> इयरफ़ोन का प्रयोग करें
                 </p>
               </div>
             </div>
 
-            {/* 🌟 FIX: flex-wrap so toggles move down gracefully on very small mobile screens */}
             <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full lg:w-auto justify-start lg:justify-end">
-              
               <label className="flex items-center gap-1.5 cursor-pointer bg-white dark:bg-black/30 px-3 py-1.5 rounded-full border border-orange-100 dark:border-white/10 shrink-0 hover:bg-orange-50 transition-colors">
                 <input type="checkbox" checked={isReverb} onChange={(e) => setIsReverb(e.target.checked)} className="accent-orange-500 w-3 h-3" />
-                <span className="text-[10px] font-bold uppercase text-gray-600 dark:text-gray-300">Light Reverb</span>
+                <span className="text-[10px] font-bold uppercase text-gray-600 dark:text-gray-300">Studio Reverb</span>
               </label>
 
               <label className="flex items-center gap-1.5 cursor-pointer bg-white dark:bg-black/30 px-3 py-1.5 rounded-full border border-orange-100 dark:border-white/10 shrink-0 hover:bg-orange-50 transition-colors">
@@ -283,7 +279,6 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
             <div className="flex items-center gap-4 w-full">
               <span className="w-3 h-3 bg-red-500 rounded-full animate-ping shrink-0" />
               <span className="font-mono text-2xl font-black text-red-500 shrink-0">{formatTime(recordingDuration)}</span>
-              {/* Responsive canvas width */}
               <canvas ref={canvasRef} width={150} height={30} className="h-[30px] w-full max-w-[150px] bg-black/5 dark:bg-black/20 rounded-lg flex-1" />
             </div>
             
