@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaMicrophone, FaStop, FaPlay, FaPause, FaTrash, FaHeadphones } from "react-icons/fa";
 import { supabase } from "@/utils/supabase";
+import { logEvent } from "@/utils/analytics";
 import * as Tone from "tone";
 
 interface BhaktiStudioProps {
@@ -119,6 +120,7 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
       setRecordingDuration(0);
+      logEvent('studio_record_start', { bhajan_slug: bhajanSlug });
 
       const micSource = Tone.context.createMediaStreamSource(stream);
 
