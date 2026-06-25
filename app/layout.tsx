@@ -156,6 +156,13 @@ export default async function RootLayout({
         {/* Supabase & Media API Preconnects */}
         <link rel="preconnect" href="https://vjylssvpxjhzjkmqzvjz.supabase.co" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://img.youtube.com" crossOrigin="anonymous" />
+        {/* 🌟 JOURNEY ADS SCRIPT */}
+        <Script 
+          src="https://scripts.scriptwrapper.com/tags/a95f11d6-3dfd-41e5-b8c4-1e5d54d7e561.js"
+          strategy="afterInteractive" 
+          data-noptimize="1"
+          data-cfasync="false"
+        />
       </head>
 
       <body 

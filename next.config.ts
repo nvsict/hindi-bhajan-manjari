@@ -54,8 +54,10 @@ const nextConfig: NextConfig = {
           },
           {
             // 🌟 ULTIMATE CSP: Added Razorpay to script-src and frame-src
-            key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.instagram.com https://*.googletagmanager.com https://static.cloudflareinsights.com https://*.clarity.ms https://*.google.com https://checkout.razorpay.com https://cdn.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://news.google.com; img-src * blob: data:; media-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src * https://lumberjack.razorpay.com; frame-src 'self' https://www.youtube.com https://www.instagram.com https://*.google.com https://*.razorpay.com; worker-src 'self' blob:;"
+            // next.config.ts में:
+
+key: 'Content-Security-Policy',
+value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.instagram.com https://*.googletagmanager.com https://static.cloudflareinsights.com https://*.clarity.ms https://*.google.com https://checkout.razorpay.com https://cdn.razorpay.com https://*.scriptwrapper.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://news.google.com; img-src * blob: data:; media-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src * https://lumberjack.razorpay.com https://*.scriptwrapper.com; frame-src 'self' https://www.youtube.com https://www.instagram.com https://*.google.com https://*.razorpay.com; worker-src 'self' blob:;"
           }
         ],
       },
