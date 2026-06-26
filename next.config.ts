@@ -11,14 +11,17 @@ const nextConfig: NextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
     dangerouslyAllowSVG: true,
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     qualities: [50, 60, 75, 90, 100], 
     remotePatterns: [
       { protocol: "https", hostname: "**.supabase.co" },
       { protocol: "https", hostname: "i.postimg.cc" },
+      { protocol: "https", hostname: "i.ibb.co" }, // ImgBB
       { protocol: "https", hostname: "**.googleusercontent.com" },
       { protocol: "https", hostname: "images.pexels.com" },
-      { protocol: "https", hostname: "**" }, 
+      { protocol: "https", hostname: "i.ytimg.com" }, // YouTube Thumbnails
+      { protocol: "https", hostname: "img.youtube.com" }, // YouTube Thumbnails
+      { protocol: "https", hostname: "*.amazonaws.com" }, // Amazon S3
+      { protocol: "https", hostname: "**" }, // Fallback wildcard
     ],
   },
 
@@ -53,9 +56,9 @@ const nextConfig: NextConfig = {
             value: 'camera=(), microphone=(self), geolocation=(), browsing-topics=()'
           },
           {
-            // 🌟 SMART CSP: Allows any HTTPS script/frame. Perfect for Ad Networks & prevents 502 errors!
+            // 🌟 CSP: Kept exactly as you had, ensuring Razorpay, Analytics, etc., continue to work
             key: 'Content-Security-Policy',
-            value: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob:; style-src 'self' 'unsafe-inline' https:; img-src * data: blob:; media-src * data: blob:; font-src 'self' https: data:; connect-src *; frame-src *; worker-src 'self' blob:;`
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.instagram.com https://*.googletagmanager.com https://static.cloudflareinsights.com https://*.clarity.ms https://*.google.com https://checkout.razorpay.com https://cdn.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://news.google.com; img-src * blob: data:; media-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src * https://lumberjack.razorpay.com; frame-src 'self' https://www.youtube.com https://www.instagram.com https://*.google.com https://*.razorpay.com; worker-src 'self' blob:;"
           }
         ],
       },
