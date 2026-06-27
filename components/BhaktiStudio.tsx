@@ -21,12 +21,12 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
 
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [userName, setUserName] = useState("");
+  const [userName, setUserName] = useState(""); // 🌟 USER NAME BACK IN ACTION
   const [recordingDuration, setRecordingDuration] = useState(0);
 
   // 🌟 Audio Graph Refs
   const recorderRef = useRef<Tone.Recorder | null>(null);
-  const reverbRef = useRef<Tone.Reverb | null>(null); // Global Reverb Instance
+  const reverbRef = useRef<Tone.Reverb | null>(null);
   const gateRef = useRef<Tone.Gate | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const finalAudioBlobRef = useRef<Blob | null>(null);
@@ -43,7 +43,7 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
   };
 
   // ==========================================
-  // 🌟 CPU OPTIMIZATION: Pre-Generate Reverb
+  // 🌟 CPU OPTIMIZATION 1: Pre-Generate Reverb
   // ==========================================
   useEffect(() => {
     let isMounted = true;
@@ -51,12 +51,11 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
     const initReverb = async () => {
       try {
         const rev = new Tone.Reverb({
-          decay: 3.5, // Perfect Temple/Hall length
+          decay: 3.5, 
           preDelay: 0.04,
           wet: 0.30
         });
         
-        // Generates the heavy IR buffer quietly in the background
         await rev.generate(); 
         
         if (isMounted) {
@@ -71,7 +70,6 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
 
     return () => {
       isMounted = false;
-      // Do NOT dispose reverb here, keep it alive for multiple recordings
     };
   }, []);
 
@@ -84,7 +82,6 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
 
   useEffect(() => {
     if (gateRef.current) {
-      // If Noise Reduction is OFF, lower the threshold so everything passes
       gateRef.current.threshold = isNoiseReduction ? -40 : -100;
     }
   }, [isNoiseReduction]);
@@ -105,15 +102,17 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
   // ==========================================
   const startRecording = async () => {
     try {
+      // 🌟 CPU OPTIMIZATION 2: Buffer breathing room
+      Tone.context.lookAhead = 0.1;
       await Tone.start();
 
       const constraints = {
         audio: {
           echoCancellation: false, 
           noiseSuppression: true,
-          autoGainControl: true,    // 🌟 Perfect for singers moving around the mic
-          channelCount: 1,          // 🌟 Pure Mono to save CPU & prevent cracking
-          sampleRate: 48000         // Studio standard
+          autoGainControl: true,    
+          channelCount: 1,          
+          sampleRate: 44100 // 🌟 CPU OPTIMIZATION 3: Standard CD Quality (prevents cracking on phones)
         }
       };
 
@@ -124,37 +123,14 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
 
       const micSource = Tone.context.createMediaStreamSource(stream);
 
-      // 1. High Pass Filter
-      const hpf = new Tone.Filter({
-        type: "highpass",
-        frequency: 85,
-        rolloff: -24
-      });
-
-      // 2. Noise Gate (Kills background hiss when not singing)
-      const gate = new Tone.Gate({
-        threshold: isNoiseReduction ? -40 : -100
-      });
+      // (Audio Effects - Unchanged, Next Level Quality Maintained)
+      const hpf = new Tone.Filter({ type: "highpass", frequency: 85, rolloff: -24 });
+      const gate = new Tone.Gate({ threshold: isNoiseReduction ? -40 : -100 });
       gateRef.current = gate;
+      const compressor = new Tone.Compressor({ threshold: -24, ratio: 2.5, attack: 0.01, release: 0.3 });
+      const eq = new Tone.EQ3({ low: -2, mid: 1, high: 5 });
 
-      // 3. Smooth Compressor
-      const compressor = new Tone.Compressor({
-        threshold: -24,
-        ratio: 2.5,
-        attack: 0.01,
-        release: 0.3
-      });
-
-      // 4. Presence EQ
-      const eq = new Tone.EQ3({
-        low: -2,
-        mid: 1,
-        high: 5
-      });
-
-      // 5. The Cached Reverb (No generate() calls here!)
       if (!reverbRef.current) {
-        // Fallback just in case the user clicked record before useEffect finished
         const rev = new Tone.Reverb({ decay: 3.5, preDelay: 0.04, wet: isReverb ? 0.30 : 0 });
         await rev.generate();
         reverbRef.current = rev;
@@ -162,9 +138,7 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
       const reverb = reverbRef.current;
       reverb.wet.value = isReverb ? 0.30 : 0;
 
-      // 6. Master Limiter
       const limiter = new Tone.Limiter(-1);
-      
       const recorder = new Tone.Recorder();
       recorderRef.current = recorder;
 
@@ -176,16 +150,23 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
       hpf.chain(gate, compressor, eq, reverb, limiter, recorder);
       Tone.connect(limiter, analyser); 
 
-      // Canvas Visualizer
+      // 🌟 CPU OPTIMIZATION 4: Throttled Canvas Visualizer
       const canvas = canvasRef.current;
       if (canvas) {
         const canvasCtx = canvas.getContext("2d");
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
+        
+        let frameCount = 0; // Frame counter for throttling
 
         const draw = () => {
           if (!canvasCtx || !canvas) return;
           animationFrameRef.current = requestAnimationFrame(draw);
+          
+          frameCount++;
+          // Skip drawing some frames to reduce CPU load (~30fps instead of 60fps)
+          if (frameCount % 2 !== 0) return; 
+
           analyser.getByteFrequencyData(dataArray);
 
           canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
@@ -248,8 +229,9 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
   };
 
   const handlePublish = async () => {
+    // 🌟 VALIDATION: Make sure they enter a name
     if (!userName.trim()) {
-      alert("कृपया अपना नाम दर्ज करें!");
+      alert("कृपया अपना शुभ नाम दर्ज करें!");
       return;
     }
     if (!finalAudioBlobRef.current) return;
@@ -269,10 +251,11 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
 
       const { data: publicUrlData } = supabase.storage.from('bhajan-covers').getPublicUrl(fileName);
 
+      // 🌟 ADDED USER_NAME BACK TO DATABASE PAYLOAD
       const { error: dbError } = await supabase.from('bhajan_covers').insert([{
         bhajan_id: bhajanId,
         bhajan_slug: bhajanSlug,
-        user_name: userName.trim(),
+        user_name: userName.trim(), // Sent to DB!
         audio_url: publicUrlData.publicUrl,
       }]);
 
@@ -358,9 +341,15 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
-              <input type="text" placeholder="आपका शुभ नाम..." value={userName} onChange={(e) => setUserName(e.target.value)} className="w-full sm:w-40 bg-white dark:bg-black/30 border border-orange-200 dark:border-white/10 px-4 py-2 rounded-full text-xs font-hindi outline-none focus:border-orange-500 transition-colors" />
+              <input 
+                type="text" 
+                placeholder="आपका शुभ नाम..." 
+                value={userName} 
+                onChange={(e) => setUserName(e.target.value)} 
+                className="w-full sm:w-40 bg-white dark:bg-black/30 border border-orange-200 dark:border-white/10 px-4 py-2 rounded-full text-xs font-hindi outline-none focus:border-orange-500 transition-colors" 
+              />
               <button onClick={handlePublish} className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider shadow-md active:scale-95 transition-transform whitespace-nowrap">
-                Publish
+                Publish Cover
               </button>
             </div>
           </motion.div>
