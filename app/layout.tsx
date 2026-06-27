@@ -12,9 +12,6 @@ import {
 } from "next/font/google";
 import "./globals.css";
 
-// 🌟 Next.js Built-in Script Optimizer
-import Script from "next/script";
-
 // 🌟 Components
 import ConditionalHeader from "../components/ConditionalHeader";
 import ConditionalFooter from "../components/ConditionalFooter";
