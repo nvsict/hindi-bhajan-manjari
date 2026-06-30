@@ -6,24 +6,17 @@ import Image from 'next/image';
 import { FaSearch, FaMusic, FaSpinner, FaTimes, FaChevronDown, FaBookOpen } from 'react-icons/fa';
 import Link from 'next/link';
 
-// 🌟 BACKGROUND IMAGES ARRAY:
-// अपनी public/images फोल्डर की सभी इमेजेज के नाम यहाँ लिस्ट कर दें।
 const BACKGROUND_IMAGES = [
   '/images/pexels-photo-9277866.avif',
   '/images/pexels-photo-9277866t.avif',
-  // उदाहरण: (अपने असली फाइल नाम यहाँ डालें)
-  // '/images/bg-ram-darbar.jpg',
-  // '/images/bg-krishna.jpg',
-  // '/images/bg-shiv.webp',
 ];
 
-// 🌟 SMART SEARCH INTERFACE: Added 'type' and 'title' (for articles)
 interface SearchResult {
   slug: string;
   title_hindi?: string;
   title_hinglish?: string;
-  title?: string; // For articles
-  type: 'bhajan' | 'article'; // The magic property!
+  title?: string; 
+  type: 'bhajan' | 'article'; 
 }
 
 export default function Hero() {
@@ -31,26 +24,30 @@ export default function Hero() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  
-  // 🌟 SLIDESHOW STATE
   const [currentBgIndex, setCurrentBgIndex] = useState(0);
+  
+  // 🌟 MOBILE OPTIMIZATION STATE
+  const [isMobile, setIsMobile] = useState(false);
   
   const router = useRouter();
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  // 🌟 SLIDESHOW LOGIC: Change image every 5 seconds
+  // 🌟 PERFORMANCE: Check if mobile on mount
   useEffect(() => {
-    // अगर लिस्ट में सिर्फ 1 इमेज है, तो स्लाइडशो चलाने की ज़रूरत नहीं
-    if (BACKGROUND_IMAGES.length <= 1) return;
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile(); // Check immediately on client load
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
+  useEffect(() => {
+    if (BACKGROUND_IMAGES.length <= 1) return;
     const intervalId = setInterval(() => {
       setCurrentBgIndex((prevIndex) => (prevIndex + 1) % BACKGROUND_IMAGES.length);
-    }, 5000); // 5000ms = 5 seconds
-
+    }, 5000); 
     return () => clearInterval(intervalId);
   }, []);
 
-  // Search API Logic
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
       if (query.trim().length >= 2) {
@@ -76,7 +73,6 @@ export default function Hero() {
     return () => clearTimeout(timeoutId);
   }, [query]);
 
-  // Click Outside to Close Search Dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
@@ -118,7 +114,6 @@ export default function Hero() {
               src={src} 
               alt={`Hindi Bhajan Manjari Background ${index + 1}`}
               fill
-              // सिर्फ पहली इमेज को Priority पर रखेंगे, बाकी Lazy Load होंगी
               priority={index === 0}             
               fetchPriority={index === 0 ? "high" : "auto"}        
               quality={50} 
@@ -128,8 +123,8 @@ export default function Hero() {
           </div>
         ))}
         
-        {/* Overlays for readability (Always above images -> z-20) */}
-        <div className="absolute inset-0 bg-[#1a0500]/40 backdrop-blur-[1px] z-20 transition-all duration-300"></div>
+        {/* 🌟 FIX: Disabled backdrop-blur on mobile to save GPU */}
+        <div className={`absolute inset-0 bg-[#1a0500]/40 ${!isMobile ? 'backdrop-blur-[1px]' : ''} z-20 transition-all duration-300`}></div>
         <div className="absolute inset-0 bg-gradient-to-r from-[#1a0500] via-[#1a0500]/70 to-transparent z-20"></div>
       </div>
 

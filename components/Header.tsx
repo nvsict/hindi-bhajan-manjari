@@ -31,7 +31,7 @@ const DEFAULT_NAV_ITEMS = [
     megaMenu: {
       featured: {
         title: 'दिव्य दर्शन',
-        desc: 'गहरे आध्यात्मिक जुड़ाव के लिए हमारे देवी-देवताओं के विशेष भजन, आरती और मंत्रों का संग्रह।',
+        desc: 'गहरे आध्यात्मिक जुड़ाव के लिए हमारे देवी-देवताओं के विशेष भजन, आरती और मंत्रों का संग्रह।',
         icon: <FaOm className="text-5xl text-orange-600 mb-5 opacity-90 drop-shadow-sm" />,
         href: '/deity',
         bg: 'from-orange-500 to-red-600',
@@ -194,11 +194,34 @@ export default function Header() {
     if (outcome === 'accepted') setDeferredPrompt(null);
   };
 
+  // ==========================================
+  // 🌟 SUPER OPTIMIZED SCROLL HANDLER 
+  // ==========================================
   useLenis(({ scroll }) => {
-    setScrolled(scroll > 10);
-    if (scroll < 120) setIsHidden(false); 
-    else if (scroll > lastScrollY.current) setIsHidden(true);  
-    else if (scroll < lastScrollY.current) setIsHidden(false); 
+    // 1. Scrolled State (Only updates when value actually changes)
+    setScrolled(prev => {
+      const isNowScrolled = scroll > 10;
+      return prev !== isNowScrolled ? isNowScrolled : prev;
+    });
+
+    // 2. Hidden State (With threshold to prevent jitter)
+    setIsHidden(prev => {
+      let shouldHide = prev;
+      
+      if (scroll < 120) {
+        shouldHide = false;
+      } else {
+        const diff = scroll - lastScrollY.current;
+        // Only trigger hide/show if scrolled more than 8px (Stops constant toggling on mobile touch)
+        if (diff > 8) {
+          shouldHide = true;
+        } else if (diff < -8) {
+          shouldHide = false;
+        }
+      }
+      return prev !== shouldHide ? shouldHide : prev;
+    });
+
     lastScrollY.current = scroll;
   });
 
@@ -275,7 +298,7 @@ export default function Header() {
               </div>
             </Link>
 
-            {/* 🌟 PREMIUM DESKTOP NAV (Hidden until 'xl' 1280px to prevent overflow) */}
+            {/* 🌟 PREMIUM DESKTOP NAV */}
             <nav className="hidden xl:flex items-center gap-1 mx-4 relative h-full" onMouseLeave={handleNavMouseLeave}>
               <div 
                 className="absolute h-10 bg-orange-50 rounded-full transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] pointer-events-none"
@@ -354,7 +377,7 @@ export default function Header() {
               </div>
             </nav>
 
-            {/* 🌟 Desktop Actions (Hidden until 'xl') */}
+            {/* 🌟 Desktop Actions */}
             <div className="hidden xl:flex items-center gap-2 shrink-0 z-10">
               <Link href="/donate" title="Support Hindi Bhajan Manjari" className="mr-2 flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white text-[13px] font-black tracking-wide rounded-full transition-all shadow-md outline-none focus-visible:ring-4 focus-visible:ring-orange-400/50 active:scale-95 whitespace-nowrap">
                 <FaHandHoldingHeart className="text-[16px]" /> Support Us
@@ -368,7 +391,7 @@ export default function Header() {
               </Link>
             </div>
 
-            {/* 🌟 Mobile/Tablet Actions (Visible up to 1279px) */}
+            {/* 🌟 Mobile/Tablet Actions */}
             <div className="xl:hidden flex items-center gap-1.5 z-10 relative">
               <Link href="/donate" className="w-11 h-11 flex items-center justify-center rounded-full text-orange-600 hover:bg-orange-50 transition-colors relative" aria-label="Support Us" title="Support Us">
                 <FaHandHoldingHeart size={22} />

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { ReactNode, memo } from 'react';
+import { ReactNode, memo, useState, useEffect } from 'react';
 
 interface ScrollRevealProps {
   children: ReactNode;
@@ -15,16 +15,26 @@ interface ScrollRevealProps {
 const ScrollReveal = memo(function ScrollReveal({ 
   children, 
   delay = 0, 
-  yOffset = 30,  // 🌟 FIX 1: Reduced default offset (40px is too much jump for mobile screens)
-  duration = 0.5, // 🌟 FIX 2: Slightly faster duration makes mobile feel extremely snappy
+  yOffset = 30,  
+  duration = 0.5, 
   className = "",
   once = true 
 }: ScrollRevealProps) {
   
-  // 🌟 FIX 3: Respects battery saver mode and low-end devices
   const shouldReduceMotion = useReducedMotion();
+  const [isMobile, setIsMobile] = useState(false);
 
-  if (shouldReduceMotion) {
+  useEffect(() => {
+    // 🌟 PERF FIX: सिर्फ एक बार (Mount पर) चेक करें। 
+    // दर्जनों कॉम्पोनेंट्स में resize listener लगाने से बचने के लिए इसे सिंपल रखा है।
+    setIsMobile(window.innerWidth < 768);
+  }, []);
+
+  // 🌟 THE ULTIMATE MOBILE FIX:
+  // अगर डिवाइस मोबाइल है या यूज़र ने Battery Saver (Reduced Motion) ऑन किया है,
+  // तो Framer Motion के भारी Intersection Observers को पूरी तरह बायपास कर दें!
+  // इससे मोबाइल पर FPS ड्रॉप्स (Lag) 100% खत्म हो जाएंगे।
+  if (shouldReduceMotion || isMobile) {
     return <div className={className}>{children}</div>;
   }
 
@@ -40,19 +50,14 @@ const ScrollReveal = memo(function ScrollReveal({
       }}
       viewport={{ 
         once: once, 
-        // 🌟 FIX 4: Positive bottom margin. It triggers the animation *just before* // it enters the screen, avoiding the laggy "pop-in" effect on fast mobile scrolls.
         margin: "0px 0px 50px 0px", 
         amount: 0.1
       }}
       transition={{
         duration: duration,
         delay: delay,
-        // 🌟 FIX 5: Natively optimized easeOut is much lighter on mobile CPUs than custom cubic-bezier
         ease: "easeOut", 
       }}
-      // 🚨 REMOVED: style={{ willChange: "opacity, transform" }}
-      // Why? Forcing this on 50+ list items permanently destroys mobile GPU memory. 
-      // Framer Motion automatically applies and removes willChange ONLY during the active animation now!
       className={className}
     >
       {children}
