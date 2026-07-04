@@ -192,7 +192,7 @@ export default function Home() {
         },
         "sameAs": [
           "https://www.facebook.com/mohit.tarkar.7121/",
-          "https://www.instagram.com/imp.erfecto_"
+          "https://www.instagram.com/hindibhajanmanjari/"
         ]
       }
     ]

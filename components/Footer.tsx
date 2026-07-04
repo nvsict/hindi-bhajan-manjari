@@ -168,7 +168,7 @@ export default function Footer() {
               <p className="text-sm text-slate-300 font-bold mb-4 font-hindi">सोशल मीडिया पर जुड़ें</p>
               <div className="flex gap-3 flex-wrap">
                 <SocialIcon href="https://wa.me/918384844353" icon={<FaWhatsapp size={18} />} color="hover:bg-[#25D366] hover:border-[#25D366]" label="WhatsApp" />
-                <SocialIcon href="https://www.instagram.com/imp.erfecto_?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" icon={<FaInstagram size={18} />} color="hover:bg-[#E1306C] hover:border-[#E1306C]" label="Instagram" />
+                <SocialIcon href="https://www.instagram.com/hindibhajanmanjari/?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" icon={<FaInstagram size={18} />} color="hover:bg-[#E1306C] hover:border-[#E1306C]" label="Instagram" />
                 <SocialIcon href="https://www.facebook.com/mohit.tarkar.7121/" icon={<FaFacebook size={18} />} color="hover:bg-[#1877F2] hover:border-[#1877F2]" label="Facebook" />
               </div>
             </div>

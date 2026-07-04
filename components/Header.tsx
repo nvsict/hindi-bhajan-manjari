@@ -74,7 +74,7 @@ const DEFAULT_NAV_ITEMS = [
 const SOCIAL_LINKS = [
   {
     Icon: FaInstagram,
-    href: 'https://www.instagram.com/imp.erfecto_?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==',
+    href: 'https://www.instagram.com/hindibhajanmanjari/?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==',
     label: 'Follow us on Instagram',
     hoverColor: 'hover:text-pink-500',
   },
