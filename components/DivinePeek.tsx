@@ -110,7 +110,7 @@ export default function DivinePeek() {
     },
     exit: {
       x: isRight ? "120%" : "-120%", 
-      rotate: isRight ? 25 : -25,
+      rotate: isRight ? 30 : -30,
       opacity: 0,
       scale: 0.85, 
       transition: {
