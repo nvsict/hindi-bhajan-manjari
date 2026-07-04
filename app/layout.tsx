@@ -18,6 +18,7 @@ import ConditionalFooter from "../components/ConditionalFooter";
 import SmoothScrolling from "../components/SmoothScrolling";
 import AnalyticsWrapper from '@/components/AnalyticsWrapper';
 import NextTopLoader from 'nextjs-toploader';
+import DivinePeek from "@/components/DivinePeek";
 import ScrollToTop from '@/components/ScrollToTop';
 
 // 🌟 MICROSOFT CLARITY
@@ -197,7 +198,7 @@ export default async function RootLayout({
           {/* 🌟 GLOBAL MODAL & ASSISTANT */}
           <CampaignModal />
           <SiteAssistant />
-
+<DivinePeek />
         </ThemeProvider>
       </body>
     </html>
