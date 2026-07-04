@@ -133,10 +133,34 @@ export default async function BhajanDetails({ params }: Props) {
   const rawBaseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
   const baseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
   const pageUrl = `${baseUrl}/bhajan/${bhajan.slug}`;
+  const ogImageUrl = `${baseUrl}/api/og?title=${encodeURIComponent(bhajan.title_hinglish)}`;
 
+  // ==========================================================
+  // 🌟 ADVANCED JSON-LD SCHEMA GRAPH
+  // ==========================================================
   const graphNodes: any[] = [];
 
-  // Breadcrumbs Schema
+  // 1. Organization Schema
+  graphNodes.push({
+    "@type": "Organization",
+    "@id": `${baseUrl}/#organization`,
+    "name": "Hindi Bhajan Manjari",
+    "url": baseUrl,
+    "logo": {
+      "@type": "ImageObject",
+      "url": `${baseUrl}/logo.png`
+    }
+  });
+
+  // 2. Author/Person Schema (EEAT Signal)
+  graphNodes.push({
+    "@type": "Person",
+    "@id": `${baseUrl}/#author`,
+    "name": "Mohit Tarkar",
+    "url": baseUrl
+  });
+
+  // 3. Breadcrumbs Schema
   graphNodes.push({
     "@type": "BreadcrumbList",
     "@id": `${pageUrl}#breadcrumb`,
@@ -147,7 +171,7 @@ export default async function BhajanDetails({ params }: Props) {
     ]
   });
 
-  // Video Schema
+  // 4. Video Schema (if exists)
   let ytId = null;
   if (bhajan.video_embed_url) {
     ytId = getYouTubeId(bhajan.video_embed_url);
@@ -167,7 +191,7 @@ export default async function BhajanDetails({ params }: Props) {
     }
   }
 
-  // MusicComposition Schema
+  // 5. MusicComposition Schema
   let alternateNamesSchema = [bhajan.title_hinglish];
   if (bhajan.alt_queries?.trim()) {
     alternateNamesSchema = [...alternateNamesSchema, ...bhajan.alt_queries.split(',').map((q: string) => q.trim())];
@@ -192,6 +216,7 @@ export default async function BhajanDetails({ params }: Props) {
     "alternateName": alternateNamesSchema, 
     "genre": ["Hindu Devotional Music", "Bhajan", ...categories.map((c:any) => c.name_hinglish)],
     "inLanguage": ["hi", "en-IN", "gu", "bn", "te", "kn", "ml", "or"],
+    "image": ogImageUrl,
     "lyricist": lyricistSchema.length > 0 ? lyricistSchema : undefined,
     "composer": lyricistSchema.length > 0 ? lyricistSchema : undefined,
     "recordedAs": singerSchema.length > 0 ? {
@@ -206,20 +231,43 @@ export default async function BhajanDetails({ params }: Props) {
     ...(ytId && { "video": { "@id": `${pageUrl}#video` } }) 
   });
 
-  // WebSite & WebPage Schema
+  // 6. Article Schema (For Bhavarth/Explanation)
+  if (bhajan.explanation) {
+    graphNodes.push({
+      "@type": "Article",
+      "@id": `${pageUrl}#article`,
+      "headline": `${bhajan.title_hindi} भावार्थ (Meaning)`,
+      "description": bhajan.meta_description || bhajan.explanation.substring(0, 150),
+      "image": ogImageUrl,
+      "author": { "@id": `${baseUrl}/#author` },
+      "publisher": { "@id": `${baseUrl}/#organization` },
+      "mainEntityOfPage": { "@id": pageUrl }
+    });
+  }
+
+  // 7. FAQPage Schema (Rich Snippets for FAQs)
+  if (bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0) {
+    graphNodes.push({
+      "@type": "FAQPage",
+      "@id": `${pageUrl}#faq`,
+      "mainEntity": bhajan.faqs.map((faq: any) => ({
+        "@type": "Question",
+        "name": faq.question,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": faq.answer
+        }
+      }))
+    });
+  }
+
+  // 8. WebSite & WebPage Schema
   graphNodes.push({
     "@type": "WebSite",
     "@id": `${baseUrl}/#website`,
     "url": baseUrl,
     "name": "Hindi Bhajan Manjari",
-    "publisher": {
-      "@type": "Organization",
-      "name": "Hindi Bhajan Manjari",
-      "logo": {
-        "@type": "ImageObject",
-        "url": `${baseUrl}/logo.png`
-      }
-    }
+    "publisher": { "@id": `${baseUrl}/#organization` }
   });
 
   graphNodes.push({
@@ -227,6 +275,9 @@ export default async function BhajanDetails({ params }: Props) {
     "@id": pageUrl,
     "url": pageUrl,
     "name": `${bhajan.title_hindi} Lyrics`,
+    "description": bhajan.meta_description,
+    "image": ogImageUrl,
+    "author": { "@id": `${baseUrl}/#author` },
     "datePublished": bhajan.created_at || new Date().toISOString(),
     "dateModified": bhajan.updated_at || bhajan.created_at || new Date().toISOString(),
     "isPartOf": { "@id": `${baseUrl}/#website` },
