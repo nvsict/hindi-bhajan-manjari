@@ -3,7 +3,7 @@ name: Auto Deploy to VPS
 on:
   push:
     branches:
-      - main # अगर आपकी ब्रांच का नाम 'master' है, तो इसे 'master' कर दें
+      - main
 
 jobs:
   deploy:
@@ -19,4 +19,11 @@ jobs:
         port: 22
         script: |
           cd /root/hindi-bhajan-manjari
-          ./deploy.sh
+          git pull origin main
+          npm install
+          
+          # 🌟 CACHE FIX: बिल्ड से पहले कैश क्लियर करें
+          rm -rf .next/cache
+          
+          npm run build
+          pm2 reload all
