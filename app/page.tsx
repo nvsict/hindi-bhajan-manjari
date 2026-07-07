@@ -13,6 +13,8 @@ import TrendingArtists from '../components/home/TrendingArtists';
 import { FaBookOpen, FaClock, FaArrowRight, FaMusic } from 'react-icons/fa';
 import ScrollReveal from '../components/ScrollReveal';
 
+// 🌟 NEW: Affiliate Slot Import
+import AffiliateSlot from '../components/AffiliateSlot';
 
 // VPS Native ISR (Incremental Static Regeneration)
 export const revalidate = 300; 
@@ -213,6 +215,13 @@ export default function Home() {
           
           {/* 2. Visual Hook: Who to pray to? */}
           <DeityBrowse /> 
+
+          {/* ==========================================
+              🌟 2.5 PREMIUM HOMEPAGE CAROUSEL
+              ========================================== */}
+          <div className="mt-8 md:mt-12">
+            <AffiliateSlot layout="homepage-carousel" />
+          </div>
 
           {/* 3. Core Content: The Bhajans */}
           <div className="mt-8 md:mt-12">
