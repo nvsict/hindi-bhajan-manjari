@@ -1,22 +1,27 @@
 "use server";
 
-import { supabase } from "@/utils/supabase"; // या जहाँ से भी आप Supabase इंपोर्ट करते हैं
+import { supabase } from "@/utils/supabase"; 
 
 export async function updateCampaignSettings(payload: any) {
   try {
     let result;
 
     if (payload.id) {
-      // 🌟 UPDATE: अगर payload में ID है, मतलब यह पुराना बैनर है, इसे अपडेट करें
+      // 🌟 UPDATE (पुराना बैनर): अगर ID मौजूद है, तो अपडेट करें
       result = await supabase
         .from('campaign_settings')
         .update(payload)
         .eq('id', payload.id);
     } else {
-      // 🌟 INSERT: अगर ID नहीं है, मतलब यह नया बैनर है, इसे इन्सर्ट करें
+      // 🌟 INSERT (नया बैनर): अगर ID नहीं है, तो नया बनाएं
+      
+      // जादुई लाइन: यहाँ हम payload में से 'id' को पूरी तरह से निकाल कर 
+      // बाकी सारा डेटा 'insertData' नाम के नए ऑब्जेक्ट में डाल रहे हैं
+      const { id, ...insertData } = payload; 
+      
       result = await supabase
         .from('campaign_settings')
-        .insert([payload]);
+        .insert([insertData]); // अब डेटाबेस को 'id' दिखेगा ही नहीं और वो खुद जनरेट कर लेगा
     }
 
     if (result.error) {
