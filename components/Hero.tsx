@@ -111,15 +111,16 @@ export default function Hero() {
             }`}
           >
             <Image 
-              src={src} 
-              alt={`Hindi Bhajan Manjari Background ${index + 1}`}
-              fill
-              priority={index === 0}             
-              fetchPriority={index === 0 ? "high" : "auto"}        
-              quality={50} 
-              className="object-cover object-[center_30%]"
-              sizes="(max-width: 768px) 100vw, 100vw" 
-            />
+  src={src} 
+  alt={`Hindi Bhajan Manjari Background ${index + 1}`}
+  fill
+  priority={index === 0}             
+  fetchPriority={index === 0 ? "high" : "auto"}  
+  loading="eager"        // 🌟 यह नई लाइन जोड़ें
+  quality={50} 
+  className="object-cover object-[center_30%]"
+  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1920px" 
+/>
           </div>
         ))}
         

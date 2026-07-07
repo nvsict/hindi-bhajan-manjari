@@ -11,6 +11,13 @@ const nextConfig: NextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
     dangerouslyAllowSVG: true,
+    
+    // 🌟 THE LCP FIX: Capping max image generation size to 1920px (Blocks 3840px 4K loads)
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    
+    // 🌟 Optional but good: Defined smaller breakpoints for icons/logos
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    
     qualities: [50, 60, 75, 90, 100], 
     remotePatterns: [
       { protocol: "https", hostname: "**.supabase.co" },

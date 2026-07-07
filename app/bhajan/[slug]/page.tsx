@@ -30,6 +30,7 @@ const getYouTubeId = (url?: string) => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
+// 🌟 METADATA GENERATION (Tags automatically included in keywords for SEO)
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
   const { data: bhajan } = await supabase
@@ -61,6 +62,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     altQueriesArray = bhajan.alt_queries.split(',').map((q: string) => q.trim());
   }
 
+  // Tags are fed directly into the meta keywords!
   const dynamicKeywords = [
     `${bhajan.title_hinglish} lyrics`,
     `${bhajan.title_hindi} लिरिक्स`,
@@ -68,7 +70,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     `${bhajan.title_hinglish} PDF download`,
     bhajan.deities?.name_hinglish ? `${bhajan.deities.name_hinglish} bhajans` : "",
     ...categoryNames,
-    ...tagNames,
+    ...tagNames, // 👈 THE SEO MAGIC
     ...altQueriesArray 
   ].filter(Boolean).join(', ');
 
@@ -136,9 +138,12 @@ export default async function BhajanDetails({ params }: Props) {
   const ogImageUrl = `${baseUrl}/api/og?title=${encodeURIComponent(bhajan.title_hinglish)}`;
 
   // ==========================================================
-  // 🌟 ADVANCED JSON-LD SCHEMA GRAPH
+  // 🌟 ADVANCED JSON-LD SCHEMA GRAPH (WITH TAGS INJECTED)
   // ==========================================================
   const graphNodes: any[] = [];
+  
+  // Create comma-separated tags string for Schema
+  const schemaKeywords = tags.map((t: any) => t.name).join(', ');
 
   // 1. Organization Schema
   graphNodes.push({
@@ -215,6 +220,7 @@ export default async function BhajanDetails({ params }: Props) {
     "name": bhajan.title_hindi,
     "alternateName": alternateNamesSchema, 
     "genre": ["Hindu Devotional Music", "Bhajan", ...categories.map((c:any) => c.name_hinglish)],
+    "keywords": schemaKeywords, // 👈 INJECTING TAGS INTO COMPOSITION SCHEMA
     "inLanguage": ["hi", "en-IN", "gu", "bn", "te", "kn", "ml", "or"],
     "image": ogImageUrl,
     "lyricist": lyricistSchema.length > 0 ? lyricistSchema : undefined,
@@ -245,7 +251,7 @@ export default async function BhajanDetails({ params }: Props) {
     });
   }
 
-  // 7. FAQPage Schema (Rich Snippets for FAQs)
+  // 7. FAQPage Schema
   if (bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0) {
     graphNodes.push({
       "@type": "FAQPage",
@@ -276,6 +282,7 @@ export default async function BhajanDetails({ params }: Props) {
     "url": pageUrl,
     "name": `${bhajan.title_hindi} Lyrics`,
     "description": bhajan.meta_description,
+    "keywords": schemaKeywords, // 👈 INJECTING TAGS INTO WEBPAGE SCHEMA
     "image": ogImageUrl,
     "author": { "@id": `${baseUrl}/#author` },
     "datePublished": bhajan.created_at || new Date().toISOString(),
@@ -370,9 +377,7 @@ export default async function BhajanDetails({ params }: Props) {
 
            <div className="pt-0 px-4 md:px-8 pb-8">
               
-              {/* ==========================================
-                  🌟 NEW PLACEMENT: RECORDING BAR AT THE TOP
-                  ========================================== */}
+              {/* Recording Bar */}
               <BhaktiStudio bhajanId={bhajan.id} bhajanSlug={bhajan.slug} />
 
               {/* Lyrics Content */}
@@ -389,16 +394,12 @@ export default async function BhajanDetails({ params }: Props) {
                 <AffiliateSlot deityId={bhajan.deity_id?.toString()} layout="inline" />
               </div>
 
-              {/* ==========================================
-                  🌟 COMMUNITY WALL (LISTEN TO OTHERS)
-                  ========================================== */}
+              {/* Community Wall */}
               <div className="mt-12 space-y-8 border-t border-orange-100 dark:border-white/10 pt-10">
                 <div className="text-center mb-6">
                   <h2 className="text-2xl md:text-3xl font-black font-hindi text-gray-900 dark:text-orange-50">भक्तों का मंच (Bhakt's Voice)</h2>
                   <p className="text-gray-600 dark:text-gray-400 text-sm mt-2">अन्य भक्तों द्वारा गाए गए मधुर कवर्स सुनें।</p>
                 </div>
-                
-                {/* The Realtime Community Wall */}
                 <CommunityWall bhajanId={bhajan.id} />
               </div>
               
@@ -452,15 +453,20 @@ export default async function BhajanDetails({ params }: Props) {
                 </div>
               )}
 
-              {/* Tags */}
+              {/* ==========================================
+                  🌟 NEW FIX: NON-CLICKABLE TAGS (SEO Retained)
+                  ========================================== */}
               {tags.length > 0 && (
                 <div className="mt-12 pt-8 border-t border-gray-100 dark:border-white/10">
-                  <h4 className="text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-widest">Related Tags</h4>
+                  <h4 className="text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-4 uppercase tracking-widest">Search Terms</h4>
                   <div className="flex flex-wrap gap-2.5">
                     {tags.map((tag: any) => (
-                      <a key={tag.slug} href={`/tag/${tag.slug}`} className="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:border-orange-200 dark:hover:border-orange-900/50 text-gray-600 dark:text-gray-300 hover:text-orange-700 dark:hover:text-orange-400 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all">
-                        {tag.name}
-                      </a>
+                      <span 
+                        key={tag.id || tag.slug} 
+                        className="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-gray-600 dark:text-gray-300 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider cursor-default shadow-sm"
+                      >
+                        # {tag.name}
+                      </span>
                     ))}
                   </div>
                 </div>

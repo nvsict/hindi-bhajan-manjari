@@ -75,7 +75,7 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
               <div style={{ position: 'absolute', top: 0, left: '20%', right: '20%', height: '4px', backgroundImage: 'linear-gradient(90deg, transparent, #ea580c, transparent)', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px', opacity: 0.8 }} />
               <div className="relative z-10 flex flex-col items-center justify-center px-4 w-full h-full">
                 <div className="relative w-12 h-12 md:w-14 md:h-14 mb-2 md:mb-3 drop-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
-                  <Image src="/logo.png" alt="Logo" fill className="object-contain" />
+                  <Image src="/logo.png" alt="Logo" fill className="object-contain" sizes="(max-width: 768px) 40px, 48px" />
                 </div>
                 <div className="flex items-center gap-1.5 bg-black/20 text-white/70 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm shadow-sm mb-1 md:mb-2.5">
                   <FaMusic size={10} className="text-orange-600" />
