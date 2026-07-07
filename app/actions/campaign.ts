@@ -1,21 +1,30 @@
 "use server";
 
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from "@/utils/supabase"; // या जहाँ से भी आप Supabase इंपोर्ट करते हैं
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-export async function updateCampaignSettings(data: any) {
+export async function updateCampaignSettings(payload: any) {
   try {
-    const { error } = await supabaseAdmin
-      .from('campaign_settings')
-      .upsert({ id: 1, ...data }); // id हमेशा 1 रहेगी ताकि एक ही रो अपडेट हो
+    let result;
 
-    if (error) throw error;
+    if (payload.id) {
+      // 🌟 UPDATE: अगर payload में ID है, मतलब यह पुराना बैनर है, इसे अपडेट करें
+      result = await supabase
+        .from('campaign_settings')
+        .update(payload)
+        .eq('id', payload.id);
+    } else {
+      // 🌟 INSERT: अगर ID नहीं है, मतलब यह नया बैनर है, इसे इन्सर्ट करें
+      result = await supabase
+        .from('campaign_settings')
+        .insert([payload]);
+    }
+
+    if (result.error) {
+      return { success: false, error: result.error.message };
+    }
+
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
 }

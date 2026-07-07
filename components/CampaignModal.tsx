@@ -7,7 +7,7 @@ import { HiX } from 'react-icons/hi';
 import { supabase } from '@/utils/supabase';
 
 export default function CampaignModal() {
-  const pathname = usePathname(); // 🌟 पेज ट्रैक करने के लिए
+  const pathname = usePathname(); 
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [activeCampaigns, setActiveCampaigns] = useState<any[]>([]);
@@ -19,7 +19,6 @@ export default function CampaignModal() {
   // 🌟 1. Fetch All Active Campaigns ONCE
   useEffect(() => {
     const fetchCampaigns = async () => {
-      // सिंगल ID की जगह सारे एक्टिव कैंपेन मंगाएं
       const { data, error } = await supabase.from('campaign_settings').select('*').eq('is_active', true);
       if (data && !error && data.length > 0) {
         setActiveCampaigns(data);
@@ -34,16 +33,18 @@ export default function CampaignModal() {
     if (isOpen) return; // अगर बैनर पहले से खुला है, तो कुछ न करें
     if (pathname === lastPathnameShown) return; // एक पेज पर दोबारा न दिखाएं (Page switch ज़रूरी है)
 
-    // A. Check Session Limit (एक विजिट में सिर्फ 2 बैनर)
-    const sessionCount = parseInt(sessionStorage.getItem('banner_session_count') || '0', 10);
-    if (sessionCount >= 2) return; 
-
-    // B. Daily Reset (ताकि अगले दिन सब फ्रेश स्टार्ट हो)
+    // A. Daily Reset (Midnight Fix: अगर यूज़र ने टैब खुला छोड़ दिया हो)
     const today = new Date().toDateString();
     const storedDate = localStorage.getItem('banner_daily_date');
     if (storedDate !== today) {
       localStorage.setItem('banner_daily_date', today);
+      sessionStorage.setItem('banner_session_count', '0');
+      sessionStorage.setItem('banner_shown_ids', '[]');
     }
+
+    // B. Check Session Limit (एक विजिट में सिर्फ 2 बैनर)
+    const sessionCount = parseInt(sessionStorage.getItem('banner_session_count') || '0', 10);
+    if (sessionCount >= 2) return; 
 
     // C. Start the 35 seconds timer
     const timer = setTimeout(() => {
@@ -112,7 +113,7 @@ export default function CampaignModal() {
       >
         <button 
           onClick={handleClose}
-          className="absolute top-4 right-4 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-white/90 text-gray-900 hover:bg-white hover:scale-105 shadow-lg backdrop-blur-md transition-all active:scale-95"
+          className="absolute top-4 right-4 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-white/90 text-gray-900 hover:bg-white hover:scale-105 shadow-lg backdrop-blur-md transition-all active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
           aria-label="Close Announcement"
         >
           <HiX size={20} />
@@ -120,7 +121,7 @@ export default function CampaignModal() {
 
         {currentCampaign.type === 'image' ? (
           <div className="relative w-full bg-white">
-            <Link href={currentCampaign.image_link || '#'} onClick={handleClose} className="block group">
+            <Link href={currentCampaign.image_link || '#'} onClick={handleClose} className="block group outline-none focus-visible:ring-4 focus-visible:ring-orange-500 rounded-[2rem]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img 
                 src={currentCampaign.image_src} 
