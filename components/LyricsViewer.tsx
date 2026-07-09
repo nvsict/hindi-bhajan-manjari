@@ -35,11 +35,11 @@ const SCRIPT_OPTIONS = [
 ];
 
 const FONT_OPTIONS = [
-  { id: 'font-hindi', name: 'Hind (Standard)', className: 'font-hindi' },
-  { id: 'font-noto-serif', name: 'Noto Serif (Granth)', className: 'font-noto-serif' },
-  { id: 'font-amita', name: 'Amita (Calligraphy)', className: 'font-amita' },
-  { id: 'font-poppins', name: 'Poppins (Modern)', className: 'font-poppins' },
-  { id: 'font-kalam', name: 'Kalam (Diary)', className: 'font-kalam' },
+  { id: 'font-hindi', name: 'Hind (Standard)', className: 'font-hindi', googleFont: '' }, // यह डिफ़ॉल्ट है, पहले से लोड होगा
+  { id: 'font-noto-serif', name: 'Noto Serif (Granth)', className: 'font-noto-serif', googleFont: 'Noto+Serif' },
+  { id: 'font-amita', name: 'Amita (Calligraphy)', className: 'font-amita', googleFont: 'Amita' },
+  { id: 'font-poppins', name: 'Poppins (Modern)', className: 'font-poppins', googleFont: 'Poppins' },
+  { id: 'font-kalam', name: 'Kalam (Diary)', className: 'font-kalam', googleFont: 'Kalam' },
 ];
 
 // 🌟 ZERO-ERROR THUMBNAIL COMPONENT
@@ -255,11 +255,43 @@ export default function LyricsViewer({
     videoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
+  // 🌟 SMART LAZY LOADER FOR FONTS
+  const loadFontDynamically = (fontClass: string) => {
+    const fontObj = FONT_OPTIONS.find(f => f.className === fontClass);
+    if (!fontObj || !fontObj.googleFont) return; // अगर डिफ़ॉल्ट है तो कुछ मत करो
+
+    const linkId = `dynamic-font-${fontClass}`;
+    // चेक करो कि क्या यह फॉन्ट पहले से लोड हो चुका है?
+    if (!document.getElementById(linkId)) {
+      const link = document.createElement('link');
+      link.id = linkId;
+      link.href = `https://fonts.googleapis.com/css2?family=${fontObj.googleFont}:wght@400;700&display=swap`;
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
+  };
+
+  useEffect(() => {
+    setFontSize(window.innerWidth < 768 ? 17 : 22);
+    const savedFavorites = JSON.parse(localStorage.getItem('bhajan_favorites') || '[]');
+    if (savedFavorites.some((fav: any) => fav.slug === slug)) setIsFavorite(true);
+    
+    // 🌟 Check Local Storage and Load Font On-Demand
+    const savedFont = localStorage.getItem('preferred_lyrics_font');
+    if (savedFont) {
+      setSelectedFont(savedFont);
+      loadFontDynamically(savedFont); // सिर्फ तभी लोड करो जब यूज़र की सेव की हुई प्रेफरेंस हो
+    }
+  }, [slug]);
+
+  // 🌟 When user clicks a new font
   const changeFont = (fontClass: string) => {
     triggerHaptic();
     setSelectedFont(fontClass);
     localStorage.setItem('preferred_lyrics_font', fontClass);
     setIsFontMenuOpen(false);
+    
+    loadFontDynamically(fontClass); // फॉन्ट क्लिक करते ही डाउनलोड शुरू!
   };
 
   const toggleFavorite = (withHaptic = true) => {
