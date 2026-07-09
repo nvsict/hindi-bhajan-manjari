@@ -33,7 +33,7 @@ export default function CampaignModal() {
     if (isOpen) return; // अगर बैनर पहले से खुला है, तो कुछ न करें
     if (pathname === lastPathnameShown) return; // एक पेज पर दोबारा न दिखाएं (Page switch ज़रूरी है)
 
-    // A. Daily Reset (Midnight Fix: अगर यूज़र ने टैब खुला छोड़ दिया हो)
+    // A. Daily Reset (Midnight Fix)
     const today = new Date().toDateString();
     const storedDate = localStorage.getItem('banner_daily_date');
     if (storedDate !== today) {
@@ -46,34 +46,36 @@ export default function CampaignModal() {
     const sessionCount = parseInt(sessionStorage.getItem('banner_session_count') || '0', 10);
     if (sessionCount >= 2) return; 
 
-    // C. Start the 35 seconds timer
+    // 🌟 C. SELECT THE BANNER FIRST (पहले टाइमर के अंदर था, अब बाहर निकाल लिया)
+    const shownThisSession = JSON.parse(sessionStorage.getItem('banner_shown_ids') || '[]');
+    let availableBanners = activeCampaigns.filter(c => !shownThisSession.includes(c.campaign_id));
+    
+    if (availableBanners.length === 0) return;
+
+    const lastClosedId = localStorage.getItem('last_closed_banner_id');
+    let selectedBanner = availableBanners[0];
+    
+    // The "Reverse Logic": पिछली बार जो लास्ट था, वो इस बार पहला!
+    if (sessionCount === 0 && lastClosedId) {
+       const foundLastClosed = availableBanners.find(c => c.campaign_id === lastClosedId);
+       if (foundLastClosed) {
+         selectedBanner = foundLastClosed;
+       }
+    }
+
+    // 🌟 D. DYNAMIC DELAY LOGIC
+    // अगर सेशन का पहला बैनर है, तो डेटाबेस का टाइम (delay_ms) यूज़ करो।
+    // अगर दूसरा बैनर है, तो यूज़र को पढ़ने का टाइम दो (35 सेकंड)।
+    const bannerDelay = sessionCount === 0 ? (selectedBanner.delay_ms || 3000) : 35000;
+
     const timer = setTimeout(() => {
-      // इस सेशन में जो बैनर दिख चुके हैं, उनकी लिस्ट निकालें
-      const shownThisSession = JSON.parse(sessionStorage.getItem('banner_shown_ids') || '[]');
-      
-      // जो नहीं दिखे हैं, उन्हें फिल्टर करें
-      let availableBanners = activeCampaigns.filter(c => !shownThisSession.includes(c.campaign_id));
-      if (availableBanners.length === 0) return;
-
-      const lastClosedId = localStorage.getItem('last_closed_banner_id');
-      let selectedBanner = availableBanners[0];
-      
-      // 🌟 D. The "Reverse Logic": पिछली बार जो लास्ट था, वो इस बार पहला!
-      if (sessionCount === 0 && lastClosedId) {
-         const foundLastClosed = availableBanners.find(c => c.campaign_id === lastClosedId);
-         if (foundLastClosed) {
-           selectedBanner = foundLastClosed;
-         }
-      }
-
       setCurrentCampaign(selectedBanner);
       setLastPathnameShown(pathname); // मार्क करें कि इस पेज पर दिख गया
       setIsOpen(true);
       setTimeout(() => setIsVisible(true), 50);
+    }, bannerDelay); // ⏱️ यहाँ हमने डायनामिक डिले पास कर दिया
 
-    }, 35000); // ⏱️ 35 Seconds delay
-
-    return () => clearTimeout(timer); // अगर यूज़र 35s से पहले पेज बदल ले, तो टाइमर रिसेट हो जाएगा
+    return () => clearTimeout(timer);
   }, [pathname, activeCampaigns, isOpen, lastPathnameShown]);
 
   const handleClose = () => {
