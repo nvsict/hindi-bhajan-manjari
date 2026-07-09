@@ -1,14 +1,11 @@
 import type { Metadata, Viewport } from "next";
+import AnnouncementStrip from '@/components/AnnouncementStrip';
 
-// 🌟 1. All 5 Devotional Fonts + Base Fonts Imported
+// 🌟 1. PERF FIX: Removed the 4 extra fonts. Only loading default 'Hind' and Base fonts upfront.
 import { 
   Geist, 
   Geist_Mono, 
-  Hind, 
-  Noto_Serif_Devanagari, 
-  Amita, 
-  Poppins, 
-  Kalam 
+  Hind 
 } from "next/font/google";
 import "./globals.css";
 
@@ -48,44 +45,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// --- THE 5 DEVOTIONAL PERSONALITIES ---
+// --- THE DEFAULT DEVOTIONAL FONT ---
 const hindFont = Hind({
   weight: ['400', '500', '600', '700'],
   subsets: ['devanagari', 'latin'],
   variable: "--font-hind",
   display: 'swap',
-});
-
-const notoSerifDeva = Noto_Serif_Devanagari({
-  weight: ['400', '500', '600', '700'],
-  subsets: ['devanagari'],
-  variable: "--font-noto-serif",
-  display: 'swap',
-  preload: false, 
-});
-
-const amitaFont = Amita({
-  weight: ['400', '700'],
-  subsets: ['devanagari'],
-  variable: "--font-amita",
-  display: 'swap',
-  preload: false, 
-});
-
-const poppinsFont = Poppins({
-  weight: ['400', '500', '600', '700'],
-  subsets: ['devanagari', 'latin'],
-  variable: "--font-poppins",
-  display: 'swap',
-  preload: false, 
-});
-
-const kalamFont = Kalam({
-  weight: ['400', '700'],
-  subsets: ['devanagari'],
-  variable: "--font-kalam",
-  display: 'swap',
-  preload: false, 
 });
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.hindibhajanmanjari.com";
@@ -158,7 +123,8 @@ export default async function RootLayout({
 
       <body 
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} ${hindFont.variable} ${notoSerifDeva.variable} ${amitaFont.variable} ${poppinsFont.variable} ${kalamFont.variable} antialiased bg-orange-50/30 dark:bg-[#0c0804] flex flex-col min-h-screen selection:bg-orange-500 selection:text-white transition-colors duration-300`}
+        /* 🌟 PERF FIX: Removed heavy font variables from the body string */
+        className={`${geistSans.variable} ${geistMono.variable} ${hindFont.variable} antialiased bg-orange-50/30 dark:bg-[#0c0804] flex flex-col min-h-screen selection:bg-orange-500 selection:text-white transition-colors duration-300`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           
@@ -181,6 +147,7 @@ export default async function RootLayout({
           <FestiveDecorations />
 
           <SmoothScrolling>
+            <AnnouncementStrip />
             <ConditionalHeader /> 
             
             <main className="flex-1 relative z-10">
@@ -198,7 +165,7 @@ export default async function RootLayout({
           {/* 🌟 GLOBAL MODAL & ASSISTANT */}
           <CampaignModal />
           <SiteAssistant />
-<DivinePeek />
+          <DivinePeek />
         </ThemeProvider>
       </body>
     </html>
