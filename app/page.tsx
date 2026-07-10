@@ -12,6 +12,7 @@ import PopularCategories from '../components/home/PopularCategories';
 import TrendingArtists from '../components/home/TrendingArtists';
 import { FaBookOpen, FaClock, FaArrowRight, FaMusic } from 'react-icons/fa';
 import ScrollReveal from '../components/ScrollReveal';
+import SupportersWall from '@/components/SupportersWall';
 
 // 🌟 NEW: Affiliate Slot Import
 import AffiliateSlot from '../components/AffiliateSlot';
@@ -210,11 +211,15 @@ export default function Home() {
 
       <div className="max-w-[1180px] mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16 flex flex-col lg:flex-row gap-8 items-start">
         
-        {/* Main Content Area */}
         <main className="flex-1 w-full min-w-0">
           
           {/* 2. Visual Hook: Who to pray to? */}
           <DeityBrowse /> 
+
+          {/* 🌟 यहाँ मैंने 'SupportersWall' को इन्सर्ट किया है */}
+          <div className="mt-12 md:mt-16">
+            <SupportersWall />
+          </div>
 
           {/* ==========================================
               🌟 2.5 PREMIUM HOMEPAGE CAROUSEL
