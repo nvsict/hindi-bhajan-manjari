@@ -13,27 +13,37 @@ export default function CampaignModal() {
   const [activeCampaigns, setActiveCampaigns] = useState<any[]>([]);
   const [currentCampaign, setCurrentCampaign] = useState<any>(null);
   
-  // ट्रैक करने के लिए कि इस पेज पर बैनर दिख चुका है
   const [lastPathnameShown, setLastPathnameShown] = useState<string | null>(null);
 
-  // 🌟 1. Fetch All Active Campaigns ONCE
+  // 🌟 1. Fetch All Active Campaigns (With Cache Busting Logic)
   useEffect(() => {
     const fetchCampaigns = async () => {
-      const { data, error } = await supabase.from('campaign_settings').select('*').eq('is_active', true);
+      // Supabase से सिर्फ Active कैम्पैन्स मंगाएं
+      const { data, error } = await supabase
+        .from('campaign_settings')
+        .select('*')
+        .eq('is_active', true);
+        
       if (data && !error && data.length > 0) {
         setActiveCampaigns(data);
+      } else {
+        // अगर कोई भी एक्टिव नहीं है, तो पुरानी मेमोरी क्लियर कर दो
+        setActiveCampaigns([]);
+        localStorage.removeItem('last_closed_banner_id');
       }
     };
     fetchCampaigns();
-  }, []);
+  }, [pathname]); // 🌟 FIX: हर पेज चेंज पर लेटेस्ट डेटा चेक करेगा, न कि सिर्फ एक बार
 
   // 🌟 2. Smart Engine: Page Switch & Timers
   useEffect(() => {
     if (activeCampaigns.length === 0) return;
-    if (isOpen) return; // अगर बैनर पहले से खुला है, तो कुछ न करें
-    if (pathname === lastPathnameShown) return; // एक पेज पर दोबारा न दिखाएं (Page switch ज़रूरी है)
+    if (isOpen) return; 
+    if (pathname === lastPathnameShown) return; 
 
-    // A. Daily Reset (Midnight Fix)
+    // 🌟 🚀 ADMIN TEST MODE: URL में ?test_banner=true लगाने पर सारी लिमिट्स इग्नोर हो जाएंगी
+    const isTestMode = typeof window !== 'undefined' && window.location.search.includes('test_banner=true');
+
     const today = new Date().toDateString();
     const storedDate = localStorage.getItem('banner_daily_date');
     if (storedDate !== today) {
@@ -42,12 +52,16 @@ export default function CampaignModal() {
       sessionStorage.setItem('banner_shown_ids', '[]');
     }
 
-    // B. Check Session Limit (एक विजिट में सिर्फ 2 बैनर)
     const sessionCount = parseInt(sessionStorage.getItem('banner_session_count') || '0', 10);
-    if (sessionCount >= 2) return; 
+    
+    // 🌟 FIX: अगर Test Mode On है, तो लिमिट्स (2 banners per session) को बाईपास कर दो
+    if (sessionCount >= 2 && !isTestMode) return; 
 
-    // 🌟 C. SELECT THE BANNER FIRST (पहले टाइमर के अंदर था, अब बाहर निकाल लिया)
-    const shownThisSession = JSON.parse(sessionStorage.getItem('banner_shown_ids') || '[]');
+    let shownThisSession = JSON.parse(sessionStorage.getItem('banner_shown_ids') || '[]');
+    
+    // 🌟 FIX: अगर Test Mode On है, तो पुरानी हिस्ट्री को भी इग्नोर करो
+    if (isTestMode) shownThisSession = [];
+
     let availableBanners = activeCampaigns.filter(c => !shownThisSession.includes(c.campaign_id));
     
     if (availableBanners.length === 0) return;
@@ -55,25 +69,24 @@ export default function CampaignModal() {
     const lastClosedId = localStorage.getItem('last_closed_banner_id');
     let selectedBanner = availableBanners[0];
     
-    // The "Reverse Logic": पिछली बार जो लास्ट था, वो इस बार पहला!
-    if (sessionCount === 0 && lastClosedId) {
+    // Reverse Logic
+    if (sessionCount === 0 && lastClosedId && !isTestMode) {
        const foundLastClosed = availableBanners.find(c => c.campaign_id === lastClosedId);
        if (foundLastClosed) {
          selectedBanner = foundLastClosed;
        }
     }
 
-    // 🌟 D. DYNAMIC DELAY LOGIC
-    // अगर सेशन का पहला बैनर है, तो डेटाबेस का टाइम (delay_ms) यूज़ करो।
-    // अगर दूसरा बैनर है, तो यूज़र को पढ़ने का टाइम दो (35 सेकंड)।
-    const bannerDelay = sessionCount === 0 ? (selectedBanner.delay_ms || 3000) : 35000;
+    // 🌟 DYNAMIC DELAY LOGIC (टेस्ट मोड में तुरंत 1 सेकंड में खुलेगा)
+    let bannerDelay = sessionCount === 0 ? (selectedBanner.delay_ms || 3000) : 35000;
+    if (isTestMode) bannerDelay = 1000; // टेस्ट मोड में कोई इंतज़ार नहीं!
 
     const timer = setTimeout(() => {
       setCurrentCampaign(selectedBanner);
-      setLastPathnameShown(pathname); // मार्क करें कि इस पेज पर दिख गया
+      setLastPathnameShown(pathname); 
       setIsOpen(true);
       setTimeout(() => setIsVisible(true), 50);
-    }, bannerDelay); // ⏱️ यहाँ हमने डायनामिक डिले पास कर दिया
+    }, bannerDelay); 
 
     return () => clearTimeout(timer);
   }, [pathname, activeCampaigns, isOpen, lastPathnameShown]);
@@ -84,16 +97,13 @@ export default function CampaignModal() {
       setIsOpen(false);
       
       if (currentCampaign) {
-        // 1. Session Count बढ़ाएं
         const currentCount = parseInt(sessionStorage.getItem('banner_session_count') || '0', 10);
         sessionStorage.setItem('banner_session_count', (currentCount + 1).toString());
         
-        // 2. इस बैनर को "Shown" लिस्ट में डालें
         const shownIds = JSON.parse(sessionStorage.getItem('banner_shown_ids') || '[]');
         shownIds.push(currentCampaign.campaign_id);
         sessionStorage.setItem('banner_shown_ids', JSON.stringify(shownIds));
 
-        // 3. 🌟 Memory: इस बैनर को "Last Closed" सेट करें, ताकि अगली विजिट में ये सबसे पहले आए!
         localStorage.setItem('last_closed_banner_id', currentCampaign.campaign_id);
       }
       
