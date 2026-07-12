@@ -11,212 +11,144 @@ interface PdfProps {
   lyricsHindi: string;
 }
 
-export default function PdfDownloadButton({
-  titleHindi,
-  titleHinglish,
-  lyricsHindi,
-}: PdfProps) {
-  const [isDownloading, setIsDownloading] = useState(false);
+export default function PdfDownloadButton({ titleHindi, titleHinglish, lyricsHindi }: PdfProps) {
+  const [isGenerating, setIsGenerating] = useState(false);
   const pdfRef = useRef<HTMLDivElement>(null);
 
   const handleDownload = async () => {
-    if (!pdfRef.current) return;
-    setIsDownloading(true);
+    setIsGenerating(true);
 
-    try {
-      await (document as any).fonts.ready;
-
-      const element = pdfRef.current;
-
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-        compress: true,
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      // Top and bottom margins (in millimeters) for the PDF
-      const MARGIN_TOP = 18;
-      const MARGIN_BOTTOM = 18;
-      const usableHeightMm = pdfHeight - MARGIN_TOP - MARGIN_BOTTOM;
-
-      const fullCanvas = await html2canvas(element, {
-        scale: 1.5,
-        useCORS: true,
-        backgroundColor: "#fffcf5",
-        windowWidth: 794,
-        scrollY: -window.scrollY, // Prevent scroll shifting issues
-      });
-
-      const scale = fullCanvas.width / pdfWidth;
-      const usableHeightPx = Math.floor(usableHeightMm * scale);
-
-      let position = 0; // Current Y position on the source canvas
-      let page = 0;
-      const fullHeight = fullCanvas.height;
-
-      const addBackground = (doc: jsPDF) => {
-        doc.setFillColor(255, 252, 245);
-        doc.rect(0, 0, pdfWidth, pdfHeight, "F");
-      };
-
-      const addFooter = (doc: jsPDF) => {
-        doc.setTextColor(234, 88, 12);
-        doc.setFontSize(9);
-        doc.textWithLink(
-          "www.hindibhajanmanjari.com",
-          pdfWidth / 2,
-          pdfHeight - 8,
-          {
-            url: "https://www.hindibhajanmanjari.com",
-            align: "center",
-          }
-        );
-      };
-
-      // 🌟 STRICT SLICING LOOP (No overlaps, no bleeds)
-      while (position < fullHeight) {
-        if (page > 0) pdf.addPage();
-
-        addBackground(pdf);
-
-        const pageCanvas = document.createElement("canvas");
-        pageCanvas.width = fullCanvas.width;
-        // Make the page canvas the exact size of an A4 page
-        pageCanvas.height = Math.floor(pdfHeight * scale);
-
-        const ctx = pageCanvas.getContext("2d")!;
-        ctx.fillStyle = "#fffcf5";
-        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-
-        // Grab exactly what fits in the usable space, no more.
-        const sliceHeight = Math.min(usableHeightPx, fullHeight - position);
-        const marginTopPx = Math.floor(MARGIN_TOP * scale);
-
-        ctx.drawImage(
-          fullCanvas,
-          0,
-          position, // Start exactly where we left off
-          fullCanvas.width,
-          sliceHeight,
-          0,
-          marginTopPx, // Push down by the top margin
-          fullCanvas.width,
-          sliceHeight
-        );
-
-        const imgData = pageCanvas.toDataURL("image/jpeg", 0.85);
-        pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
-
-        addFooter(pdf);
-
-        // Advance position strictly by the amount we consumed, preventing duplicate text!
-        position += usableHeightPx;
-        page++;
+    // 🌟 रेंडरिंग के लिए 500ms का समय दें ताकि HTML सही से तैयार हो सके
+    setTimeout(async () => {
+      if (!pdfRef.current) {
+        setIsGenerating(false);
+        return;
       }
 
-      const filename =
-        titleHinglish.replace(/\s+/g, "-") + "-HindiBhajanManjari.pdf";
+      try {
+        await (document as any).fonts.ready;
+        const element = pdfRef.current;
 
-      pdf.save(filename);
-    } catch (err) {
-      console.error(err);
-      alert("PDF generation failed. Please try again.");
-    } finally {
-      setIsDownloading(false);
-    }
+        // PDF सेटअप
+        const pdf = new jsPDF({
+          orientation: "portrait",
+          unit: "mm",
+          format: "a4",
+          compress: true,
+        });
+
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const MARGIN_TOP = 20;
+        const MARGIN_BOTTOM = 20;
+        const usableHeightMm = pdfHeight - MARGIN_TOP - MARGIN_BOTTOM;
+
+        // हाई क्वालिटी रेंडरिंग
+        const fullCanvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#fffcf5",
+          windowWidth: 794,
+        });
+
+        const scale = fullCanvas.width / pdfWidth;
+        const usableHeightPx = Math.floor(usableHeightMm * scale);
+        let position = 0;
+        let page = 0;
+        const fullHeight = fullCanvas.height;
+
+        while (position < fullHeight) {
+          if (page > 0) pdf.addPage();
+
+          // बैकग्राउंड और फूटर
+          pdf.setFillColor(255, 252, 245);
+          pdf.rect(0, 0, pdfWidth, pdfHeight, "F");
+
+          const pageCanvas = document.createElement("canvas");
+          pageCanvas.width = fullCanvas.width;
+          pageCanvas.height = Math.floor(pdfHeight * scale);
+          const ctx = pageCanvas.getContext("2d")!;
+          ctx.fillStyle = "#fffcf5";
+          ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+
+          const sliceHeight = Math.min(usableHeightPx, fullHeight - position);
+          ctx.drawImage(fullCanvas, 0, position, fullCanvas.width, sliceHeight, 0, Math.floor(MARGIN_TOP * scale), fullCanvas.width, sliceHeight);
+
+          const imgData = pageCanvas.toDataURL("image/jpeg", 0.9);
+          pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+
+          pdf.setTextColor(234, 88, 12);
+          pdf.setFontSize(9);
+          pdf.text("www.hindibhajanmanjari.com", pdfWidth / 2, pdfHeight - 10, { align: "center" });
+
+          position += usableHeightPx;
+          page++;
+        }
+
+        pdf.save(`${titleHinglish.replace(/\s+/g, "-")}-HindiBhajanManjari.pdf`);
+      } catch (err) {
+        console.error(err);
+        alert("PDF generation failed.");
+      } finally {
+        setIsGenerating(false);
+      }
+    }, 500);
   };
 
   return (
     <>
       <button
         onClick={handleDownload}
-        disabled={isDownloading}
-        className="flex items-center gap-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 px-4 py-2 rounded-lg font-bold text-sm transition-all duration-300 shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={isGenerating}
+        className="flex items-center gap-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 px-4 py-2 rounded-lg font-bold text-sm transition-all duration-300 shadow-sm active:scale-95 disabled:opacity-50"
       >
-        {isDownloading ? <FaSpinner className="animate-spin" /> : <FaFilePdf />}
-        {isDownloading ? "Generating..." : "Download PDF"}
+        {isGenerating ? <FaSpinner className="animate-spin" /> : <FaFilePdf />}
+        {isGenerating ? "Generating..." : "Download PDF"}
       </button>
 
-      {/* HIDDEN TEMPLATE */}
-      <div className="fixed pointer-events-none" style={{ top: "-9999px", left: 0 }}>
-        <div
-          ref={pdfRef}
-          style={{
-            position: "relative",
-            width: "794px",
-            backgroundColor: "#fffcf5",
-            color: "#000000", /* 🌟 FIX 1: Force baseline color to black */
-            padding: "0 64px",
-            fontFamily: '"Noto Sans Devanagari","Mangal",serif',
-            overflow: "hidden",
-          }}
-        >
-          {/* WATERMARK */}
+      {/* 🌟 LAZY RENDER: यह डब्बा तभी रेंडर होगा जब आप क्लिक करेंगे */}
+      {isGenerating && (
+        <div style={{ position: "fixed", top: "-9999px", left: "0", pointerEvents: "none" }}>
           <div
+            ref={pdfRef}
             style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              flexWrap: "wrap",
-              alignContent: "center",
-              justifyContent: "center",
-              opacity: 0.10,
-              transform: "rotate(-28deg)",
-              pointerEvents: "none",
+              width: "794px",
+              backgroundColor: "#fffcf5",
+              color: "#171717",
+              padding: "40px 60px",
+              fontFamily: 'serif',
+              display: "block",
             }}
           >
-            {Array.from({ length: 14 }).map((_, i) => (
-              <span
-                key={i}
-                style={{
-                  fontSize: "50px",
-                  fontWeight: 800,
-                  color: "#ea580c",
-                  margin: "20px",
-                  letterSpacing: "6px",
-                }}
-              >
-                HINDI BHAJAN MANJARI
-              </span>
-            ))}
-          </div>
+            {/* वाटरमार्क */}
+            <div aria-hidden="true" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", display: "flex", flexWrap: "wrap", justifyContent: "center", opacity: 0.05, transform: "rotate(-25deg)" }}>
+              {Array.from({ length: 10 }).map((_, i) => (
+                <span key={i} style={{ fontSize: "60px", fontWeight: 800, color: "#ea580c", margin: "40px" }}>HINDI BHAJAN MANJARI</span>
+              ))}
+            </div>
 
-          <div style={{ position: "relative", zIndex: 2, paddingTop: "10px", textAlign: "center" }}>
-            <h1 style={{ fontSize: "30px", fontWeight: 900, color: "#c2410c", lineHeight: 1.35 }}>
-              {titleHindi}
-            </h1>
+            <div style={{ position: "relative", zIndex: 2, textAlign: "center", marginBottom: "40px" }}>
+              <h1 style={{ fontSize: "32px", fontWeight: "bold", color: "#c2410c", margin: 0 }}>{titleHindi}</h1>
+              <h2 style={{ fontSize: "16px", color: "#78716c", marginTop: "10px" }}>{titleHinglish}</h2>
+            </div>
 
-            <h2 style={{ fontSize: "15px", letterSpacing: "2.5px", color: "#78716c" }}>
-              {titleHinglish}
-            </h2>
-          </div>
-
-          {/* 🌟 FIX 2: Explicitly set text color to solid black so Dark Mode can't affect it */}
-          <div
-            style={{
-              position: "relative",
-              zIndex: 2,
-              fontSize: "22px",
-              lineHeight: 1.5,
-              whiteSpace: "pre-wrap",
-              textAlign: "center",
-              marginTop: "20px",
-              color: "#171717", 
-              fontWeight: 600,
-            }}
-          >
-            {lyricsHindi}
-          </div>
-
-          <div style={{ position: "relative", zIndex: 2, textAlign: "center", marginTop: "60px", paddingBottom: "5px" }}>
-            <p style={{ fontSize: "12px", color: "#a8a29e" }}>Downloaded from</p>
+            <div
+              style={{
+                position: "relative",
+                zIndex: 2,
+                fontSize: "20px",
+                lineHeight: "2", // 🌟 लाइन स्पेसिंग बढ़ाई गई ताकि फॉरमेटिंग न बिगड़े
+                textAlign: "center",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                color: "#171717",
+              }}
+            >
+              {lyricsHindi}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   );
 }

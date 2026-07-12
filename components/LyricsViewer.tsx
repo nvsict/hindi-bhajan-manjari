@@ -444,8 +444,11 @@ export default function LyricsViewer({
         onDoubleClick={handleDoubleTap}
         onClick={handleLyricsContainerClick}
       >
-        <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none select-none">
-          <span className="text-6xl md:text-9xl font-black rotate-[-45deg] whitespace-nowrap uppercase tracking-tighter">Hindi Bhajan Manjari</span>
+        {/* 🌟 FIX: Added aria-hidden="true" so Googlebot ignores this text */}
+        <div aria-hidden="true" className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none select-none">
+          <span className="text-6xl md:text-9xl font-black rotate-[-45deg] whitespace-nowrap uppercase tracking-tighter">
+            Hindi Bhajan Manjari
+          </span>
         </div>
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none transition-all duration-300 z-50 ${showBigHeart ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>
           <FaHeart className="text-red-500 text-[120px] md:text-[180px] drop-shadow-[0_0_40px_rgba(239,68,68,0.5)]" />

@@ -5,7 +5,8 @@ import Link from 'next/link';
 import Sidebar from '../../../components/Sidebar';
 import Breadcrumbs from '../../../components/Breadcrumbs';
 import LyricsViewer from '../../../components/LyricsViewer'; 
-import { FaMicrophoneAlt, FaPhoneAlt, FaQuestionCircle } from 'react-icons/fa';
+// 🌟 FIX: Added FaCheckCircle, FaLanguage, and FaFilePdf for the new Features UI
+import { FaMicrophoneAlt, FaPhoneAlt, FaQuestionCircle, FaCheckCircle, FaLanguage, FaFilePdf } from 'react-icons/fa';
 import ViewCounter from '../../../components/ViewCounter';
 import CommentsSection from '@/components/CommentsSection';
 import AuthorBox from '@/components/AuthorBox';
@@ -415,20 +416,33 @@ export default async function BhajanDetails({ params }: Props) {
                 </div>
               )}
 
-              {/* SEO Paragraph */}
-              <div className="mt-12 bg-gray-50/50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-3xl p-6 md:p-8 shadow-sm">
-                <p className="text-sm md:text-base text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
-                  Read the most authentic and complete <strong>{bhajan.title_hinglish} ({bhajan.title_hindi})</strong> lyrics. 
-                  {displaySingerName ? ` Popularized by ${displaySingerName}, this` : ' This'} divine {categories.length > 0 ? categories[0].name_hinglish.toLowerCase() : 'bhajan'} {bhajan.deities ? `dedicated to ${bhajan.deities.name_hinglish}` : ''} is presented in pristine Devanagari and English (Romanized) scripts. 
-                  Using our advanced transliteration tool, you can instantly convert these lyrics into 8+ Indian languages including <strong>Gujarati, Bengali, Kannada, and Telugu</strong>. 
-                  {bhajan.explanation && " Scroll up to read the complete Bhavarth (meaning) to deeply understand the spiritual essence of this composition. "}
-                  You can also use the free <strong>PDF download</strong> feature to save these lyrics for your daily offline Puja, Aarti, and Satsang.
-                </p>
-                <div className="w-full h-px bg-gray-200/60 dark:bg-white/10 my-6"></div>
-                <p className="text-base md:text-lg text-gray-800 dark:text-gray-200 leading-[1.8] font-hindi">
-                  यहाँ आप <strong>{bhajan.title_hindi}</strong> के संपूर्ण और शुद्ध पाठ का आनंद ले सकते हैं। 
-                  दैनिक पूजा और सत्संग के लिए आप इसका <strong>PDF (पीडीएफ) मुफ्त में डाउनलोड</strong> कर सकते हैं।
-                </p>
+              {/* ==========================================
+                  🌟 Site Features UI (AdSense Friendly - Replaces boilerplate paragraph)
+                  ========================================== */}
+              <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="flex flex-col items-center text-center p-5 bg-gray-50/50 dark:bg-white/[0.02] rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
+                  <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-500 mb-3 border border-orange-100 dark:border-orange-900/30">
+                    <FaCheckCircle size={20} />
+                  </div>
+                  <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-1.5">Authentic Lyrics</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Pristine Devanagari & Romanized scripts with Bhavarth.</p>
+                </div>
+                
+                <div className="flex flex-col items-center text-center p-5 bg-gray-50/50 dark:bg-white/[0.02] rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
+                  <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-500 mb-3 border border-orange-100 dark:border-orange-900/30">
+                    <FaLanguage size={20} />
+                  </div>
+                  <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-1.5">8+ Indian Languages</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Instantly transliterate to Gujarati, Bengali, Telugu & more.</p>
+                </div>
+
+                <div className="flex flex-col items-center text-center p-5 bg-gray-50/50 dark:bg-white/[0.02] rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
+                  <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-500 mb-3 border border-orange-100 dark:border-orange-900/30">
+                    <FaFilePdf size={20} />
+                  </div>
+                  <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-1.5">Free PDF Download</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Save offline for daily Puja, Aarti, and Satsang.</p>
+                </div>
               </div>
 
               {/* FAQs */}

@@ -141,9 +141,9 @@ export default function Header() {
 
         if (topDeities && topCategories) {
           const dynamicNav = [
-            { name: 'होम (Home)', href: '/', title: 'Go to Homepage' },
+            { name: 'Home', href: '/', title: 'Go to Homepage' },
             {
-              name: 'देवता (Deities)',
+              name: 'Deities',
               title: 'Explore Deity Specific Bhajans',
               megaMenu: {
                 featured: DEFAULT_NAV_ITEMS[1].megaMenu!.featured, 
@@ -156,7 +156,7 @@ export default function Header() {
               }
             },
             {
-              name: 'श्रेणियां (Categories)',
+              name: 'Categories',
               title: 'Browse Bhajan Categories',
               megaMenu: {
                 featured: DEFAULT_NAV_ITEMS[2].megaMenu!.featured, 
@@ -168,8 +168,8 @@ export default function Header() {
                 }))
               }
             },
-            { name: 'भजन (Bhajans)', href: '/bhajan', title: 'A-Z Hindi Bhajans Collection' }, 
-            { name: 'ज्ञान (Gyan)', href: '/gyan', title: 'Sanatan Gyan & Spiritual Articles' },
+            { name: 'Bhajans', href: '/bhajan', title: 'A-Z Hindi Bhajans Collection' }, 
+            { name: 'Gyan', href: '/gyan', title: 'Sanatan Gyan & Spiritual Articles' },
             { name: 'Wisdom (EN)', href: '/en/gyan', title: 'Read Spiritual Articles in English' },
           ];
           setNavItems(dynamicNav);
