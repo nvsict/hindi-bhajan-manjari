@@ -1,18 +1,29 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/utils/supabase';
 import Link from 'next/link';
-import Image from 'next/image';
-import { FaHeart, FaOm, FaCrown, FaQuoteLeft } from 'react-icons/fa6';
-import ScrollReveal from './ScrollReveal'; 
+import { supabase } from '@/utils/supabase';
+import { motion, Variants } from 'framer-motion';
+import { FaHeart, FaOm, FaCrown, FaStar, FaArrowRight } from 'react-icons/fa6';
 
+// ─── DECORATIVE COMPONENTS ────────────────────────────────────────────────
+const DiamondDivider = () => (
+  <div className="flex items-center gap-3 my-4 md:my-5 max-w-[200px] mx-auto">
+    <div className="flex-1 h-px bg-gradient-to-r from-transparent to-orange-400/60 dark:to-orange-500/40" />
+    <svg width="10" height="10" viewBox="0 0 14 14" className="text-orange-500 dark:text-orange-400 shrink-0">
+      <rect x="3" y="3" width="8" height="8" transform="rotate(45 7 7)" fill="currentColor" />
+    </svg>
+    <div className="flex-1 h-px bg-gradient-to-l from-transparent to-orange-400/60 dark:to-orange-500/40" />
+  </div>
+);
+
+// ─── TYPES ────────────────────────────────────────────────────────
 type Supporter = {
   id: string;
   name: string;
   amount: number;
-  message?: string;
-  photo_url?: string;
+  message: string | null;
+  photo_url: string | null;
   is_anonymous: boolean;
   created_at: string;
 };
@@ -27,106 +38,201 @@ export default function SupportersWall() {
         .from('supporters')
         .select('*')
         .eq('status', 'completed')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(12);
       
-      if (data && !error) setSupporters(data);
+      if (data && !error) {
+        setSupporters(data);
+      }
       setLoading(false);
     };
+
     fetchSupporters();
   }, []);
 
-  if (loading || supporters.length === 0) return null;
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.08 }
+    }
+  };
+
+  const cardVariants: Variants = {
+    hidden: { opacity: 0, y: 15, scale: 0.96 },
+    show: { 
+      opacity: 1, 
+      y: 0, 
+      scale: 1,
+      transition: { type: "spring", stiffness: 70, damping: 15 }
+    }
+  };
+
+  // 🌟 LOADING SKELETON
+  if (loading) return (
+    <div className="w-full py-10 flex flex-col items-center justify-center">
+      <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin mb-3"></div>
+      <p className="text-orange-600 dark:text-orange-400 font-hindi font-medium animate-pulse text-sm">भक्तों की सूची लोड हो रही है...</p>
+    </div>
+  );
 
   return (
-    <div className="flex flex-col gap-10 w-full py-10">
+    // 🌟 FIX 1: Reduced Vertical Padding to make the section compact
+    <section className="relative py-8 md:py-10 overflow-hidden rounded-3xl md:rounded-[2.5rem] bg-gradient-to-b from-orange-50/50 to-transparent dark:from-[#110c08]/80 dark:to-transparent border border-orange-100/50 dark:border-[#2a1d12]/50 my-4 md:my-6">
       
-      {/* 👑 PREMIUM BANNER */}
-      <ScrollReveal yOffset={20}>
-        <div className="relative overflow-hidden bg-gradient-to-r from-orange-50 to-white dark:from-[#120703] dark:to-[#0c0804] border-2 border-orange-200/60 dark:border-orange-900/40 rounded-[2rem] p-6 md:p-8 lg:p-10 flex flex-col lg:flex-row items-center justify-between gap-8 shadow-[0_4px_20px_rgba(234,88,12,0.05)]">
-          
-          <div className="absolute -right-10 -top-10 opacity-[0.04] dark:opacity-[0.02] pointer-events-none">
-             <FaCrown size={180} className="text-orange-600" />
-          </div>
-
-          <div className="relative z-10 flex-1 text-center lg:text-left">
-            <h3 className="text-2xl md:text-3xl font-black font-hindi text-gray-900 dark:text-orange-50 mb-3 flex items-center justify-center lg:justify-start gap-2.5">
-              <FaCrown className="text-orange-500 shrink-0 text-2xl" /> सनातन यज्ञ में आपकी आहुति
-            </h3>
-            <p className="text-base text-gray-700 dark:text-gray-300 font-hindi leading-relaxed max-w-3xl">
-              इन सभी महानुभावों का हृदय से धन्यवाद जिन्होंने इस मंच को सपोर्ट किया है। आज जुड़ने वाले सभी <span className="font-bold text-orange-600 dark:text-orange-400">संस्थापक सदस्यों</span> को भविष्य के प्रीमियम फीचर्स, नई PDF बुक्स का अर्ली-एक्सेस और हमेशा के लिए Ad-Free अनुभव उपहार स्वरूप दिया जाएगा।
-            </p>
-          </div>
-          
-          <Link 
-            href="/donate" 
-            className="relative z-10 whitespace-nowrap px-8 py-3.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold rounded-full shadow-lg shadow-orange-500/30 transition-all duration-300 hover:scale-105 flex items-center gap-2 text-base shrink-0 border border-orange-400 dark:border-orange-500"
+      {/* Background Magic Effects */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[200px] bg-orange-400/10 dark:bg-orange-600/5 blur-[80px] rounded-full pointer-events-none z-0" />
+      
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Header Section */}
+        <div className="text-center mb-6 md:mb-8">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-full bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 mb-3 shadow-inner"
           >
-            <FaHeart className="animate-pulse" /> आप भी जुड़ें
-          </Link>
+            <FaCrown size={20} className="md:w-6 md:h-6" />
+          </motion.div>
+          
+          <h2 className="text-2xl md:text-4xl font-black text-gray-900 dark:text-white font-hindi tracking-tight mb-2">
+            भक्त <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">आभार पटल</span>
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm font-medium max-w-2xl mx-auto font-hindi leading-relaxed">
+            इन धर्म रक्षकों का हृदय से धन्यवाद, जिनके बहुमूल्य सहयोग से यह सनातन मंच सुचारु रूप से चल रहा है।
+          </p>
+          <DiamondDivider />
         </div>
-      </ScrollReveal>
 
-      {/* 🌟 SECTION TITLE */}
-      <div className="flex items-center gap-2.5 mt-2 px-2">
-        <FaHeart className="text-orange-600 text-2xl md:text-3xl shrink-0" />
-        <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
-          भक्त <span className="text-orange-600">आभार पटल</span>
-        </h2>
-      </div>
+        {/* Supporters Grid (The Wall) */}
+        {supporters.length > 0 ? (
+          <motion.div 
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: "-50px" }}
+            // 🌟 FIX 2: Max 4 columns on desktop so cards remain wide & short. Reduced Gap.
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-10 md:mb-12"
+          >
+            {supporters.map((s) => (
+              <motion.div
+                key={s.id}
+                variants={cardVariants}
+                whileHover={{ y: -3, scale: 1.02 }}
+                // 🌟 FIX 3: Reduced Card Padding
+                className="group relative bg-white/70 dark:bg-white/[0.03] backdrop-blur-md border border-orange-200/60 dark:border-[#2a1d12] p-3 md:p-4 rounded-[1.25rem] flex flex-col items-center text-center shadow-sm hover:shadow-[0_8px_20px_rgba(234,88,12,0.12)] dark:hover:shadow-[0_8px_20px_rgba(234,88,12,0.06)] hover:border-orange-400 dark:hover:border-orange-500/50 transition-all duration-300"
+              >
+                <div className="absolute inset-0 rounded-[1.25rem] bg-gradient-to-b from-orange-400/0 to-orange-400/0 group-hover:from-orange-400/5 dark:group-hover:from-orange-400/10 transition-colors duration-300 pointer-events-none" />
 
-      {/* 🌟 SUPPORTERS GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 items-stretch">
-        {supporters.map((s, index) => (
-          <ScrollReveal key={s.id} delay={(index % 4) * 0.05} yOffset={20} className="h-full">
-            
-            {/* 🌟 CARD CONTAINER (Dynamic Height Fix Applied Here) */}
-            <div className="group bg-white dark:bg-[#0c0804] p-5 rounded-[2rem] border border-orange-100 dark:border-orange-950/40 shadow-[0_2px_15px_rgba(234,88,12,0.03)] hover:shadow-[0_8px_30px_rgba(234,88,12,0.08)] hover:border-orange-300 dark:hover:border-orange-800/60 transition-all duration-300 flex items-center gap-4 relative overflow-hidden h-full min-h-[110px] hover:-translate-y-1">
-              
-              {/* 🖼️ AVATAR */}
-              <div className="relative w-14 h-14 shrink-0 rounded-2xl overflow-hidden bg-gradient-to-br from-[#1a0500] via-[#431407] to-[#882b0f] border border-orange-900/20 shadow-inner flex items-center justify-center transition-all duration-300 group-hover:shadow-md">
-                {s.is_anonymous ? (
-                  <FaOm className="text-3xl text-orange-200/70" />
-                ) : s.photo_url ? (
-                  <Image 
-                    src={s.photo_url} 
-                    alt={s.name} 
-                    fill
-                    quality={95}
-                    sizes="56px"
-                    className="object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                ) : (
-                  <span className="text-2xl font-black text-orange-100 font-hindi">
-                    {s.name.charAt(0)}
-                  </span>
-                )}
-              </div>
+                {/* Avatar Handle */}
+                <div className="relative mb-3 z-10">
+                  {/* 🌟 FIX 4: Smaller Avatars to reduce vertical height */}
+                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-full border-[2px] border-white dark:border-[#1a120b] shadow-md overflow-hidden bg-orange-50 dark:bg-gray-800 flex items-center justify-center">
+                    {s.is_anonymous ? (
+                      <div className="w-full h-full bg-gradient-to-br from-orange-100 to-orange-200 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center text-orange-500 dark:text-orange-400">
+                        <FaOm size={24} className="md:w-6 md:h-6" />
+                      </div>
+                    ) : s.photo_url ? (
+                      // 🌟 FIX 5: Image Rendering to prevent blur on scaling
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img 
+                        src={s.photo_url} 
+                        alt={s.name} 
+                        style={{ imageRendering: '-webkit-optimize-contrast' }} 
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white font-black text-xl md:text-2xl font-serif">
+                        {s.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Verified badge placed OUTSIDE */}
+                  <div className="absolute bottom-0 right-0 z-20 bg-green-500 border-[2px] border-white dark:border-[#1a120b] w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center shadow-sm translate-x-0.5 translate-y-0.5">
+                    <FaStar className="text-white text-[7px] md:text-[8px]" />
+                  </div>
+                </div>
 
-              {/* 📝 NAME & AMOUNT (Full Text, No Hiding) */}
-              <div className="flex flex-col min-w-0 flex-1 justify-center z-10 py-1">
-                <h3 className="text-[17px] font-black font-hindi text-gray-900 dark:text-orange-50 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors leading-snug break-words">
+                {/* Info */}
+                <h3 className="font-bold font-hindi text-gray-900 dark:text-gray-100 text-xs md:text-sm mb-1.5 w-full px-1 truncate relative z-10">
                   {s.is_anonymous ? "एक गुप्त भक्त" : s.name}
                 </h3>
-                <span className="text-orange-600 dark:text-orange-500 text-xs font-bold mt-1 tracking-wide inline-block">
-                  ₹{s.amount}
-                </span>
+                
+                <div className="bg-orange-100/80 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 px-2.5 py-0.5 md:py-1 rounded-full font-black text-[9px] md:text-[10px] mb-2 border border-orange-200/60 dark:border-orange-800/50 relative z-10 font-hindi truncate max-w-full">
+                  सहयोग: ₹{s.amount}
+                </div>
+                
+                {/* Message Box */}
+                {s.message && (
+                  <div className="mt-auto relative z-10 w-full pt-1">
+                    <div className="w-6 h-px bg-orange-200/60 dark:bg-orange-900/40 mx-auto mb-1.5" />
+                    <p className="text-[10px] md:text-[11px] font-hindi text-gray-600 dark:text-gray-400 italic line-clamp-2 leading-snug px-1">
+                      "{s.message}"
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </motion.div>
+        ) : (
+          <div className="text-center py-6 mb-6">
+            <p className="text-gray-500 dark:text-gray-400 italic font-hindi text-sm">सूची अपडेट हो रही है...</p>
+          </div>
+        )}
+
+        {/* ==========================================
+            🌟 THE PREMIUM PITCH & CTA BOX
+            ========================================== */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="max-w-4xl mx-auto"
+        >
+          {/* 🌟 FIX 6: Border Radius Math perfected to avoid clipping. */}
+          {/* Outer box is rounded-3xl (24px) with p-[2px]. Inner box is rounded-[22px]. */}
+          <div className="bg-gradient-to-br from-orange-500 via-red-500 to-orange-600 rounded-3xl p-[2px] shadow-lg relative overflow-hidden group">
+            
+            {/* Shimmer Effect placed between outer and inner box */}
+            <div className="absolute top-0 left-[-100%] w-[50%] h-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 animate-[shimmer_3s_infinite]" />
+            <style>{`@keyframes shimmer { 100% { left: 200%; } }`}</style>
+
+            {/* Inner Box */}
+            <div className="bg-white dark:bg-[#0c0804] rounded-[22px] p-5 md:p-8 flex flex-col lg:flex-row items-center gap-6 lg:gap-10 relative z-10 h-full">
+              
+              <div className="flex-1 text-center lg:text-left">
+                <div className="inline-flex items-center gap-1.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-2.5 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-wider mb-3 border border-orange-200 dark:border-orange-800/50">
+                  <FaStar className="text-yellow-500" /> Early Bird Benefits
+                </div>
+                <h3 className="text-xl md:text-2xl font-black font-hindi text-gray-900 dark:text-white mb-2 leading-tight">
+                  आप भी इस <span className="text-orange-600 dark:text-orange-500">सनातन यज्ञ</span> में आहुति दें!
+                </h3>
+                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 font-medium font-hindi leading-relaxed">
+                  आज इस मंच को सपोर्ट करने वाले भक्तों को वेबसाइट के <strong className="text-gray-900 dark:text-gray-200">प्रीमियम फीचर्स, PDF बुक्स,</strong> और <strong className="text-gray-900 dark:text-gray-200">विज्ञापन-मुक्त (Ad-Free)</strong> अनुभव उपहार स्वरूप दिया जाएगा।
+                </p>
               </div>
 
-              {/* 💬 GLASSMORPHISM HOVER TOOLTIP */}
-              {s.message && (
-                <div className="absolute inset-0 bg-white/95 dark:bg-[#0c0804]/95 backdrop-blur-sm p-4 flex flex-col justify-center translate-y-[110%] group-hover:translate-y-0 transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] z-20 border border-orange-200 dark:border-orange-900/50 rounded-[2rem]">
-                  <FaQuoteLeft className="text-orange-200 dark:text-orange-900/50 absolute top-3 right-4 text-xl md:text-2xl" />
-                  <p className="text-sm text-gray-800 dark:text-orange-100 italic font-hindi leading-relaxed line-clamp-3 relative z-10 overflow-hidden">
-                    "{s.message}"
-                  </p>
-                </div>
-              )}
+              <div className="shrink-0 w-full lg:w-auto flex flex-col items-center">
+                <Link 
+                  href="/donate"
+                  className="w-full lg:w-auto bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-black font-hindi text-sm md:text-base px-6 py-3.5 rounded-xl shadow-md shadow-orange-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 outline-none focus-visible:ring-4 focus-visible:ring-orange-500"
+                >
+                  <FaHeart className="text-yellow-300" />
+                  सहयोग करें (Join Wall)
+                  <FaArrowRight className="text-xs opacity-80 ml-1" />
+                </Link>
+                <p className="text-[10px] text-gray-500 dark:text-gray-500 font-bold font-hindi mt-2">
+                  100% सुरक्षित • सीधा बैंक ट्रांसफर
+                </p>
+              </div>
 
             </div>
-          </ScrollReveal>
-        ))}
+          </div>
+        </motion.div>
+
       </div>
-      
-    </div>
+    </section>
   );
 }
