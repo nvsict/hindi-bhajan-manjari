@@ -10,7 +10,7 @@ import PdfDownloadButton from './PdfDownloadButton';
 import { supabase } from '@/utils/supabase';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import MagneticButton from '@/components/MagneticButton'; // सुनिश्चित करें कि पाथ सही हो
+import MagneticButton from '@/components/MagneticButton'; 
 
 import PushPrompt from './PushPrompt';
 
@@ -34,18 +34,17 @@ const SCRIPT_OPTIONS = [
   { id: 'oriya', label: 'ଓଡ଼ିଆ (Odia)' }
 ];
 
+// 🌟 FIX 1: Added `fontFamily` to apply exact CSS font styles (Nothing deleted)
 const FONT_OPTIONS = [
-  { id: 'font-hindi', name: 'Hind (Standard)', className: 'font-hindi', googleFont: '' }, // यह डिफ़ॉल्ट है, पहले से लोड होगा
-  { id: 'font-noto-serif', name: 'Noto Serif (Granth)', className: 'font-noto-serif', googleFont: 'Noto+Serif' },
-  { id: 'font-amita', name: 'Amita (Calligraphy)', className: 'font-amita', googleFont: 'Amita' },
-  { id: 'font-poppins', name: 'Poppins (Modern)', className: 'font-poppins', googleFont: 'Poppins' },
-  { id: 'font-kalam', name: 'Kalam (Diary)', className: 'font-kalam', googleFont: 'Kalam' },
+  { id: 'font-hindi', name: 'Hind (Standard)', className: 'font-hindi', googleFont: 'Hind', fontFamily: '"Hind", sans-serif' },
+  { id: 'font-martel', name: 'Martel (Granth)', className: 'font-martel', googleFont: 'Martel', fontFamily: '"Martel", serif' },
+  { id: 'font-tiro', name: 'Tiro Devanagari (Classic)', className: 'font-tiro', googleFont: 'Tiro+Devanagari+Hindi', fontFamily: '"Tiro Devanagari Hindi", serif' },
+  { id: 'font-karma', name: 'Karma (Soft)', className: 'font-karma', googleFont: 'Karma', fontFamily: '"Karma", serif' },
+  { id: 'font-eczar', name: 'Eczar (Elegant)', className: 'font-eczar', googleFont: 'Eczar', fontFamily: '"Eczar", serif' },
 ];
 
 // 🌟 ZERO-ERROR THUMBNAIL COMPONENT
 const YouTubeThumbnail = ({ embedId, title }: { embedId: string, title: string }) => {
-  // We default to 'hqdefault.jpg' because YouTube guarantees it exists for 100% of videos.
-  // This completely eliminates the 404 network errors in the console.
   const [imgSrc, setImgSrc] = useState(`https://img.youtube.com/vi/${embedId}/hqdefault.jpg`);
   const [hasError, setHasError] = useState(false);
 
@@ -55,7 +54,6 @@ const YouTubeThumbnail = ({ embedId, title }: { embedId: string, title: string }
       alt={`${title} Video`} 
       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 opacity-90" 
       onError={() => {
-        // Ultimate fallback just in case even hqdefault drops (prevents infinite loop)
         if (!hasError) {
           setImgSrc(`https://img.youtube.com/vi/${embedId}/mqdefault.jpg`);
           setHasError(true);
@@ -126,10 +124,8 @@ export default function LyricsViewer({
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showBigHeart, setShowBigHeart] = useState(false);
 
-  // 🌟 MASSIVE PERFORMANCE FIX: Dynamic Lyrics State
   const [displayLyrics, setDisplayLyrics] = useState<string>(lyricsHindi);
 
-  // DICTIONARY STATE
   const [dictionaryData, setDictionaryData] = useState<any>(null);
   const [isDictionaryOpen, setIsDictionaryOpen] = useState(false);
   const [isFetchingMeaning, setIsFetchingMeaning] = useState(false);
@@ -139,19 +135,10 @@ export default function LyricsViewer({
   const fontDropdownRef = useRef<HTMLDivElement>(null);
   const wakeLockRef = useRef<any>(null);
 
-  useEffect(() => {
-    setFontSize(window.innerWidth < 768 ? 17 : 22);
-    const savedFavorites = JSON.parse(localStorage.getItem('bhajan_favorites') || '[]');
-    if (savedFavorites.some((fav: any) => fav.slug === slug)) setIsFavorite(true);
-    const savedFont = localStorage.getItem('preferred_lyrics_font');
-    if (savedFont) setSelectedFont(savedFont);
-  }, [slug]);
-
   const triggerHaptic = useCallback(() => {
     if (typeof window !== 'undefined' && navigator.vibrate) navigator.vibrate(30); 
   }, []);
 
-  // 🌟 MASSIVE PERFORMANCE FIX: Lazy Loading Sanscript (Saves ~3MB on initial load)
   useEffect(() => {
     if (activeScript === 'devanagari') {
       setDisplayLyrics(lyricsHindi);
@@ -186,7 +173,7 @@ export default function LyricsViewer({
 
     if (activeScript !== 'devanagari') {
       try {
-        const Sanscript = await import('sanscript'); // Lazy load for dictionary too
+        const Sanscript = await import('sanscript'); 
         const fromScript = activeScript === 'hinglish' ? 'iast' : activeScript;
         const s = Sanscript.default || Sanscript;
         searchWord = s.t(cleanText, fromScript, 'devanagari');
@@ -214,7 +201,6 @@ export default function LyricsViewer({
     }
   };
 
-  // 🌟 MASSIVE PERFORMANCE FIX: Event Delegation for 1000s of words
   const handleLyricsContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     if (target.tagName === 'SPAN' && target.textContent) {
@@ -255,13 +241,11 @@ export default function LyricsViewer({
     videoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
-  // 🌟 SMART LAZY LOADER FOR FONTS
   const loadFontDynamically = (fontClass: string) => {
     const fontObj = FONT_OPTIONS.find(f => f.className === fontClass);
-    if (!fontObj || !fontObj.googleFont) return; // अगर डिफ़ॉल्ट है तो कुछ मत करो
+    if (!fontObj || !fontObj.googleFont) return; 
 
     const linkId = `dynamic-font-${fontClass}`;
-    // चेक करो कि क्या यह फॉन्ट पहले से लोड हो चुका है?
     if (!document.getElementById(linkId)) {
       const link = document.createElement('link');
       link.id = linkId;
@@ -276,22 +260,20 @@ export default function LyricsViewer({
     const savedFavorites = JSON.parse(localStorage.getItem('bhajan_favorites') || '[]');
     if (savedFavorites.some((fav: any) => fav.slug === slug)) setIsFavorite(true);
     
-    // 🌟 Check Local Storage and Load Font On-Demand
     const savedFont = localStorage.getItem('preferred_lyrics_font');
     if (savedFont) {
       setSelectedFont(savedFont);
-      loadFontDynamically(savedFont); // सिर्फ तभी लोड करो जब यूज़र की सेव की हुई प्रेफरेंस हो
+      loadFontDynamically(savedFont); 
     }
   }, [slug]);
 
-  // 🌟 When user clicks a new font
   const changeFont = (fontClass: string) => {
     triggerHaptic();
     setSelectedFont(fontClass);
     localStorage.setItem('preferred_lyrics_font', fontClass);
     setIsFontMenuOpen(false);
     
-    loadFontDynamically(fontClass); // फॉन्ट क्लिक करते ही डाउनलोड शुरू!
+    loadFontDynamically(fontClass); 
   };
 
   const toggleFavorite = (withHaptic = true) => {
@@ -365,7 +347,6 @@ export default function LyricsViewer({
   return (
     <div className="relative w-full">
 
-      {/* 🌟 SEO & INTERNAL LINKING: Clickable Tarz */}
       {tarz && (
         <div className="mb-6 flex justify-center relative z-20">
           <Link 
@@ -414,7 +395,8 @@ export default function LyricsViewer({
             <div className="py-1.5">
               {FONT_OPTIONS.map((font) => (
                 <button key={font.id} onClick={() => changeFont(font.className)} className={`w-full flex items-center justify-between px-4 py-3 text-sm font-bold transition-colors ${selectedFont === font.className ? 'bg-orange-50/80 text-orange-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-                  <span className={font.className}>{font.name}</span> {selectedFont === font.className && <FaCheck className="text-orange-500 text-xs" />}
+                  {/* 🌟 FIX 2: Applied fontFamily to dropdown preview */}
+                  <span className={font.className} style={{ fontFamily: font.fontFamily }}>{font.name}</span> {selectedFont === font.className && <FaCheck className="text-orange-500 text-xs" />}
                 </button>
               ))}
             </div>
@@ -444,58 +426,59 @@ export default function LyricsViewer({
         onDoubleClick={handleDoubleTap}
         onClick={handleLyricsContainerClick}
       >
-        {/* 🌟 FIX: Added aria-hidden="true" so Googlebot ignores this text */}
         <div aria-hidden="true" className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none select-none">
-          <span className="text-6xl md:text-9xl font-black rotate-[-45deg] whitespace-nowrap uppercase tracking-tighter">
-            Hindi Bhajan Manjari
-          </span>
+          <span className="text-6xl md:text-9xl font-black rotate-[-45deg] whitespace-nowrap uppercase tracking-tighter">Hindi Bhajan Manjari</span>
         </div>
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none transition-all duration-300 z-50 ${showBigHeart ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>
           <FaHeart className="text-red-500 text-[120px] md:text-[180px] drop-shadow-[0_0_40px_rgba(239,68,68,0.5)]" />
         </div>
         
         <AnimatePresence mode="wait">
-  <motion.div 
-    key={activeScript} // 🌟 यह key ही जादू करेगी (भाषा बदलते ही एनीमेशन ट्रिगर होगा)
-    initial={{ opacity: 0, filter: "blur(8px)", y: 5 }}
-    animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
-    exit={{ opacity: 0, filter: "blur(8px)", y: -5 }}
-    transition={{ duration: 0.3, ease: "easeInOut" }}
-    className={`relative z-10 text-center font-bold tracking-normal text-gray-900 antialiased leading-relaxed ${selectedFont}`} 
-    style={{ fontSize: `${fontSize}px` }}
-  >
-    {String(displayLyrics).split(/\n\s*\n/).map((stanza: string, index: number, array: string[]) => {
-            const shouldShowAd = index === 1 || (index > 2 && (index - 1) % 5 === 0);
-            const adCount = Math.floor((index - 1) / 5) + 1;
-            const isAllowedAd = shouldShowAd && adCount <= 3;
+          <motion.div 
+            key={activeScript} 
+            initial={{ opacity: 0, filter: "blur(8px)", y: 5 }}
+            animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+            exit={{ opacity: 0, filter: "blur(8px)", y: -5 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className={`relative z-10 text-center font-bold tracking-normal text-gray-900 antialiased leading-relaxed`} 
+            // 🌟 FIX 3: Dynamic font loading attached directly to the Lyrics Container
+            style={{ 
+              fontSize: `${fontSize}px`,
+              fontFamily: FONT_OPTIONS.find(f => f.className === selectedFont)?.fontFamily || '"Hind", sans-serif'
+            }}
+          >
+            {String(displayLyrics).split(/\n\s*\n/).map((stanza: string, index: number, array: string[]) => {
+              const shouldShowAd = index === 1 || (index > 2 && (index - 1) % 5 === 0);
+              const adCount = Math.floor((index - 1) / 5) + 1;
+              const isAllowedAd = shouldShowAd && adCount <= 3;
 
-            return (
-              <div key={index} className="flex flex-col items-center w-full">
-                <div className="w-full">
-                  {stanza.split('\n').map((line: string, lineIndex: number) => (
-                    <div key={lineIndex} className="min-h-[1.5em]">
-                      {line.split(' ').map((word: string, wordIndex: number, wordsArray: string[]) => (
-                        <span key={wordIndex}>
-                          <span className="cursor-pointer active:bg-orange-200/80 lg:hover:bg-orange-100/60 transition-colors rounded-md">{word}</span>
-                          {wordIndex < wordsArray.length - 1 ? ' ' : ''}
-                        </span>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-                
-                {index < array.length - 1 && (
-                  <div className={`flex items-center justify-center opacity-60 w-full ${isAllowedAd ? 'pt-6 md:pt-8 pb-2' : 'py-6 md:py-8'}`}>
-                    <div className="w-3/4 md:w-1/2 max-w-md h-[1px] bg-gradient-to-r from-transparent via-orange-300 to-transparent"></div>
+              return (
+                <div key={index} className="flex flex-col items-center w-full">
+                  <div className="w-full">
+                    {stanza.split('\n').map((line: string, lineIndex: number) => (
+                      <div key={lineIndex} className="min-h-[1.5em]">
+                        {line.split(' ').map((word: string, wordIndex: number, wordsArray: string[]) => (
+                          <span key={wordIndex}>
+                            <span className="cursor-pointer active:bg-orange-200/80 lg:hover:bg-orange-100/60 transition-colors rounded-md">{word}</span>
+                            {wordIndex < wordsArray.length - 1 ? ' ' : ''}
+                          </span>
+                        ))}
+                      </div>
+                    ))}
                   </div>
-                )}
+                  
+                  {index < array.length - 1 && (
+                    <div className={`flex items-center justify-center opacity-60 w-full ${isAllowedAd ? 'pt-6 md:pt-8 pb-2' : 'py-6 md:py-8'}`}>
+                      <div className="w-3/4 md:w-1/2 max-w-md h-[1px] bg-gradient-to-r from-transparent via-orange-300 to-transparent"></div>
+                    </div>
+                  )}
 
-              </div>
-            );
-          })}
-  </motion.div>
-</AnimatePresence>
-</div>
+                </div>
+              );
+            })}
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
       {/* MEDIA PLAYERS */}
       <div ref={videoRef} className="scroll-mt-24">
