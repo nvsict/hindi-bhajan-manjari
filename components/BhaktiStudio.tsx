@@ -142,7 +142,7 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
       micSourceRef.current = micSource;
       
       // Use Tone.connect to bridge Native source to Tone node safely
-      Tone.connect(micSource, chain.hpf);
+      Tone.connect(micSource, chain.recorder);
 
       broadcastRecordingState(true);
 
