@@ -15,22 +15,31 @@ interface BhaktiStudioProps {
 
 export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: BhaktiStudioProps) {
   const [recordingState, setRecordingState] = useState<"IDLE" | "RECORDING" | "PREVIEW" | "UPLOADING">("IDLE");
-  
-  const [isReverb, setIsReverb] = useState(true); 
-  const [isNoiseReduction, setIsNoiseReduction] = useState(true); 
+
+  const [isReverb, setIsReverb] = useState(true);
+  const [isNoiseReduction, setIsNoiseReduction] = useState(true);
 
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [userName, setUserName] = useState(""); // 🌟 USER NAME BACK IN ACTION
+  const [userName, setUserName] = useState("");
   const [recordingDuration, setRecordingDuration] = useState(0);
 
-  // 🌟 Audio Graph Refs
-  const recorderRef = useRef<Tone.Recorder | null>(null);
-  const reverbRef = useRef<Tone.Reverb | null>(null);
-  const gateRef = useRef<Tone.Gate | null>(null);
+  // 🌟 Persistent audio graph refs — built ONCE, reused across every recording
+  const chainRef = useRef<{
+    hpf: Tone.Filter;
+    gate: Tone.Gate;
+    compressor: Tone.Compressor;
+    eq: Tone.EQ3;
+    reverb: Tone.Reverb;
+    limiter: Tone.Limiter;
+    recorder: Tone.Recorder;
+    analyser: AnalyserNode;
+  } | null>(null);
+
+  const micSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const finalAudioBlobRef = useRef<Blob | null>(null);
-  
+
   const animationFrameRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -42,137 +51,146 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // ==========================================
-  // 🌟 CPU OPTIMIZATION 1: Pre-Generate Reverb
-  // ==========================================
+  // ==========================================================
+  // 🌟 FIX 1: Build the AudioContext ONCE with a stable, recording-safe
+  // latencyHint. "interactive" (Tone's default) uses tiny buffers meant
+  // for instruments/games — under any main-thread load it underruns and
+  // crackles. "playback" trades a bit of latency for a much bigger,
+  // stable buffer, which is exactly what you want for a voice recorder.
+  // ==========================================================
   useEffect(() => {
-    let isMounted = true;
-    
-    const initReverb = async () => {
-      try {
-        const rev = new Tone.Reverb({
-          decay: 3.5, 
-          preDelay: 0.04,
-          wet: 0.30
-        });
-        
-        await rev.generate(); 
-        
-        if (isMounted) {
-          reverbRef.current = rev;
-        }
-      } catch (err) {
-        console.error("Failed to pre-generate reverb:", err);
-      }
-    };
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({
+      latencyHint: "playback",
+    });
+    Tone.setContext(ctx);
 
-    initReverb();
+    // ==========================================================
+    // 🌟 FIX 2: Build the entire effects chain ONE TIME on mount, not on
+    // every startRecording() call. Nodes are created once and reused —
+    // we only connect/disconnect the mic source per session. This kills
+    // the "worse every time you record" problem caused by leaked nodes.
+    // ==========================================================
+    const hpf = new Tone.Filter({ type: "highpass", frequency: 85, rolloff: -24 });
+
+    // 🌟 FIX 3: Gate with explicit smoothing. A hard gate with no smoothing
+    // is very likely your actual crackle — every threshold crossing is an
+    // audible click. `smoothing` (2nd arg) ramps the gain instead of
+    // switching it, which removes the click entirely.
+    const gate = new Tone.Gate(isNoiseReduction ? -40 : -100, 0.15);
+
+    const compressor = new Tone.Compressor({ threshold: -24, ratio: 2.5, attack: 0.01, release: 0.3 });
+    const eqNode = new Tone.EQ3({ low: -2, mid: 1, high: 5 });
+    const reverb = new Tone.Reverb({ decay: 3.5, preDelay: 0.04, wet: isReverb ? 0.3 : 0 });
+    const limiter = new Tone.Limiter(-1);
+    const recorder = new Tone.Recorder();
+    const analyser = Tone.context.createAnalyser();
+    analyser.fftSize = 256;
+
+    hpf.chain(gate, compressor, eqNode, reverb, limiter, recorder);
+    Tone.connect(limiter, analyser);
+
+    reverb.generate().catch((err) => console.error("Reverb generation failed:", err));
+
+    chainRef.current = { hpf, gate, compressor, eq: eqNode, reverb, limiter, recorder, analyser };
 
     return () => {
-      isMounted = false;
+      // Full cleanup on unmount — prevents leaked audio nodes across page navigations
+      const chain = chainRef.current;
+      if (chain) {
+        chain.hpf.dispose();
+        chain.gate.dispose();
+        chain.compressor.dispose();
+        chain.eq.dispose();
+        chain.reverb.dispose();
+        chain.limiter.dispose();
+        chain.recorder.dispose();
+      }
+      if (micSourceRef.current) micSourceRef.current.disconnect();
+      ctx.close().catch(() => {});
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Live Toggle handlers
+  // Live toggles now just adjust the persistent chain — no rebuild
   useEffect(() => {
-    if (reverbRef.current) {
-      reverbRef.current.wet.value = isReverb ? 0.30 : 0;
-    }
+    if (chainRef.current) chainRef.current.reverb.wet.value = isReverb ? 0.3 : 0;
   }, [isReverb]);
 
   useEffect(() => {
-    if (gateRef.current) {
-      gateRef.current.threshold = isNoiseReduction ? -40 : -100;
-    }
+    if (chainRef.current) chainRef.current.gate.threshold = isNoiseReduction ? -40 : -100;
   }, [isNoiseReduction]);
 
   useEffect(() => {
     if (recordingState === "RECORDING") {
       timerRef.current = setInterval(() => setRecordingDuration((prev) => prev + 1), 1000);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [recordingState]);
 
-  // ==========================================
-  // 🎙️ THE OPTIMIZED PRO VOCAL CHAIN
-  // ==========================================
+  // ==========================================================
+  // 🌟 FIX 4: Tell the rest of the page a recording is active, so heavy
+  // UI work (Framer Motion in LyricsViewer, scroll-progress listener,
+  // word-span re-renders) can pause. This is a one-line dispatch here;
+  // add a matching listener in LyricsViewer (see note below).
+  // ==========================================================
+  const broadcastRecordingState = (active: boolean) => {
+    window.dispatchEvent(new CustomEvent("bhajan-recording-state", { detail: { active } }));
+  };
+
   const startRecording = async () => {
     try {
-      // 🌟 CPU OPTIMIZATION 2: Buffer breathing room
-      Tone.context.lookAhead = 0.1;
       await Tone.start();
 
-      const constraints = {
+      // 🌟 FIX 5: Drop the hard sampleRate constraint. Forcing 44100 when the
+      // context/device is actually running at 48000 forces a real-time
+      // resample right at the front of the chain — a classic crackle
+      // source. Let the browser give you its native rate; "ideal" (not a
+      // hard constraint) avoids getUserMedia rejecting/downgrading too.
+      const constraints: MediaStreamConstraints = {
         audio: {
-          echoCancellation: false, 
+          echoCancellation: false,
           noiseSuppression: true,
-          autoGainControl: true,    
-          channelCount: 1,          
-          sampleRate: 44100 // 🌟 CPU OPTIMIZATION 3: Standard CD Quality (prevents cracking on phones)
-        }
+          autoGainControl: true,
+          channelCount: 1,
+        },
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
       setRecordingDuration(0);
-      logEvent('studio_record_start', { bhajan_slug: bhajanSlug });
+      logEvent("studio_record_start", { bhajan_slug: bhajanSlug });
+
+      const chain = chainRef.current;
+      if (!chain) throw new Error("Audio chain not initialized");
 
       const micSource = Tone.context.createMediaStreamSource(stream);
+      micSourceRef.current = micSource;
+      Tone.connect(micSource, chain.hpf);
 
-      // (Audio Effects - Unchanged, Next Level Quality Maintained)
-      const hpf = new Tone.Filter({ type: "highpass", frequency: 85, rolloff: -24 });
-      const gate = new Tone.Gate({ threshold: isNoiseReduction ? -40 : -100 });
-      gateRef.current = gate;
-      const compressor = new Tone.Compressor({ threshold: -24, ratio: 2.5, attack: 0.01, release: 0.3 });
-      const eq = new Tone.EQ3({ low: -2, mid: 1, high: 5 });
+      broadcastRecordingState(true);
 
-      if (!reverbRef.current) {
-        const rev = new Tone.Reverb({ decay: 3.5, preDelay: 0.04, wet: isReverb ? 0.30 : 0 });
-        await rev.generate();
-        reverbRef.current = rev;
-      }
-      const reverb = reverbRef.current;
-      reverb.wet.value = isReverb ? 0.30 : 0;
-
-      const limiter = new Tone.Limiter(-1);
-      const recorder = new Tone.Recorder();
-      recorderRef.current = recorder;
-
-      const analyser = Tone.context.createAnalyser();
-      analyser.fftSize = 256;
-
-      // Connect the Optimized Chain
-      Tone.connect(micSource, hpf);
-      hpf.chain(gate, compressor, eq, reverb, limiter, recorder);
-      Tone.connect(limiter, analyser); 
-
-      // 🌟 CPU OPTIMIZATION 4: Throttled Canvas Visualizer
+      // Throttled canvas visualizer — only runs while RECORDING, ~30fps
       const canvas = canvasRef.current;
       if (canvas) {
         const canvasCtx = canvas.getContext("2d");
-        const bufferLength = analyser.frequencyBinCount;
+        const bufferLength = chain.analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
-        
-        let frameCount = 0; // Frame counter for throttling
+        let frameCount = 0;
 
         const draw = () => {
           if (!canvasCtx || !canvas) return;
           animationFrameRef.current = requestAnimationFrame(draw);
-          
           frameCount++;
-          // Skip drawing some frames to reduce CPU load (~30fps instead of 60fps)
-          if (frameCount % 2 !== 0) return; 
+          if (frameCount % 2 !== 0) return;
 
-          analyser.getByteFrequencyData(dataArray);
-
+          chain.analyser.getByteFrequencyData(dataArray);
           canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
           const barWidth = (canvas.width / bufferLength) * 2;
           let x = 0;
-
           for (let i = 0; i < bufferLength; i++) {
             const barHeight = dataArray[i] / 2;
             canvasCtx.fillStyle = `rgba(234, 88, 12, ${barHeight / 50})`;
@@ -183,9 +201,8 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
         draw();
       }
 
-      recorder.start();
+      chain.recorder.start();
       setRecordingState("RECORDING");
-
     } catch (err) {
       console.error("Studio initialization failed:", err);
       alert("कृपया ब्राउज़र सेटिंग्स में माइक (Microphone) की अनुमति दें।");
@@ -193,16 +210,25 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
   };
 
   const stopRecording = async () => {
-    if (recorderRef.current && recordingState === "RECORDING") {
-      const recordingBlob = await recorderRef.current.stop();
+    const chain = chainRef.current;
+    if (chain && recordingState === "RECORDING") {
+      const recordingBlob = await chain.recorder.stop();
       finalAudioBlobRef.current = recordingBlob;
-      
+
       const url = URL.createObjectURL(recordingBlob);
       setAudioUrl(url);
       setRecordingState("PREVIEW");
-      
+
+      broadcastRecordingState(false);
+
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+      // Disconnect (don't dispose) the mic source — it's per-session, chain nodes stay alive
+      if (micSourceRef.current) {
+        micSourceRef.current.disconnect();
+        micSourceRef.current = null;
       }
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     }
@@ -229,7 +255,6 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
   };
 
   const handlePublish = async () => {
-    // 🌟 VALIDATION: Make sure they enter a name
     if (!userName.trim()) {
       alert("कृपया अपना शुभ नाम दर्ज करें!");
       return;
@@ -237,47 +262,45 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
     if (!finalAudioBlobRef.current) return;
 
     setRecordingState("UPLOADING");
-    
+
     try {
       const audioBlob = finalAudioBlobRef.current;
       const extension = audioBlob.type.includes("mp4") ? "mp4" : "webm";
       const fileName = `${bhajanSlug}-${Date.now()}.${extension}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('bhajan-covers')
-        .upload(fileName, audioBlob, { contentType: audioBlob.type, cacheControl: '3600' });
+        .from("bhajan-covers")
+        .upload(fileName, audioBlob, { contentType: audioBlob.type, cacheControl: "3600" });
 
       if (uploadError) throw uploadError;
 
-      const { data: publicUrlData } = supabase.storage.from('bhajan-covers').getPublicUrl(fileName);
+      const { data: publicUrlData } = supabase.storage.from("bhajan-covers").getPublicUrl(fileName);
 
-      // 🌟 ADDED USER_NAME BACK TO DATABASE PAYLOAD
-      const { error: dbError } = await supabase.from('bhajan_covers').insert([{
-        bhajan_id: bhajanId,
-        bhajan_slug: bhajanSlug,
-        user_name: userName.trim(), // Sent to DB!
-        audio_url: publicUrlData.publicUrl,
-      }]);
+      const { error: dbError } = await supabase.from("bhajan_covers").insert([
+        {
+          bhajan_id: bhajanId,
+          bhajan_slug: bhajanSlug,
+          user_name: userName.trim(),
+          audio_url: publicUrlData.publicUrl,
+        },
+      ]);
 
       if (dbError) throw dbError;
 
       alert("जय श्री राम! आपका भजन पब्लिश हो गया है।");
-      window.dispatchEvent(new CustomEvent('onCoverPublished'));
+      window.dispatchEvent(new CustomEvent("onCoverPublished"));
       resetStudio();
       if (onUploadSuccess) onUploadSuccess();
-
     } catch (error) {
       console.error("Upload failed:", error);
       alert("अपलोड विफल रहा। पुनः प्रयास करें।");
-      setRecordingState("PREVIEW"); 
+      setRecordingState("PREVIEW");
     }
   };
 
   return (
     <div className="w-full bg-gradient-to-r from-orange-50/80 to-amber-50/50 dark:from-white/5 dark:to-transparent border border-orange-200 dark:border-white/10 rounded-2xl p-4 shadow-sm mb-6 transition-all">
       <AnimatePresence mode="wait">
-        
-        {/* STATE 1: IDLE */}
         {recordingState === "IDLE" && (
           <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col lg:flex-row items-start lg:items-center justify-between w-full gap-4">
             <div className="flex items-center gap-3 shrink-0">
@@ -310,7 +333,6 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
           </motion.div>
         )}
 
-        {/* STATE 2: RECORDING */}
         {recordingState === "RECORDING" && (
           <motion.div key="recording" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col md:flex-row items-center justify-between w-full gap-4">
             <div className="flex items-center gap-4 w-full">
@@ -318,18 +340,17 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
               <span className="font-mono text-2xl font-black text-red-500 shrink-0">{formatTime(recordingDuration)}</span>
               <canvas ref={canvasRef} width={150} height={30} className="h-[30px] w-full max-w-[150px] bg-black/5 dark:bg-black/20 rounded-lg flex-1" />
             </div>
-            
+
             <button onClick={stopRecording} className="w-full md:w-auto bg-red-600 text-white px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-md hover:bg-red-700 active:scale-95 transition-all flex items-center justify-center gap-2 shrink-0">
               <FaStop /> Stop
             </button>
           </motion.div>
         )}
 
-        {/* STATE 3: PREVIEW & PUBLISH */}
         {recordingState === "PREVIEW" && (
           <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col md:flex-row items-center justify-between w-full gap-4">
             <audio ref={audioPlayerRef} src={audioUrl || ""} onEnded={() => setIsPlaying(false)} className="hidden" />
-            
+
             <div className="flex items-center justify-between gap-2 bg-white dark:bg-black/30 px-3 py-1.5 rounded-full border border-orange-100 dark:border-white/10 w-full md:w-auto">
               <button onClick={togglePlayback} className="w-8 h-8 shrink-0 flex items-center justify-center bg-orange-500 text-white rounded-full active:scale-90 transition-transform">
                 {isPlaying ? <FaPause className="text-xs" /> : <FaPlay className="text-xs translate-x-0.5" />}
@@ -341,12 +362,12 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
-              <input 
-                type="text" 
-                placeholder="आपका शुभ नाम..." 
-                value={userName} 
-                onChange={(e) => setUserName(e.target.value)} 
-                className="w-full sm:w-40 bg-white dark:bg-black/30 border border-orange-200 dark:border-white/10 px-4 py-2 rounded-full text-xs font-hindi outline-none focus:border-orange-500 transition-colors" 
+              <input
+                type="text"
+                placeholder="आपका शुभ नाम..."
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                className="w-full sm:w-40 bg-white dark:bg-black/30 border border-orange-200 dark:border-white/10 px-4 py-2 rounded-full text-xs font-hindi outline-none focus:border-orange-500 transition-colors"
               />
               <button onClick={handlePublish} className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider shadow-md active:scale-95 transition-transform whitespace-nowrap">
                 Publish Cover
@@ -355,14 +376,12 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
           </motion.div>
         )}
 
-        {/* STATE 4: UPLOADING */}
         {recordingState === "UPLOADING" && (
           <motion.div key="uploading" className="flex items-center justify-center w-full gap-3 py-2">
             <div className="w-5 h-5 border-2 border-orange-200 border-t-orange-600 rounded-full animate-spin" />
             <span className="text-sm font-bold font-hindi text-gray-600 dark:text-gray-300">अपलोड हो रहा है...</span>
           </motion.div>
         )}
-
       </AnimatePresence>
     </div>
   );

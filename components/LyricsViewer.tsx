@@ -123,6 +123,7 @@ export default function LyricsViewer({
   const [wakeLockActive, setWakeLockActive] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showBigHeart, setShowBigHeart] = useState(false);
+  const [isRecordingActive, setIsRecordingActive] = useState(false); 
 
   const [displayLyrics, setDisplayLyrics] = useState<string>(lyricsHindi);
 
@@ -218,16 +219,30 @@ export default function LyricsViewer({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const totalScroll = document.documentElement.scrollTop;
-      const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-      if (windowHeight <= 0) return;
-      setScrollProgress(Math.min(100, Math.max(0, (totalScroll / windowHeight) * 100)));
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  // 🌟 ADD THIS BLOCK
+useEffect(() => {
+  const handleRecordingState = (e: any) => setIsRecordingActive(e.detail.active);
+  window.addEventListener('bhajan-recording-state', handleRecordingState);
+  return () => window.removeEventListener('bhajan-recording-state', handleRecordingState);
+}, []);
+
+const isRecordingActiveRef = useRef(false); // 🌟 ADD near your other refs (videoRef, scriptDropdownRef, etc.)
+
+useEffect(() => {
+  isRecordingActiveRef.current = isRecordingActive; // 🌟 ADD — keeps ref in sync with state
+}, [isRecordingActive]);
+
+useEffect(() => {
+  const handleScroll = () => {
+    if (isRecordingActiveRef.current) return; // 🌟 ADD — bail out early while recording
+    const totalScroll = document.documentElement.scrollTop;
+    const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    if (windowHeight <= 0) return;
+    setScrollProgress(Math.min(100, Math.max(0, (totalScroll / windowHeight) * 100)));
+  };
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  return () => window.removeEventListener('scroll', handleScroll);
+}, []);
 
   const handleDoubleTap = () => {
     triggerHaptic();
