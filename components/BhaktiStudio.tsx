@@ -14,15 +14,11 @@ interface BhaktiStudioProps {
 }
 
 // ==========================================================
-// 🌟 MODULE-LEVEL SINGLETON
-// Every node is explicitly bound to `ctx` via the `context` option —
-// we never rely on Tone's global context getter/setter again. This is
-// what fixes "AudioNode belonging to a different audio context": we
-// hold our own reference and use it everywhere, instead of trusting
-// a mutable global that different bundle chunks may not share.
+// 🌟 MODULE-LEVEL SINGLETON (Fixed)
+// We rely on Tone's global context via Tone.start() to prevent "Key not found" routing errors.
+// Replaced native Analyser with Tone.Analyser to maintain ecosystem compatibility.
 // ==========================================================
 type AudioChain = {
-  context: Tone.Context;
   hpf: Tone.Filter;
   gate: Tone.Gate;
   compressor: Tone.Compressor;
@@ -30,7 +26,7 @@ type AudioChain = {
   reverb: Tone.Reverb;
   limiter: Tone.Limiter;
   recorder: Tone.Recorder;
-  analyser: AnalyserNode; // 🌟 native type, not Tone.Analyser
+  analyser: Tone.Analyser; // 🌟 Native -> Tone.Analyser
 };
 
 let audioChain: AudioChain | null = null;
@@ -40,26 +36,26 @@ function getAudioChain(isReverbInitial: boolean, isNoiseReductionInitial: boolea
   if (chainInitPromise) return chainInitPromise;
 
   chainInitPromise = (async () => {
-    const ctx = new Tone.Context({ latencyHint: "playback" });
+    // 🌟 Ensure Tone's global context is initialized safely
+    await Tone.start();
 
-    // 🌟 Every node explicitly bound to `ctx` via the context option —
-    // no dependence on a global that might point elsewhere.
-    const hpf = new Tone.Filter({ context: ctx, type: "highpass", frequency: 85, rolloff: -24 });
-    const gate = new Tone.Gate({ context: ctx, threshold: isNoiseReductionInitial ? -40 : -100, smoothing: 0.15 });
-    const compressor = new Tone.Compressor({ context: ctx, threshold: -24, ratio: 2.5, attack: 0.01, release: 0.3 });
-    const eqNode = new Tone.EQ3({ context: ctx, low: -2, mid: 1, high: 5 });
-    const reverb = new Tone.Reverb({ context: ctx, decay: 3.5, preDelay: 0.04, wet: isReverbInitial ? 0.3 : 0 });
-    const limiter = new Tone.Limiter({ context: ctx, threshold: -1 });
-    const recorder = new Tone.Recorder({ context: ctx });
-    const analyser = ctx.createAnalyser();
-analyser.fftSize = 256;
+    const hpf = new Tone.Filter({ type: "highpass", frequency: 85, rolloff: -24 });
+    const gate = new Tone.Gate({ threshold: isNoiseReductionInitial ? -40 : -100, smoothing: 0.15 });
+    const compressor = new Tone.Compressor({ threshold: -24, ratio: 2.5, attack: 0.01, release: 0.3 });
+    const eqNode = new Tone.EQ3({ low: -2, mid: 1, high: 5 });
+    const reverb = new Tone.Reverb({ decay: 3.5, preDelay: 0.04, wet: isReverbInitial ? 0.3 : 0 });
+    const limiter = new Tone.Limiter({ threshold: -1 });
+    const recorder = new Tone.Recorder();
+    
+    // 🌟 Use Tone.Analyser (FFT) to completely prevent connection lookup crashes
+    const analyser = new Tone.Analyser("fft", 256);
 
     hpf.chain(gate, compressor, eqNode, reverb, limiter, recorder);
     limiter.connect(analyser);
 
     await reverb.generate();
 
-    audioChain = { context: ctx, hpf, gate, compressor, eq: eqNode, reverb, limiter, recorder, analyser };
+    audioChain = { hpf, gate, compressor, eq: eqNode, reverb, limiter, recorder, analyser };
     return audioChain;
   })();
 
@@ -94,7 +90,6 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
 
   useEffect(() => {
     getAudioChain(isReverb, isNoiseReduction);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -125,8 +120,8 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
       const chain = await getAudioChain(isReverb, isNoiseReduction);
       if (!chain) throw new Error("Audio chain not initialized");
 
-      // 🌟 Resume OUR context explicitly, not the ambient global one
-      await chain.context.resume();
+      // 🌟 Resume the global context
+      await Tone.start();
 
       const constraints: MediaStreamConstraints = {
         audio: {
@@ -142,41 +137,51 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
       setRecordingDuration(0);
       logEvent("studio_record_start", { bhajan_slug: bhajanSlug });
 
-      // 🌟 Create the mic source from OUR stored context, not Tone.context —
-      // this guarantees it's the same context every node in the chain uses.
-      const micSource = chain.context.createMediaStreamSource(stream);
+      // 🌟 Create source on global context and safely connect
+      const micSource = Tone.context.createMediaStreamSource(stream);
       micSourceRef.current = micSource;
-      micSource.connect(chain.hpf.input as unknown as AudioNode);
+      
+      // Use Tone.connect to bridge Native source to Tone node safely
+      Tone.connect(micSource, chain.hpf);
 
       broadcastRecordingState(true);
 
       const canvas = canvasRef.current;
-if (canvas) {
-  const canvasCtx = canvas.getContext("2d");
-  const bufferLength = chain.analyser.frequencyBinCount;
-  const dataArray = new Uint8Array(bufferLength);
-  let frameCount = 0;
+      if (canvas) {
+        const canvasCtx = canvas.getContext("2d");
+        const bufferLength = chain.analyser.size;
+        let frameCount = 0;
 
-  const draw = () => {
-    if (!canvasCtx || !canvas) return;
-    animationFrameRef.current = requestAnimationFrame(draw);
-    frameCount++;
-    if (frameCount % 2 !== 0) return;
+        const draw = () => {
+          if (!canvasCtx || !canvas) return;
+          animationFrameRef.current = requestAnimationFrame(draw);
+          frameCount++;
+          if (frameCount % 2 !== 0) return;
 
-    chain.analyser.getByteFrequencyData(dataArray);
-    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-    const barWidth = (canvas.width / bufferLength) * 2;
-    let x = 0;
+          // 🌟 Safely fetch dB data from Tone.Analyser
+          const dataArray = chain.analyser.getValue() as Float32Array;
+          
+          canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+          const barWidth = (canvas.width / bufferLength) * 2;
+          let x = 0;
 
-    for (let i = 0; i < bufferLength; i++) {
-      const barHeight = dataArray[i] / 2;
-      canvasCtx.fillStyle = `rgba(234, 88, 12, ${barHeight / 50})`;
-      canvasCtx.fillRect(x, canvas.height / 2 - barHeight / 2, barWidth, barHeight);
-      x += barWidth + 1;
-    }
-  };
-  draw();
-}
+          for (let i = 0; i < bufferLength; i++) {
+            let db = dataArray[i];
+            if (!isFinite(db)) db = -100;
+            
+            // Map dB (-100 to 0) to 0-255 scale (mimicking native frequency data)
+            let byteVal = (db + 100) * 2.55;
+            if (byteVal < 0) byteVal = 0;
+            if (byteVal > 255) byteVal = 255;
+
+            const barHeight = byteVal / 2;
+            canvasCtx.fillStyle = `rgba(234, 88, 12, ${barHeight / 50})`;
+            canvasCtx.fillRect(x, canvas.height / 2 - barHeight / 2, barWidth, barHeight);
+            x += barWidth + 1;
+          }
+        };
+        draw();
+      }
 
       chain.recorder.start();
       setRecordingState("RECORDING");
