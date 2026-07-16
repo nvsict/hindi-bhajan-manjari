@@ -30,7 +30,7 @@ type AudioChain = {
   reverb: Tone.Reverb;
   limiter: Tone.Limiter;
   recorder: Tone.Recorder;
-  analyser: Tone.Analyser;
+  analyser: AnalyserNode; // 🌟 native type, not Tone.Analyser
 };
 
 let audioChain: AudioChain | null = null;
@@ -51,7 +51,8 @@ function getAudioChain(isReverbInitial: boolean, isNoiseReductionInitial: boolea
     const reverb = new Tone.Reverb({ context: ctx, decay: 3.5, preDelay: 0.04, wet: isReverbInitial ? 0.3 : 0 });
     const limiter = new Tone.Limiter({ context: ctx, threshold: -1 });
     const recorder = new Tone.Recorder({ context: ctx });
-    const analyser = new Tone.Analyser({ context: ctx, type: "fft", size: 256 });
+    const analyser = ctx.createAnalyser();
+analyser.fftSize = 256;
 
     hpf.chain(gate, compressor, eqNode, reverb, limiter, recorder);
     limiter.connect(analyser);
@@ -150,30 +151,32 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
       broadcastRecordingState(true);
 
       const canvas = canvasRef.current;
-      if (canvas) {
-        const canvasCtx = canvas.getContext("2d");
-        let frameCount = 0;
+if (canvas) {
+  const canvasCtx = canvas.getContext("2d");
+  const bufferLength = chain.analyser.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+  let frameCount = 0;
 
-        const draw = () => {
-          if (!canvasCtx || !canvas) return;
-          animationFrameRef.current = requestAnimationFrame(draw);
-          frameCount++;
-          if (frameCount % 2 !== 0) return;
+  const draw = () => {
+    if (!canvasCtx || !canvas) return;
+    animationFrameRef.current = requestAnimationFrame(draw);
+    frameCount++;
+    if (frameCount % 2 !== 0) return;
 
-          const dataArray = chain.analyser.getValue() as Float32Array;
-          canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-          const barWidth = (canvas.width / dataArray.length) * 2;
-          let x = 0;
+    chain.analyser.getByteFrequencyData(dataArray);
+    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+    const barWidth = (canvas.width / bufferLength) * 2;
+    let x = 0;
 
-          for (let i = 0; i < dataArray.length; i++) {
-            const barHeight = Math.max(0, (dataArray[i] + 140) / 2);
-            canvasCtx.fillStyle = `rgba(234, 88, 12, ${Math.min(1, barHeight / 50)})`;
-            canvasCtx.fillRect(x, canvas.height / 2 - barHeight / 2, barWidth, barHeight);
-            x += barWidth + 1;
-          }
-        };
-        draw();
-      }
+    for (let i = 0; i < bufferLength; i++) {
+      const barHeight = dataArray[i] / 2;
+      canvasCtx.fillStyle = `rgba(234, 88, 12, ${barHeight / 50})`;
+      canvasCtx.fillRect(x, canvas.height / 2 - barHeight / 2, barWidth, barHeight);
+      x += barWidth + 1;
+    }
+  };
+  draw();
+}
 
       chain.recorder.start();
       setRecordingState("RECORDING");
