@@ -15,12 +15,14 @@ interface BhaktiStudioProps {
 
 // ==========================================================
 // 🌟 MODULE-LEVEL SINGLETON
-// Created once per page session (browser tab), NOT per component mount.
-// This is what prevents the AudioContext race condition during fast
-// client-side navigation between bhajan pages. All Tone nodes are built
-// once and reused forever; only the mic source is per-recording.
+// Every node is explicitly bound to `ctx` via the `context` option —
+// we never rely on Tone's global context getter/setter again. This is
+// what fixes "AudioNode belonging to a different audio context": we
+// hold our own reference and use it everywhere, instead of trusting
+// a mutable global that different bundle chunks may not share.
 // ==========================================================
 type AudioChain = {
+  context: Tone.Context;
   hpf: Tone.Filter;
   gate: Tone.Gate;
   compressor: Tone.Compressor;
@@ -38,33 +40,25 @@ function getAudioChain(isReverbInitial: boolean, isNoiseReductionInitial: boolea
   if (chainInitPromise) return chainInitPromise;
 
   chainInitPromise = (async () => {
-    // 🌟 Tone.Context (not raw window.AudioContext) with "playback"
-    // latencyHint — bigger, more stable buffers than the default
-    // "interactive" hint, which is tuned for instruments/games and
-    // underruns easily under any main-thread load.
     const ctx = new Tone.Context({ latencyHint: "playback" });
-    Tone.setContext(ctx);
 
-    const hpf = new Tone.Filter({ type: "highpass", frequency: 85, rolloff: -24 });
-
-    // 🌟 Gate with explicit smoothing (0.15s) — a hard gate with no
-    // smoothing clicks every time it opens/closes. This ramps the gain
-    // instead of switching it.
-    const gate = new Tone.Gate(isNoiseReductionInitial ? -40 : -100, 0.15);
-
-    const compressor = new Tone.Compressor({ threshold: -24, ratio: 2.5, attack: 0.01, release: 0.3 });
-    const eqNode = new Tone.EQ3({ low: -2, mid: 1, high: 5 });
-    const reverb = new Tone.Reverb({ decay: 3.5, preDelay: 0.04, wet: isReverbInitial ? 0.3 : 0 });
-    const limiter = new Tone.Limiter(-1);
-    const recorder = new Tone.Recorder();
-    const analyser = new Tone.Analyser("fft", 256);
+    // 🌟 Every node explicitly bound to `ctx` via the context option —
+    // no dependence on a global that might point elsewhere.
+    const hpf = new Tone.Filter({ context: ctx, type: "highpass", frequency: 85, rolloff: -24 });
+    const gate = new Tone.Gate({ context: ctx, threshold: isNoiseReductionInitial ? -40 : -100, smoothing: 0.15 });
+    const compressor = new Tone.Compressor({ context: ctx, threshold: -24, ratio: 2.5, attack: 0.01, release: 0.3 });
+    const eqNode = new Tone.EQ3({ context: ctx, low: -2, mid: 1, high: 5 });
+    const reverb = new Tone.Reverb({ context: ctx, decay: 3.5, preDelay: 0.04, wet: isReverbInitial ? 0.3 : 0 });
+    const limiter = new Tone.Limiter({ context: ctx, threshold: -1 });
+    const recorder = new Tone.Recorder({ context: ctx });
+    const analyser = new Tone.Analyser({ context: ctx, type: "fft", size: 256 });
 
     hpf.chain(gate, compressor, eqNode, reverb, limiter, recorder);
     limiter.connect(analyser);
 
     await reverb.generate();
 
-    audioChain = { hpf, gate, compressor, eq: eqNode, reverb, limiter, recorder, analyser };
+    audioChain = { context: ctx, hpf, gate, compressor, eq: eqNode, reverb, limiter, recorder, analyser };
     return audioChain;
   })();
 
@@ -97,14 +91,11 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Ensure the singleton chain exists — safe to call on every mount,
-  // it only actually builds once per page session.
   useEffect(() => {
     getAudioChain(isReverb, isNoiseReduction);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Live toggles adjust the persistent chain directly — no rebuild
   useEffect(() => {
     if (audioChain) audioChain.reverb.wet.value = isReverb ? 0.3 : 0;
   }, [isReverb]);
@@ -124,8 +115,6 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
     };
   }, [recordingState]);
 
-  // Tell the rest of the page a recording is active, so heavy UI work
-  // elsewhere (LyricsViewer's scroll listener, animations) can pause.
   const broadcastRecordingState = (active: boolean) => {
     window.dispatchEvent(new CustomEvent("bhajan-recording-state", { detail: { active } }));
   };
@@ -135,11 +124,9 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
       const chain = await getAudioChain(isReverb, isNoiseReduction);
       if (!chain) throw new Error("Audio chain not initialized");
 
-      await Tone.start();
+      // 🌟 Resume OUR context explicitly, not the ambient global one
+      await chain.context.resume();
 
-      // No hard sampleRate constraint — forcing a rate that doesn't match
-      // the device's native rate forces a real-time resample right at the
-      // front of the chain, which is a classic crackle source.
       const constraints: MediaStreamConstraints = {
         audio: {
           echoCancellation: false,
@@ -154,13 +141,14 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
       setRecordingDuration(0);
       logEvent("studio_record_start", { bhajan_slug: bhajanSlug });
 
-      const micSource = Tone.context.createMediaStreamSource(stream);
+      // 🌟 Create the mic source from OUR stored context, not Tone.context —
+      // this guarantees it's the same context every node in the chain uses.
+      const micSource = chain.context.createMediaStreamSource(stream);
       micSourceRef.current = micSource;
-      Tone.connect(micSource, chain.hpf);
+      micSource.connect(chain.hpf.input as unknown as AudioNode);
 
       broadcastRecordingState(true);
 
-      // Throttled canvas visualizer — only runs while RECORDING, ~30fps
       const canvas = canvasRef.current;
       if (canvas) {
         const canvasCtx = canvas.getContext("2d");
@@ -178,7 +166,6 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
           let x = 0;
 
           for (let i = 0; i < dataArray.length; i++) {
-            // fft values from Tone.Analyser are in dB, roughly -140..0
             const barHeight = Math.max(0, (dataArray[i] + 140) / 2);
             canvasCtx.fillStyle = `rgba(234, 88, 12, ${Math.min(1, barHeight / 50)})`;
             canvasCtx.fillRect(x, canvas.height / 2 - barHeight / 2, barWidth, barHeight);
@@ -190,7 +177,7 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
 
       chain.recorder.start();
       setRecordingState("RECORDING");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Studio initialization failed:", err);
       alert("कृपया ब्राउज़र सेटिंग्स में माइक (Microphone) की अनुमति दें।");
     }
