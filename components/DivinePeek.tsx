@@ -3,32 +3,84 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import Image from "next/image";
+import { usePathname } from "next/navigation"; // 🌟 THE DETECTIVE HOOK
 
 const MIN_DELAY = 10000; 
 const MAX_DELAY = 20000; 
 const PEEK_DURATION = 5000; 
 
-// 🌟 KRISHNA'S CUTE MESSAGES (आप इसमें और भी जोड़ सकते हैं)
-const KRISHNA_MESSAGES = [
-  "राधे राधे! 🦚",
-  "मुस्कुराते रहो! ✨",
-  "जय श्री कृष्णा! 🙏",
-  "सब अच्छा होगा! 🌸",
-  "चिंता मत करो! 🪈",
-  "हरे कृष्ण! 🌷",
-  "मैं साथ हूँ! 💖"
+// ==========================================
+// 🌟 1. THE MASCOT DICTIONARY (Data Structure)
+// ==========================================
+type Mascot = {
+  id: string;
+  name: string;
+  src: string;
+  triggers: string[]; // URL में क्या ढूँढना है
+  messages: string[];
+};
+
+const MASCOTS: Mascot[] = [
+  {
+    id: "krishna",
+    name: "Baal Krishna",
+    src: "/images/little-krishna.webp",
+    triggers: ["krishna", "shyam", "radha", "vishnu", "khatu", "banke", "hari", "gopal", "kanha"],
+    messages: [
+      "राधे राधे! 🦚", 
+      "मुस्कुराते रहो! ✨", 
+      "जय श्री कृष्णा! 🙏", 
+      "चिंता मत करो, मैं हूँ ना! 🪈", 
+      "माखन खाओगे? 🧈"
+    ]
+  },
+  {
+    id: "jagannath",
+    name: "Lord Jagannath",
+    src: "/images/little-jagannath.webp", // 🌟 सुनिश्चित करें कि यह इमेज public/images/ में हो
+    triggers: ["jagannath", "puri", "balabhadra", "subhadra", "rath", "nilachal", "nandighosha"],
+    messages: [
+      "जय जगन्नाथ! 🕉️", 
+      "नीलाचल निवासाय नमः! 🌊", 
+      "महाप्रसाद पाओगे? 🍚", 
+      "सबका मंगल हो! 🌺"
+    ]
+  }
 ];
 
 type Position = "bottom-right" | "bottom-left" | "middle-right" | "middle-left";
 const POSITIONS: Position[] = ["bottom-right", "bottom-left", "middle-right", "middle-left"];
 
 export default function DivinePeek() {
-  const [showKrishna, setShowKrishna] = useState(false);
+  const pathname = usePathname(); // 🌟 URL पढ़ेगा
+  
+  const [showMascot, setShowMascot] = useState(false);
   const [position, setPosition] = useState<Position>("bottom-right");
-  const [message, setMessage] = useState<string | null>(null); // 🌟 Tooltip State
+  const [message, setMessage] = useState<string | null>(null); 
+  const [currentMascot, setCurrentMascot] = useState<Mascot>(MASCOTS[0]); // डिफ़ॉल्ट कृष्ण जी
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const autoHideRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ==========================================
+  // 🌟 2. SMART SELECTION LOGIC
+  // ==========================================
+  const determineMascot = useCallback(() => {
+    if (!pathname) return MASCOTS[Math.floor(Math.random() * MASCOTS.length)];
+
+    const urlText = pathname.toLowerCase();
+    
+    // चेक करें कि क्या URL में किसी भी मैस्कॉट का 'trigger' वर्ड है
+    for (const mascot of MASCOTS) {
+      if (mascot.triggers.some(trigger => urlText.includes(trigger))) {
+        return mascot; // अगर मैच हो गया, तो वही मैस्कॉट लौटाएं
+      }
+    }
+
+    // अगर कोई मैच नहीं हुआ (जैसे homepage या shiv bhajan), तो रैंडम चुनें (50-50)
+    return MASCOTS[Math.floor(Math.random() * MASCOTS.length)];
+  }, [pathname]);
+
 
   const getRandomDifferentPosition = (currentPos: Position): Position => {
     const available = POSITIONS.filter(p => p !== currentPos);
@@ -40,17 +92,22 @@ export default function DivinePeek() {
     if (autoHideRef.current) clearTimeout(autoHideRef.current);
 
     timerRef.current = setTimeout(() => {
+      // 1. नया मैस्कॉट और पोज़िशन चुनें
+      setCurrentMascot(determineMascot());
       setPosition(prev => forcePosition || getRandomDifferentPosition(prev));
-      setShowKrishna(true);
-      setMessage(null); // नया पीक आते ही पुराना मैसेज हटा दें
+      
+      // 2. दिखाएं
+      setShowMascot(true);
+      setMessage(null); 
 
+      // 3. छुपने का टाइमर
       autoHideRef.current = setTimeout(() => {
-        setShowKrishna(false);
+        setShowMascot(false);
         const randomDelay = Math.floor(Math.random() * (MAX_DELAY - MIN_DELAY) + MIN_DELAY);
         triggerPeek(randomDelay);
       }, PEEK_DURATION);
     }, delay);
-  }, []);
+  }, [determineMascot]);
 
   useEffect(() => {
     const initialDelay = Math.floor(Math.random() * (MAX_DELAY - MIN_DELAY) + MIN_DELAY);
@@ -64,23 +121,21 @@ export default function DivinePeek() {
 
   // 🌟 SMART CLICK INTERACTION WITH TOOLTIP
   const handleTouchOrClick = () => {
-    if (message) return; // अगर टूलटिप पहले से दिख रहा है, तो दोबारा क्लिक इग्नोर करें
+    if (message) return; 
     
     if (timerRef.current) clearTimeout(timerRef.current);
     if (autoHideRef.current) clearTimeout(autoHideRef.current);
 
-    // 1. रैंडम मैसेज चुनें और दिखाएं
-    const randomMsg = KRISHNA_MESSAGES[Math.floor(Math.random() * KRISHNA_MESSAGES.length)];
+    // 1. चुने हुए मैस्कॉट के मैसेजेस में से रैंडम चुनें
+    const randomMsg = currentMascot.messages[Math.floor(Math.random() * currentMascot.messages.length)];
     setMessage(randomMsg);
 
     // 2. मैसेज पढ़ने के लिए 2.5 सेकंड रुकें, फिर छुपा दें
     setTimeout(() => {
-      setShowKrishna(false);
+      setShowMascot(false);
       
       // 3. छुपने के 5 सेकंड बाद वापस किसी नई जगह से लाएं
-      setTimeout(() => {
-        setMessage(null);
-      }, 500); // एनिमेशन खत्म होने के बाद मैसेज क्लियर करें
+      setTimeout(() => setMessage(null), 500); 
       triggerPeek(5000);
     }, 2500);
   };
@@ -88,38 +143,9 @@ export default function DivinePeek() {
   const isRight = position.includes("right");
 
   const variants: Variants = {
-    hidden: {
-      x: isRight ? "100%" : "-100%",
-      y: "0%",
-      rotate: isRight ? 15 : -15,
-      opacity: 0,
-      scale: 0.9, 
-    },
-    visible: {
-      x: isRight ? "25%" : "-25%", 
-      y: "0%",
-      rotate: isRight ? -5 : 5, 
-      opacity: 1,
-      scale: 1,
-      transition: {
-        type: "spring",
-        stiffness: 60, 
-        damping: 12,   
-        mass: 1,
-      },
-    },
-    exit: {
-      x: isRight ? "120%" : "-120%", 
-      rotate: isRight ? 30 : -30,
-      opacity: 0,
-      scale: 0.85, 
-      transition: {
-        type: "spring",
-        stiffness: 70,
-        damping: 14,
-        mass: 0.8,
-      },
-    },
+    hidden: { x: isRight ? "100%" : "-100%", y: "0%", rotate: isRight ? 15 : -15, opacity: 0, scale: 0.9 },
+    visible: { x: isRight ? "25%" : "-25%", y: "0%", rotate: isRight ? -5 : 5, opacity: 1, scale: 1, transition: { type: "spring", stiffness: 60, damping: 12, mass: 1 } },
+    exit: { x: isRight ? "120%" : "-120%", rotate: isRight ? 30 : -30, opacity: 0, scale: 0.85, transition: { type: "spring", stiffness: 70, damping: 14, mass: 0.8 } },
   };
 
   let positionClasses = "";
@@ -131,7 +157,7 @@ export default function DivinePeek() {
   return (
     <div className="fixed inset-y-0 inset-x-0 pointer-events-none z-[70] overflow-hidden">
       <AnimatePresence>
-        {showKrishna && (
+        {showMascot && (
           <motion.div
             variants={variants}
             initial="hidden"
@@ -161,8 +187,8 @@ export default function DivinePeek() {
             </AnimatePresence>
 
             <Image
-              src="/images/little-krishna.webp" 
-              alt="Baal Krishna"
+              src={currentMascot.src} // 🌟 DYNAMIC IMAGE SOURCE
+              alt={currentMascot.name}
               fill
               sizes="(max-width: 768px) 200px, 300px"
               priority
