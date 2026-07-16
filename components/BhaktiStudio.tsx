@@ -13,6 +13,64 @@ interface BhaktiStudioProps {
   onUploadSuccess?: () => void;
 }
 
+// ==========================================================
+// 🌟 MODULE-LEVEL SINGLETON
+// Created once per page session (browser tab), NOT per component mount.
+// This is what prevents the AudioContext race condition during fast
+// client-side navigation between bhajan pages. All Tone nodes are built
+// once and reused forever; only the mic source is per-recording.
+// ==========================================================
+type AudioChain = {
+  hpf: Tone.Filter;
+  gate: Tone.Gate;
+  compressor: Tone.Compressor;
+  eq: Tone.EQ3;
+  reverb: Tone.Reverb;
+  limiter: Tone.Limiter;
+  recorder: Tone.Recorder;
+  analyser: Tone.Analyser;
+};
+
+let audioChain: AudioChain | null = null;
+let chainInitPromise: Promise<AudioChain> | null = null;
+
+function getAudioChain(isReverbInitial: boolean, isNoiseReductionInitial: boolean): Promise<AudioChain> {
+  if (chainInitPromise) return chainInitPromise;
+
+  chainInitPromise = (async () => {
+    // 🌟 Tone.Context (not raw window.AudioContext) with "playback"
+    // latencyHint — bigger, more stable buffers than the default
+    // "interactive" hint, which is tuned for instruments/games and
+    // underruns easily under any main-thread load.
+    const ctx = new Tone.Context({ latencyHint: "playback" });
+    Tone.setContext(ctx);
+
+    const hpf = new Tone.Filter({ type: "highpass", frequency: 85, rolloff: -24 });
+
+    // 🌟 Gate with explicit smoothing (0.15s) — a hard gate with no
+    // smoothing clicks every time it opens/closes. This ramps the gain
+    // instead of switching it.
+    const gate = new Tone.Gate(isNoiseReductionInitial ? -40 : -100, 0.15);
+
+    const compressor = new Tone.Compressor({ threshold: -24, ratio: 2.5, attack: 0.01, release: 0.3 });
+    const eqNode = new Tone.EQ3({ low: -2, mid: 1, high: 5 });
+    const reverb = new Tone.Reverb({ decay: 3.5, preDelay: 0.04, wet: isReverbInitial ? 0.3 : 0 });
+    const limiter = new Tone.Limiter(-1);
+    const recorder = new Tone.Recorder();
+    const analyser = new Tone.Analyser("fft", 256);
+
+    hpf.chain(gate, compressor, eqNode, reverb, limiter, recorder);
+    limiter.connect(analyser);
+
+    await reverb.generate();
+
+    audioChain = { hpf, gate, compressor, eq: eqNode, reverb, limiter, recorder, analyser };
+    return audioChain;
+  })();
+
+  return chainInitPromise;
+}
+
 export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: BhaktiStudioProps) {
   const [recordingState, setRecordingState] = useState<"IDLE" | "RECORDING" | "PREVIEW" | "UPLOADING">("IDLE");
 
@@ -23,18 +81,6 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
   const [isPlaying, setIsPlaying] = useState(false);
   const [userName, setUserName] = useState("");
   const [recordingDuration, setRecordingDuration] = useState(0);
-
-  // 🌟 Persistent audio graph refs — built ONCE, reused across every recording
-  const chainRef = useRef<{
-    hpf: Tone.Filter;
-    gate: Tone.Gate;
-    compressor: Tone.Compressor;
-    eq: Tone.EQ3;
-    reverb: Tone.Reverb;
-    limiter: Tone.Limiter;
-    recorder: Tone.Recorder;
-    analyser: AnalyserNode;
-  } | null>(null);
 
   const micSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -51,73 +97,20 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // ==========================================================
-  // 🌟 FIX 1: Build the AudioContext ONCE with a stable, recording-safe
-  // latencyHint. "interactive" (Tone's default) uses tiny buffers meant
-  // for instruments/games — under any main-thread load it underruns and
-  // crackles. "playback" trades a bit of latency for a much bigger,
-  // stable buffer, which is exactly what you want for a voice recorder.
-  // ==========================================================
+  // Ensure the singleton chain exists — safe to call on every mount,
+  // it only actually builds once per page session.
   useEffect(() => {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({
-      latencyHint: "playback",
-    });
-    Tone.setContext(ctx);
-
-    // ==========================================================
-    // 🌟 FIX 2: Build the entire effects chain ONE TIME on mount, not on
-    // every startRecording() call. Nodes are created once and reused —
-    // we only connect/disconnect the mic source per session. This kills
-    // the "worse every time you record" problem caused by leaked nodes.
-    // ==========================================================
-    const hpf = new Tone.Filter({ type: "highpass", frequency: 85, rolloff: -24 });
-
-    // 🌟 FIX 3: Gate with explicit smoothing. A hard gate with no smoothing
-    // is very likely your actual crackle — every threshold crossing is an
-    // audible click. `smoothing` (2nd arg) ramps the gain instead of
-    // switching it, which removes the click entirely.
-    const gate = new Tone.Gate(isNoiseReduction ? -40 : -100, 0.15);
-
-    const compressor = new Tone.Compressor({ threshold: -24, ratio: 2.5, attack: 0.01, release: 0.3 });
-    const eqNode = new Tone.EQ3({ low: -2, mid: 1, high: 5 });
-    const reverb = new Tone.Reverb({ decay: 3.5, preDelay: 0.04, wet: isReverb ? 0.3 : 0 });
-    const limiter = new Tone.Limiter(-1);
-    const recorder = new Tone.Recorder();
-    const analyser = Tone.context.createAnalyser();
-    analyser.fftSize = 256;
-
-    hpf.chain(gate, compressor, eqNode, reverb, limiter, recorder);
-    Tone.connect(limiter, analyser);
-
-    reverb.generate().catch((err) => console.error("Reverb generation failed:", err));
-
-    chainRef.current = { hpf, gate, compressor, eq: eqNode, reverb, limiter, recorder, analyser };
-
-    return () => {
-      // Full cleanup on unmount — prevents leaked audio nodes across page navigations
-      const chain = chainRef.current;
-      if (chain) {
-        chain.hpf.dispose();
-        chain.gate.dispose();
-        chain.compressor.dispose();
-        chain.eq.dispose();
-        chain.reverb.dispose();
-        chain.limiter.dispose();
-        chain.recorder.dispose();
-      }
-      if (micSourceRef.current) micSourceRef.current.disconnect();
-      ctx.close().catch(() => {});
-    };
+    getAudioChain(isReverb, isNoiseReduction);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Live toggles now just adjust the persistent chain — no rebuild
+  // Live toggles adjust the persistent chain directly — no rebuild
   useEffect(() => {
-    if (chainRef.current) chainRef.current.reverb.wet.value = isReverb ? 0.3 : 0;
+    if (audioChain) audioChain.reverb.wet.value = isReverb ? 0.3 : 0;
   }, [isReverb]);
 
   useEffect(() => {
-    if (chainRef.current) chainRef.current.gate.threshold = isNoiseReduction ? -40 : -100;
+    if (audioChain) audioChain.gate.threshold = isNoiseReduction ? -40 : -100;
   }, [isNoiseReduction]);
 
   useEffect(() => {
@@ -131,25 +124,22 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
     };
   }, [recordingState]);
 
-  // ==========================================================
-  // 🌟 FIX 4: Tell the rest of the page a recording is active, so heavy
-  // UI work (Framer Motion in LyricsViewer, scroll-progress listener,
-  // word-span re-renders) can pause. This is a one-line dispatch here;
-  // add a matching listener in LyricsViewer (see note below).
-  // ==========================================================
+  // Tell the rest of the page a recording is active, so heavy UI work
+  // elsewhere (LyricsViewer's scroll listener, animations) can pause.
   const broadcastRecordingState = (active: boolean) => {
     window.dispatchEvent(new CustomEvent("bhajan-recording-state", { detail: { active } }));
   };
 
   const startRecording = async () => {
     try {
+      const chain = await getAudioChain(isReverb, isNoiseReduction);
+      if (!chain) throw new Error("Audio chain not initialized");
+
       await Tone.start();
 
-      // 🌟 FIX 5: Drop the hard sampleRate constraint. Forcing 44100 when the
-      // context/device is actually running at 48000 forces a real-time
-      // resample right at the front of the chain — a classic crackle
-      // source. Let the browser give you its native rate; "ideal" (not a
-      // hard constraint) avoids getUserMedia rejecting/downgrading too.
+      // No hard sampleRate constraint — forcing a rate that doesn't match
+      // the device's native rate forces a real-time resample right at the
+      // front of the chain, which is a classic crackle source.
       const constraints: MediaStreamConstraints = {
         audio: {
           echoCancellation: false,
@@ -164,9 +154,6 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
       setRecordingDuration(0);
       logEvent("studio_record_start", { bhajan_slug: bhajanSlug });
 
-      const chain = chainRef.current;
-      if (!chain) throw new Error("Audio chain not initialized");
-
       const micSource = Tone.context.createMediaStreamSource(stream);
       micSourceRef.current = micSource;
       Tone.connect(micSource, chain.hpf);
@@ -177,8 +164,6 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
       const canvas = canvasRef.current;
       if (canvas) {
         const canvasCtx = canvas.getContext("2d");
-        const bufferLength = chain.analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
         let frameCount = 0;
 
         const draw = () => {
@@ -187,13 +172,15 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
           frameCount++;
           if (frameCount % 2 !== 0) return;
 
-          chain.analyser.getByteFrequencyData(dataArray);
+          const dataArray = chain.analyser.getValue() as Float32Array;
           canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-          const barWidth = (canvas.width / bufferLength) * 2;
+          const barWidth = (canvas.width / dataArray.length) * 2;
           let x = 0;
-          for (let i = 0; i < bufferLength; i++) {
-            const barHeight = dataArray[i] / 2;
-            canvasCtx.fillStyle = `rgba(234, 88, 12, ${barHeight / 50})`;
+
+          for (let i = 0; i < dataArray.length; i++) {
+            // fft values from Tone.Analyser are in dB, roughly -140..0
+            const barHeight = Math.max(0, (dataArray[i] + 140) / 2);
+            canvasCtx.fillStyle = `rgba(234, 88, 12, ${Math.min(1, barHeight / 50)})`;
             canvasCtx.fillRect(x, canvas.height / 2 - barHeight / 2, barWidth, barHeight);
             x += barWidth + 1;
           }
@@ -210,9 +197,8 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
   };
 
   const stopRecording = async () => {
-    const chain = chainRef.current;
-    if (chain && recordingState === "RECORDING") {
-      const recordingBlob = await chain.recorder.stop();
+    if (audioChain && recordingState === "RECORDING") {
+      const recordingBlob = await audioChain.recorder.stop();
       finalAudioBlobRef.current = recordingBlob;
 
       const url = URL.createObjectURL(recordingBlob);
@@ -225,7 +211,6 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       }
-      // Disconnect (don't dispose) the mic source — it's per-session, chain nodes stay alive
       if (micSourceRef.current) {
         micSourceRef.current.disconnect();
         micSourceRef.current = null;
