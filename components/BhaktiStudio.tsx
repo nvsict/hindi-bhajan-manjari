@@ -14,6 +14,7 @@ interface BhaktiStudioProps {
 }
 
 type AudioChain = {
+  mic: Tone.UserMedia;
   hpf: Tone.Filter;
   gate: Tone.Gate;
   compressor: Tone.Compressor;
@@ -46,8 +47,6 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
   const [recordingDuration, setRecordingDuration] = useState(0);
 
   const audioChainRef = useRef<AudioChain | null>(null);
-  const micSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const finalAudioBlobRef = useRef<Blob | null>(null);
 
   const animationFrameRef = useRef<number | null>(null);
@@ -66,6 +65,10 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
     await Tone.start();
     if (audioChainRef.current) return audioChainRef.current;
 
+    // 🌟 PURE TONE.JS APPROACH: mic is a real Tone node from the start,
+    // registered in Tone's internal registry — this is what actually
+    // fixes the "different audio context" / "key not found" crash.
+    const mic = new Tone.UserMedia();
     const hpf = new Tone.Filter({ type: "highpass", frequency: 85, rolloff: -24 });
     const gate = new Tone.Gate({ threshold: isNoiseReduction ? -40 : -100, smoothing: 0.15 });
     const compressor = new Tone.Compressor({ threshold: -20, ratio: 2, attack: 0.01, release: 0.25 });
@@ -75,12 +78,13 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
     const recorder = new Tone.Recorder();
     const analyser = new Tone.Analyser("fft", 256);
 
+    mic.connect(hpf);
     hpf.chain(gate, compressor, eqNode, reverb, limiter, recorder);
     limiter.connect(analyser);
 
     await reverb.generate();
 
-    audioChainRef.current = { hpf, gate, compressor, eq: eqNode, reverb, limiter, recorder, analyser };
+    audioChainRef.current = { mic, hpf, gate, compressor, eq: eqNode, reverb, limiter, recorder, analyser };
     return audioChainRef.current;
   };
 
@@ -91,6 +95,7 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
       if (audioChainRef.current) {
         try {
           const chain = audioChainRef.current;
+          chain.mic.dispose();
           chain.hpf.dispose();
           chain.gate.dispose();
           chain.compressor.dispose();
@@ -135,27 +140,20 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
     try {
       const chain = await initAudioChain();
 
-      const constraints: MediaStreamConstraints = {
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          channelCount: 1,
-        },
-      };
+      // 🌟 FIX: Tone.UserMedia.open() expects MediaTrackConstraints directly
+      // (no `audio:` wrapper). Passing the wrapped MediaStreamConstraints
+      // shape here was silently double-nesting `audio`, which meant your
+      // echoCancellation/noiseSuppression/autoGainControl settings were
+      // never actually being applied by the browser.
+      await chain.mic.open({
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        channelCount: 1,
+      });
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      streamRef.current = stream;
       setRecordingDuration(0);
       logEvent("studio_record_start", { bhajan_slug: bhajanSlug });
-
-      // 🌟 THE FIX: create the source through Tone's OWN wrapped context
-      // (not the raw native context), and wire it in with Tone.connect().
-      // This is what keeps the node inside Tone's internal registry, which
-      // is exactly what was missing before — that's the "key not found".
-      const micSource = Tone.context.createMediaStreamSource(stream);
-      micSourceRef.current = micSource;
-      Tone.connect(micSource, chain.hpf);
 
       broadcastRecordingState(true);
 
@@ -222,14 +220,8 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
 
       broadcastRecordingState(false);
 
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-      if (micSourceRef.current) {
-        micSourceRef.current.disconnect();
-        micSourceRef.current = null;
-      }
+      audioChainRef.current.mic.close();
+
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     }
   };
