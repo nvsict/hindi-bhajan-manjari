@@ -60,10 +60,9 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fffcf5" },
-    { media: "(prefers-color-scheme: dark)", color: "#0c0804" }
-  ],
+  // 🌟 सिर्फ लाइट थीम का कलर रखें, डार्क वाला हटा दें
+  themeColor: "#fffcf5", 
+  colorScheme: "light", // 🌟 यह ब्राउज़र को डार्क मोड फोर्स करने से रोकेगा
 };
 
 export const metadata: Metadata = {
@@ -126,7 +125,7 @@ export default async function RootLayout({
         /* 🌟 PERF FIX: Removed heavy font variables from the body string */
         className={`${geistSans.variable} ${geistMono.variable} ${hindFont.variable} antialiased bg-orange-50/30 dark:bg-[#0c0804] flex flex-col min-h-screen selection:bg-orange-500 selection:text-white transition-colors duration-300`}
       >
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false}>
           
           <ClarityAnalytics />
 
