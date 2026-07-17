@@ -158,7 +158,7 @@ export default function DonatePage() {
       
       setTimeout(() => setRecentDonation(null), 4500);
     };
-
+   
     const scheduleNextSimulation = () => {
       const nextInterval = Math.floor(Math.random() * (45000 - 15000 + 1) + 15000);
       setTimeout(() => {
@@ -174,6 +174,16 @@ export default function DonatePage() {
 
     return () => clearTimeout(initialTimer);
   }, []);
+
+   useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        setIsSubmitting(false); // अब यह यहाँ काम करेगा
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []); // <--- ध्यान दें: यहाँ dependencies में कोई एरर नहीं है
 
   const handlePreset = (val: number) => {
     if (navigator.vibrate) navigator.vibrate(20);
@@ -241,7 +251,8 @@ export default function DonatePage() {
         currency: orderData.currency,
         name: "Hindi Bhajan Manjari",
         description: "सनातन धर्म के लिए सहयोग राशि",
-        image: "/logo.png", // अपनी वेबसाइट का लोगो
+        // 🌟 FIX: Absolute URL ताकि HTTPS/CORS का एरर न आए
+        image: "https://www.hindibhajanmanjari.com/logo.png", // अपनी वेबसाइट का लोगो
         order_id: orderData.id,
         prefill: {
           name: donationType === 'public' ? supporterName : "Gupt Bhakt",
@@ -278,10 +289,11 @@ export default function DonatePage() {
               }
             ]);
 
-          } catch (dbErr) {
-            console.error("DB Save failed after successful payment", dbErr);
-            // बैकग्राउंड में सेव फेल भी हो जाए, तो भी यूज़र को सर्टिफिकेट ज़रूर दिखाएंगे
-          }
+          } catch (dbErr: any) {
+  console.error("DB Save failed after successful payment", dbErr);
+  // यह लाइन आपको स्क्रीन पर बता देगी कि असली दिक्कत क्या है
+  alert("पेमेंट हो गया है, लेकिन डेटाबेस एरर: " + dbErr?.message);
+}
 
           setPaymentDate(new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
           setThankYou(true);
