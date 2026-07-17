@@ -13,11 +13,6 @@ interface BhaktiStudioProps {
   onUploadSuccess?: () => void;
 }
 
-// ==========================================================
-// 🌟 MODULE-LEVEL SINGLETON (Fixed)
-// We rely on Tone's global context via Tone.start() to prevent "Key not found" routing errors.
-// Replaced native Analyser with Tone.Analyser to maintain ecosystem compatibility.
-// ==========================================================
 type AudioChain = {
   hpf: Tone.Filter;
   gate: Tone.Gate;
@@ -26,40 +21,17 @@ type AudioChain = {
   reverb: Tone.Reverb;
   limiter: Tone.Limiter;
   recorder: Tone.Recorder;
-  analyser: Tone.Analyser; // 🌟 Native -> Tone.Analyser
+  analyser: Tone.Analyser;
 };
 
-let audioChain: AudioChain | null = null;
-let chainInitPromise: Promise<AudioChain> | null = null;
-
-function getAudioChain(isReverbInitial: boolean, isNoiseReductionInitial: boolean): Promise<AudioChain> {
-  if (chainInitPromise) return chainInitPromise;
-
-  chainInitPromise = (async () => {
-    // 🌟 Ensure Tone's global context is initialized safely
-    await Tone.start();
-
-    const hpf = new Tone.Filter({ type: "highpass", frequency: 85, rolloff: -24 });
-    const gate = new Tone.Gate({ threshold: isNoiseReductionInitial ? -40 : -100, smoothing: 0.15 });
-    const compressor = new Tone.Compressor({ threshold: -24, ratio: 2.5, attack: 0.01, release: 0.3 });
-    const eqNode = new Tone.EQ3({ low: -2, mid: 1, high: 5 });
-    const reverb = new Tone.Reverb({ decay: 3.5, preDelay: 0.04, wet: isReverbInitial ? 0.3 : 0 });
-    const limiter = new Tone.Limiter({ threshold: -1 });
-    const recorder = new Tone.Recorder();
-    
-    // 🌟 Use Tone.Analyser (FFT) to completely prevent connection lookup crashes
-    const analyser = new Tone.Analyser("fft", 256);
-
-    hpf.chain(gate, compressor, eqNode, reverb, limiter, recorder);
-    limiter.connect(analyser);
-
-    await reverb.generate();
-
-    audioChain = { hpf, gate, compressor, eq: eqNode, reverb, limiter, recorder, analyser };
-    return audioChain;
-  })();
-
-  return chainInitPromise;
+let contextConfigured = false;
+function ensurePlaybackContext() {
+  if (contextConfigured) return;
+  contextConfigured = true;
+  // 🌟 Bigger, stabler buffer than Tone's default "interactive" hint —
+  // gives the audio thread more headroom against dropouts/crackle.
+  const ctx = new Tone.Context({ latencyHint: "playback" });
+  Tone.setContext(ctx);
 }
 
 export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: BhaktiStudioProps) {
@@ -73,6 +45,7 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
   const [userName, setUserName] = useState("");
   const [recordingDuration, setRecordingDuration] = useState(0);
 
+  const audioChainRef = useRef<AudioChain | null>(null);
   const micSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const finalAudioBlobRef = useRef<Blob | null>(null);
@@ -88,16 +61,59 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const initAudioChain = async () => {
+    ensurePlaybackContext();
+    await Tone.start();
+    if (audioChainRef.current) return audioChainRef.current;
+
+    const hpf = new Tone.Filter({ type: "highpass", frequency: 85, rolloff: -24 });
+    const gate = new Tone.Gate({ threshold: isNoiseReduction ? -40 : -100, smoothing: 0.15 });
+    const compressor = new Tone.Compressor({ threshold: -20, ratio: 2, attack: 0.01, release: 0.25 });
+    const eqNode = new Tone.EQ3({ low: -2, mid: 1, high: 2 });
+    const reverb = new Tone.Reverb({ decay: 3.5, preDelay: 0.04, wet: isReverb ? 0.3 : 0 });
+    const limiter = new Tone.Limiter({ threshold: -3 });
+    const recorder = new Tone.Recorder();
+    const analyser = new Tone.Analyser("fft", 256);
+
+    hpf.chain(gate, compressor, eqNode, reverb, limiter, recorder);
+    limiter.connect(analyser);
+
+    await reverb.generate();
+
+    audioChainRef.current = { hpf, gate, compressor, eq: eqNode, reverb, limiter, recorder, analyser };
+    return audioChainRef.current;
+  };
+
   useEffect(() => {
-    getAudioChain(isReverb, isNoiseReduction);
+    initAudioChain();
+
+    return () => {
+      if (audioChainRef.current) {
+        try {
+          const chain = audioChainRef.current;
+          chain.hpf.dispose();
+          chain.gate.dispose();
+          chain.compressor.dispose();
+          chain.eq.dispose();
+          chain.reverb.dispose();
+          chain.limiter.dispose();
+          chain.recorder.dispose();
+          chain.analyser.dispose();
+        } catch (e) {
+          // ignore cleanup errors
+        }
+        audioChainRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (audioChain) audioChain.reverb.wet.value = isReverb ? 0.3 : 0;
+    if (audioChainRef.current) audioChainRef.current.reverb.wet.value = isReverb ? 0.3 : 0;
   }, [isReverb]);
 
   useEffect(() => {
-    if (audioChain) audioChain.gate.threshold = isNoiseReduction ? -40 : -100;
+    if (audioChainRef.current) audioChainRef.current.gate.threshold = isNoiseReduction ? -40 : -100;
   }, [isNoiseReduction]);
 
   useEffect(() => {
@@ -117,15 +133,11 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
 
   const startRecording = async () => {
     try {
-      const chain = await getAudioChain(isReverb, isNoiseReduction);
-      if (!chain) throw new Error("Audio chain not initialized");
-
-      // 🌟 Resume the global context
-      await Tone.start();
+      const chain = await initAudioChain();
 
       const constraints: MediaStreamConstraints = {
         audio: {
-          echoCancellation: false,
+          echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
           channelCount: 1,
@@ -137,12 +149,13 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
       setRecordingDuration(0);
       logEvent("studio_record_start", { bhajan_slug: bhajanSlug });
 
-      // 🌟 Create source on global context and safely connect
+      // 🌟 THE FIX: create the source through Tone's OWN wrapped context
+      // (not the raw native context), and wire it in with Tone.connect().
+      // This is what keeps the node inside Tone's internal registry, which
+      // is exactly what was missing before — that's the "key not found".
       const micSource = Tone.context.createMediaStreamSource(stream);
       micSourceRef.current = micSource;
-      
-      // Use Tone.connect to bridge Native source to Tone node safely
-      Tone.connect(micSource, chain.recorder);
+      Tone.connect(micSource, chain.hpf);
 
       broadcastRecordingState(true);
 
@@ -158,9 +171,8 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
           frameCount++;
           if (frameCount % 2 !== 0) return;
 
-          // 🌟 Safely fetch dB data from Tone.Analyser
           const dataArray = chain.analyser.getValue() as Float32Array;
-          
+
           canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
           const barWidth = (canvas.width / bufferLength) * 2;
           let x = 0;
@@ -168,8 +180,7 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
           for (let i = 0; i < bufferLength; i++) {
             let db = dataArray[i];
             if (!isFinite(db)) db = -100;
-            
-            // Map dB (-100 to 0) to 0-255 scale (mimicking native frequency data)
+
             let byteVal = (db + 100) * 2.55;
             if (byteVal < 0) byteVal = 0;
             if (byteVal > 255) byteVal = 255;
@@ -187,13 +198,22 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
       setRecordingState("RECORDING");
     } catch (err: any) {
       console.error("Studio initialization failed:", err);
-      alert("कृपया ब्राउज़र सेटिंग्स में माइक (Microphone) की अनुमति दें।");
+
+      if (err.name === "NotAllowedError" || err.message?.includes("Permission")) {
+        alert("कृपया ब्राउज़र सेटिंग्स में माइक (Microphone) की अनुमति दें।");
+      } else if (err.name === "NotFoundError" || err.message?.includes("Requested device not found")) {
+        alert("आपके डिवाइस में कोई माइक्रोफ़ोन नहीं मिला! कृपया माइक कनेक्ट करें।");
+      } else if (err.name === "NotReadableError") {
+        alert("माइक किसी अन्य ऐप (जैसे कॉलिंग ऐप) द्वारा उपयोग किया जा रहा है।");
+      } else {
+        alert(`तकनीकी समस्या: ${err.message}`);
+      }
     }
   };
 
   const stopRecording = async () => {
-    if (audioChain && recordingState === "RECORDING") {
-      const recordingBlob = await audioChain.recorder.stop();
+    if (audioChainRef.current && recordingState === "RECORDING") {
+      const recordingBlob = await audioChainRef.current.recorder.stop();
       finalAudioBlobRef.current = recordingBlob;
 
       const url = URL.createObjectURL(recordingBlob);

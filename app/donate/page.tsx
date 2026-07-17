@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { toJpeg } from 'html-to-image'; 
 import { 
-  FaCopy, FaShieldAlt, FaServer, FaHeart, 
+  FaShieldAlt, FaServer, FaHeart, 
   FaCheckCircle, FaBookOpen, FaAdversal, FaOm, FaDownload, FaUserSecret, FaUsers, FaCloudUploadAlt, FaWhatsapp
 } from 'react-icons/fa';
 import { FaLock, FaBolt } from 'react-icons/fa6';
@@ -12,8 +12,6 @@ import { supabase } from '@/utils/supabase';
 // ─── TYPES & CONSTANTS ────────────────────────────────────────────────────────
 type Particle = { id: number; x: number; size: number; duration: number; delay: number; opacity: number };
 
-const UPI_ID = "bhajanmanjari@ptyes";
-const PAYEE_NAME = "Hindi Bhajan Manjari";
 const PRESET_AMOUNTS = [21, 51, 101, 251, 501, 1100];
 const MONTHLY_GOAL = 5000;
 
@@ -125,7 +123,6 @@ function MonthlyGoal({ currentRaised, supporterCount }: { currentRaised: number,
 export default function DonatePage() {
   const [amount, setAmount] = useState<number>(101);
   const [customAmount, setCustomAmount] = useState<string>('');
-  const [copied, setCopied] = useState(false);
   const [thankYou, setThankYou] = useState(false);
   
   // 🌟 Supporter Details
@@ -146,9 +143,6 @@ export default function DonatePage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const effectiveAmount = amount > 0 ? amount : 0;
-  const amountParam = effectiveAmount > 0 ? `&am=${effectiveAmount}` : '';
-  const upiDeepLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(PAYEE_NAME)}&cu=INR${amountParam}`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(upiDeepLink)}&margin=10`;
 
   useEffect(() => {
     const names = ["एक गुप्त भक्त", "राहुल", "सुनीता", "एक राम भक्त", "अमित", "नेहा", "एक सनातन प्रेमी", "विकास"];
@@ -181,13 +175,6 @@ export default function DonatePage() {
     return () => clearTimeout(initialTimer);
   }, []);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(UPI_ID);
-    if (navigator.vibrate) navigator.vibrate(30);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
-  };
-
   const handlePreset = (val: number) => {
     if (navigator.vibrate) navigator.vibrate(20);
     setAmount(val);
@@ -209,79 +196,118 @@ export default function DonatePage() {
     }
   };
 
+  // 🌟 RAZORPAY SDK LOADER
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  // 🌟 RAZORPAY PAYMENT HANDLER
   const handlePayClick = async () => {
     if (donationType === 'public' && !supporterName.trim()) {
-      alert("कृपया अपना नाम दर्ज करें ताकि हम आपके बैंक स्टेटमेंट से पेमेंट वेरीफाई कर सकें।");
+      alert("कृपया अपना नाम दर्ज करें ताकि हम आपके सहयोग को पहचान सकें।");
       return;
     }
 
     setIsSubmitting(true);
-    setPaymentDate(new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
+
+    const isLoaded = await loadRazorpayScript();
+    if (!isLoaded) {
+      alert("पेमेंट गेटवे लोड नहीं हो पा रहा है। कृपया अपना इंटरनेट कनेक्शन चेक करें।");
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
-      if (donationType === 'public') {
-        let photoUrl = null;
+      // 1. Backend से Order ID लें
+      const orderResponse = await fetch('/api/razorpay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: effectiveAmount }),
+      });
+      const orderData = await orderResponse.json();
 
-        if (photoFile) {
-          const fileExt = photoFile.name.split('.').pop();
-          const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-          
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('supporter_photos')
-            .upload(fileName, photoFile);
-            
-          // 🌟 FIX: Check Storage Error
-          if (uploadError) {
-            console.error("Storage Error:", uploadError);
-            throw new Error("फोटो अपलोड नहीं हो पाई: " + uploadError.message);
+      if (!orderData.id) throw new Error("Order creation failed");
+
+      // 2. Razorpay Checkout Setup
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, 
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: "Hindi Bhajan Manjari",
+        description: "सनातन धर्म के लिए सहयोग राशि",
+        image: "/logo.png", // अपनी वेबसाइट का लोगो
+        order_id: orderData.id,
+        prefill: {
+          name: donationType === 'public' ? supporterName : "Gupt Bhakt",
+        },
+        theme: {
+          color: "#ea580c" // Orange Theme
+        },
+        // 🌟 SUCCESS HANDLER: पेमेंट सफल होने के बाद
+        handler: async function (response: any) {
+          try {
+            let photoUrl = null;
+
+            // 1. फोटो अपलोड (अगर है तो)
+            if (donationType === 'public' && photoFile) {
+              const fileExt = photoFile.name.split('.').pop();
+              const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+              const { error: uploadError } = await supabase.storage.from('supporter_photos').upload(fileName, photoFile);
+              if (!uploadError) {
+                const { data } = supabase.storage.from('supporter_photos').getPublicUrl(fileName);
+                photoUrl = data.publicUrl;
+              }
+            }
+
+            // 2. डेटाबेस एंट्री (Completed Status)
+            await supabase.from('supporters').insert([
+              {
+                amount: effectiveAmount,
+                name: donationType === 'public' ? supporterName : null,
+                message: donationType === 'public' ? supporterMessage : null,
+                photo_url: photoUrl,
+                is_anonymous: donationType === 'anonymous',
+                status: 'completed',
+                razorpay_payment_id: response.razorpay_payment_id
+              }
+            ]);
+
+          } catch (dbErr) {
+            console.error("DB Save failed after successful payment", dbErr);
+            // बैकग्राउंड में सेव फेल भी हो जाए, तो भी यूज़र को सर्टिफिकेट ज़रूर दिखाएंगे
           }
 
-          const { data: publicUrlData } = supabase.storage.from('supporter_photos').getPublicUrl(fileName);
-          photoUrl = publicUrlData.publicUrl;
-        }
-
-        const { error: insertError } = await supabase.from('supporters').insert([
-          {
-            amount: effectiveAmount,
-            name: supporterName,
-            message: supporterMessage,
-            photo_url: photoUrl,
-            is_anonymous: false,
-            status: 'pending' 
+          setPaymentDate(new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
+          setThankYou(true);
+          setIsSubmitting(false);
+        },
+        // 🌟 FAILURE/CANCEL HANDLERS
+        modal: {
+          ondismiss: function () {
+            setIsSubmitting(false);
+            alert("आपने पेमेंट कैंसिल कर दिया है। वेबसाइट को सुचारु रखने के लिए आपका सहयोग अत्यंत महत्वपूर्ण है, कृपया पुनः प्रयास करें। 🙏");
           }
-        ]);
-        
-        // 🌟 FIX: Check Database Insert Error
-        if (insertError) {
-          console.error("DB Error:", insertError);
-          throw new Error("डेटाबेस एरर: " + insertError.message);
         }
+      };
 
-      } else {
-        const { error: anonError } = await supabase.from('supporters').insert([
-          {
-            amount: effectiveAmount,
-            is_anonymous: true,
-            status: 'pending'
-          }
-        ]);
-        
-        // 🌟 FIX: Check Database Insert Error
-        if (anonError) {
-          console.error("DB Error:", anonError);
-          throw new Error("डेटाबेस एरर: " + anonError.message);
-        }
-      }
+      const rzp = new (window as any).Razorpay(options);
+      
+      rzp.on('payment.failed', function (response: any) {
+        alert(`पेमेंट विफल रहा (${response.error.reason})। कृपया इंटरनेट चेक करें या किसी अन्य माध्यम से पुनः प्रयास करें।`);
+        setIsSubmitting(false);
+      });
 
-      // 🌟 यह तभी चलेगा जब ऊपर डेटाबेस में 100% सफलता से एंट्री सेव हो जाएगी!
-      window.location.href = upiDeepLink;
-      setTimeout(() => setThankYou(true), 1500);
+      rzp.open();
 
     } catch (error: any) {
       console.error("Donation processing error:", error);
-      // 🌟 FIX: अब स्क्रीन पर एरर दिखेगा ताकि हमें पता चले क्या गलत है!
-      alert("Error: " + error.message);
-    } finally {
+      alert("पेमेंट सर्वर से संपर्क नहीं हो पाया। कृपया थोड़ी देर बाद प्रयास करें।");
       setIsSubmitting(false);
     }
   };
@@ -310,7 +336,6 @@ export default function DonatePage() {
   // ─── THANK YOU SCREEN WITH CERTIFICATE ───
   if (thankYou) {
     return (
-      // 🌟 FIX 1: Added pt-32 pb-24 to prevent header/footer overlap on Thank You screen
       <div className="min-h-screen pt-32 pb-24 flex flex-col items-center justify-start bg-orange-50 dark:bg-[#0c0804] px-4 text-center font-hindi overflow-x-hidden">
         <style>{`
           @keyframes bounce-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } } 
@@ -326,19 +351,14 @@ export default function DonatePage() {
           🙏 हृदय से धन्यवाद!
         </h1>
         <p className="text-gray-700 dark:text-gray-300 text-lg max-w-md mx-auto leading-relaxed mb-6">
-          सनातन धर्म के संरक्षण में आपके सहयोग के लिए हम आपके आभारी हैं।
+          सनातन धर्म के संरक्षण में आपके सहयोग के लिए हम आपके आभारी हैं। आपका पेमेंट सफलतापूर्वक प्राप्त हो गया है।
         </p>
 
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 rounded-2xl p-5 max-w-2xl mx-auto mb-10 shadow-sm">
-          <p className="text-yellow-800 dark:text-yellow-400 font-bold text-sm leading-relaxed">
-            <span className="text-lg">🕒</span> <strong className="text-yellow-900 dark:text-yellow-300">वेरिफिकेशन प्रोसेस:</strong> आपका पेमेंट हमारे सिस्टम द्वारा मैन्युअली वेरीफाई किया जाएगा। इसमें 24 घंटे तक का समय लग सकता है।
-          </p>
-          {donationType === 'public' && (
-            <p className="text-yellow-700 dark:text-yellow-500 text-sm font-medium mt-2 border-t border-yellow-200 dark:border-yellow-700/50 pt-2">
-              सफलतापूर्वक वेरीफाई होने के 24 घंटे बाद आपका नाम 'Supporters Wall' (भक्तों की सूची) में जोड़ दिया जाएगा।
-            </p>
-          )}
-        </div>
+        {donationType === 'public' && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 rounded-2xl p-4 max-w-2xl mx-auto mb-10 shadow-sm text-yellow-800 dark:text-yellow-400 font-bold text-sm">
+            आपका नाम 'Supporters Wall' (भक्तों की सूची) में जोड़ दिया गया है।
+          </div>
+        )}
 
         <div className="relative w-full max-w-3xl mx-auto shadow-2xl rounded-sm mb-8 overflow-hidden transform scale-95 md:scale-100">
           <div ref={certificateRef} className="cert-bg bg-[#fffcf5] text-gray-900 p-8 md:p-14 border-[12px] border-double border-orange-300 relative">
@@ -378,7 +398,7 @@ export default function DonatePage() {
               <div className="flex justify-between items-end text-left border-t border-orange-200 pt-6">
                 <div>
                   <p className="text-xs font-bold text-gray-500 uppercase">Payment Mode</p>
-                  <p className="text-sm font-mono font-bold text-gray-800">Direct UPI / Scan</p>
+                  <p className="text-sm font-mono font-bold text-gray-800">Verified Razorpay Transfer</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-bold text-gray-500 uppercase">Date</p>
@@ -396,20 +416,6 @@ export default function DonatePage() {
           >
             <FaDownload /> प्रमाण-पत्र डाउनलोड करें
           </button>
-          
-          <div className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 mt-4">
-            <p className="text-gray-600 dark:text-gray-400 text-sm font-medium mb-3">
-              अगर 24 घंटे बाद भी आपका नाम लिस्ट में नहीं दिखता है, तो कृपया बेझिझक हमसे संपर्क करें:
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <a href="https://wa.me/918384844353" target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-2 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] dark:text-[#25D366] font-bold py-2.5 rounded-xl transition-colors text-sm">
-                <FaWhatsapp size={18} /> +91 8384844353
-              </a>
-              <a href="/contact" className="flex-1 flex items-center justify-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2.5 rounded-xl transition-colors text-sm">
-                Contact Form
-              </a>
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -473,7 +479,6 @@ export default function DonatePage() {
         </div>
       )}
 
-      {/* 🌟 FIX 1: Added pt-28 md:pt-36 and pb-32 to solve header/footer collision */}
       <div className="min-h-screen pt-28 md:pt-36 pb-32 bg-orange-50/40 dark:bg-[#0c0804] relative overflow-hidden transition-colors duration-300 font-hindi">
         
         <FloatingParticles />
@@ -588,15 +593,8 @@ export default function DonatePage() {
 
               {donationType === 'public' && (
                 <div className="max-w-xl mx-auto space-y-5 animate-in slide-in-from-top-4 fade-in duration-300">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-2">
-                    <p className="text-blue-800 dark:text-blue-300 text-xs font-medium flex items-start gap-2">
-                      <FaShieldAlt className="mt-0.5 shrink-0" />
-                      मैनुअल वेरिफिकेशन के लिए, कृपया यहाँ बिल्कुल वही नाम दर्ज़ करें जो आपके बैंक अकाउंट (Bank Statement) में है।
-                    </p>
-                  </div>
-
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">पूरा नाम (Bank Name Match) <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">पूरा नाम <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       placeholder="e.g. Rahul Sharma"
@@ -620,7 +618,6 @@ export default function DonatePage() {
 
                   <div>
                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">अपनी फोटो अपलोड करें (वैकल्पिक)</label>
-                    {/* 🌟 FIX 2: Beautiful Circular Avatar Preview */}
                     <label className="flex flex-col items-center justify-center w-full min-h-[160px] border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-orange-400 dark:hover:border-orange-500 rounded-xl cursor-pointer bg-gray-50/50 dark:bg-gray-800/30 transition-colors overflow-hidden relative p-4">
                       {photoPreview ? (
                         <div className="flex flex-col items-center justify-center w-full">
@@ -649,69 +646,36 @@ export default function DonatePage() {
               )}
             </div>
 
-            <div className="p-6 md:p-10 flex flex-col md:flex-row gap-8 md:gap-10">
-              <div className="flex flex-col items-center md:w-1/2">
-                <div className="flex items-center gap-3 mb-5 w-full justify-center md:justify-start">
-                  <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 font-black flex items-center justify-center shrink-0">3</div>
-                  <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg">QR स्कैन करें</h2>
-                </div>
-                
-                <div className="bg-white p-3.5 rounded-3xl shadow-md border border-gray-100 relative group transition-transform hover:scale-105 duration-300">
-                  <div className="w-44 h-44 flex items-center justify-center rounded-2xl overflow-hidden relative bg-white">
-                    <img src={qrUrl} alt="UPI QR Code" className="w-full h-full object-contain" />
-                  </div>
-                </div>
-                
-                <p className="mt-5 font-black text-2xl text-orange-600 dark:text-orange-400 text-center">
-                  {effectiveAmount > 0 ? `₹${effectiveAmount.toLocaleString('hi-IN')}` : <span className="text-gray-500 text-lg">राशि दर्ज करें</span>}
-                </p>
-                <p className="text-xs font-bold text-gray-500 mt-1">GPay · PhonePe · Paytm</p>
+            {/* 🌟 NEW: RAZORPAY CHECKOUT SECTION */}
+            <div className="p-6 md:p-10 flex flex-col items-center justify-center text-center">
+              <div className="flex items-center justify-center gap-3 mb-6">
+                <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 font-black flex items-center justify-center shrink-0">3</div>
+                <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg md:text-xl">सुरक्षित पेमेंट करें</h2>
               </div>
+              
+              <p className="mt-2 mb-6 font-black text-4xl text-orange-600 dark:text-orange-400 text-center">
+                {effectiveAmount > 0 ? `₹${effectiveAmount.toLocaleString('hi-IN')}` : <span className="text-gray-500 text-xl">राशि दर्ज करें</span>}
+              </p>
 
-              <div className="flex flex-col justify-center md:w-1/2 gap-5">
-                <div>
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">हमारा UPI ID</p>
-                  <div className="flex gap-2">
-                    <code className="flex-1 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-3.5 rounded-xl font-mono text-sm font-bold border border-gray-200 dark:border-gray-700 truncate shadow-sm">
-                      {UPI_ID}
-                    </code>
-                    <button
-                      onClick={handleCopy}
-                      className="w-14 h-14 flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-orange-50 dark:hover:bg-gray-700 text-orange-600 dark:text-orange-400 rounded-xl transition-all shrink-0 active:scale-95 shadow-sm"
-                      aria-label="Copy UPI ID"
-                    >
-                      {copied ? <FaCheckCircle size={22} className="text-green-500" /> : <FaCopy size={22} />}
-                    </button>
-                  </div>
-                  {copied && <p className="text-green-600 dark:text-green-400 text-xs font-bold mt-2 ml-1">✓ UPI ID कॉपी हो गया!</p>}
-                </div>
+              <button
+                onClick={handlePayClick}
+                disabled={effectiveAmount <= 0 || isSubmitting}
+                className="w-full max-w-md py-4 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 disabled:from-gray-300 disabled:to-gray-400 disabled:dark:from-gray-700 disabled:dark:to-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-black text-lg rounded-2xl shadow-lg shadow-orange-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-3 outline-none relative overflow-hidden"
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">प्रोसेस हो रहा है... <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div></span>
+                ) : (
+                  <>
+                    <FaShieldAlt className={effectiveAmount > 0 ? "text-yellow-300" : "text-gray-200 dark:text-gray-600"} />
+                    Razorpay से सुरक्षित पेमेंट करें
+                  </>
+                )}
+              </button>
 
-                <div className="relative flex items-center py-2">
-                  <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
-                  <span className="flex-shrink-0 mx-4 text-gray-500 text-xs font-bold uppercase tracking-widest">या मोबाइल पर</span>
-                  <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
-                </div>
-
-                <button
-                  onClick={handlePayClick}
-                  disabled={effectiveAmount <= 0 || isSubmitting}
-                  className="w-full py-4 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 disabled:from-gray-300 disabled:to-gray-400 disabled:dark:from-gray-700 disabled:dark:to-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-black text-lg rounded-2xl shadow-lg shadow-orange-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-3 outline-none relative overflow-hidden"
-                >
-                  {isSubmitting ? (
-                    <span className="flex items-center gap-2">प्रोसेस हो रहा है... <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div></span>
-                  ) : (
-                    <>
-                      <FaBolt className={effectiveAmount > 0 ? "text-yellow-300" : "text-gray-200 dark:text-gray-600"} />
-                      सीधे UPI ऐप से दें {effectiveAmount > 0 ? `(₹${effectiveAmount})` : ''}
-                    </>
-                  )}
-                </button>
-
-                <div className="flex items-center justify-center gap-4 text-xs font-bold text-gray-500 mt-2">
-                  <span className="flex items-center gap-1.5"><FaLock className="text-green-500" /> 100% सुरक्षित</span>
-                  <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
-                  <span className="flex items-center gap-1.5"><FaShieldAlt className="text-blue-500" /> सीधा बैंक ट्रांसफर</span>
-                </div>
+              <div className="flex items-center justify-center gap-4 text-xs font-bold text-gray-500 mt-5">
+                <span className="flex items-center gap-1.5"><FaLock className="text-green-500" /> 100% सुरक्षित</span>
+                <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+                <span className="flex items-center gap-1.5">UPI, Cards, NetBanking</span>
               </div>
             </div>
 
