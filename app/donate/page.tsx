@@ -348,7 +348,7 @@ export default function DonatePage() {
   // ─── THANK YOU SCREEN WITH CERTIFICATE ───
   if (thankYou) {
     return (
-      <div className="min-h-screen pt-32 pb-24 flex flex-col items-center justify-start bg-orange-50 dark:bg-[#0c0804] px-4 text-center font-hindi overflow-x-hidden">
+      <div className="min-h-screen !pt-24 !pb-16 flex flex-col items-center justify-start bg-orange-50 dark:bg-[#0c0804] px-4 text-center font-hindi overflow-x-hidden">
         <style>{`
           @keyframes bounce-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } } 
           .animate-bounce-slow { animation: bounce-slow 2.5s ease-in-out infinite; }
@@ -491,7 +491,7 @@ export default function DonatePage() {
         </div>
       )}
 
-      <div className="min-h-screen pt-28 md:pt-36 pb-32 bg-orange-50/40 dark:bg-[#0c0804] relative overflow-hidden transition-colors duration-300 font-hindi">
+      <div className="min-h-screen !pt-24 !pb-20 md:!pb-24 bg-orange-50/40 dark:bg-[#0c0804] relative overflow-hidden transition-colors duration-300 font-hindi">
         
         <FloatingParticles />
         <div className="pointer-events-none absolute inset-0 mandala-bg z-0" />
