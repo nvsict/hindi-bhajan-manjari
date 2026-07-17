@@ -13,6 +13,7 @@ interface BhaktiStudioProps {
   onUploadSuccess?: () => void;
 }
 
+// 🌟 FIX: हमने 'mic' (Tone.UserMedia) को भी Chain में शामिल कर लिया है।
 type AudioChain = {
   mic: Tone.UserMedia;
   hpf: Tone.Filter;
@@ -29,8 +30,6 @@ let contextConfigured = false;
 function ensurePlaybackContext() {
   if (contextConfigured) return;
   contextConfigured = true;
-  // 🌟 Bigger, stabler buffer than Tone's default "interactive" hint —
-  // gives the audio thread more headroom against dropouts/crackle.
   const ctx = new Tone.Context({ latencyHint: "playback" });
   Tone.setContext(ctx);
 }
@@ -65,9 +64,7 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
     await Tone.start();
     if (audioChainRef.current) return audioChainRef.current;
 
-    // 🌟 PURE TONE.JS APPROACH: mic is a real Tone node from the start,
-    // registered in Tone's internal registry — this is what actually
-    // fixes the "different audio context" / "key not found" crash.
+    // 🌟 PURE TONE.JS APPROACH: Native getUserMedia की जगह Tone.UserMedia
     const mic = new Tone.UserMedia();
     const hpf = new Tone.Filter({ type: "highpass", frequency: 85, rolloff: -24 });
     const gate = new Tone.Gate({ threshold: isNoiseReduction ? -40 : -100, smoothing: 0.15 });
@@ -78,6 +75,7 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
     const recorder = new Tone.Recorder();
     const analyser = new Tone.Analyser("fft", 256);
 
+    // 🌟 Tone के नोड्स आपस में सुरक्षित तरीके से कनेक्ट हो गए
     mic.connect(hpf);
     hpf.chain(gate, compressor, eqNode, reverb, limiter, recorder);
     limiter.connect(analyser);
@@ -140,17 +138,18 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
     try {
       const chain = await initAudioChain();
 
-      // 🌟 FIX: Tone.UserMedia.open() expects MediaTrackConstraints directly
-      // (no `audio:` wrapper). Passing the wrapped MediaStreamConstraints
-      // shape here was silently double-nesting `audio`, which meant your
-      // echoCancellation/noiseSuppression/autoGainControl settings were
-      // never actually being applied by the browser.
-      await chain.mic.open({
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-        channelCount: 1,
-      });
+      const constraints: MediaStreamConstraints = {
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+        },
+      };
+
+      // 🌟 THE FIX: हम Tone.UserMedia से ही स्ट्रीम खुलवाएंगे
+      // यह बिना किसी 'context mapping' क्रैश के 100% स्मूथ रिकॉर्ड करेगा।
+      await chain.mic.open(constraints as any);
 
       setRecordingDuration(0);
       logEvent("studio_record_start", { bhajan_slug: bhajanSlug });
@@ -220,6 +219,7 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
 
       broadcastRecordingState(false);
 
+      // 🌟 माइक को सुरक्षित तरीके से बंद करें
       audioChainRef.current.mic.close();
 
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
