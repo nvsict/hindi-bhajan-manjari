@@ -84,7 +84,7 @@ export default function CommentsSection({ bhajanSlug }: { bhajanSlug: string }) 
               type="text" 
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="e.g. Rahul Sharma"
+              placeholder="e.g. Mohit Tarkar"
               required
               className="w-full px-4 py-2.5 rounded-xl border border-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 bg-white"
             />

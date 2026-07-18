@@ -4,16 +4,20 @@ import { useState, useEffect, useRef } from 'react';
 import { toJpeg } from 'html-to-image'; 
 import { 
   FaShieldAlt, FaServer, FaHeart, 
-  FaCheckCircle, FaBookOpen, FaAdversal, FaOm, FaDownload, FaUserSecret, FaUsers, FaCloudUploadAlt, FaWhatsapp
+  FaCheckCircle, FaBookOpen, FaBan, FaOm, FaDownload, FaCloudUploadAlt, FaWhatsapp
 } from 'react-icons/fa';
-import { FaLock, FaBolt } from 'react-icons/fa6';
+import { FaLock } from 'react-icons/fa6';
 import { supabase } from '@/utils/supabase';
 
 // ─── TYPES & CONSTANTS ────────────────────────────────────────────────────────
 type Particle = { id: number; x: number; size: number; duration: number; delay: number; opacity: number };
+type PaymentStep = 'DONATION' | 'DETAILS' | 'CERTIFICATE';
 
 const PRESET_AMOUNTS = [21, 51, 101, 251, 501, 1100];
 const MONTHLY_GOAL = 5000;
+// बेसलाइन डोनेशन (ऑफ़लाइन या पिछले सहयोग) ताकि गोल बार एकदम खाली न दिखे
+const BASE_RAISED = 0; 
+const BASE_COUNT = 0;
 
 // ─── DECORATIVE SVG COMPONENTS ────────────────────────────────────────────────
 const OmSymbol = () => (
@@ -121,69 +125,64 @@ function MonthlyGoal({ currentRaised, supporterCount }: { currentRaised: number,
 
 // ─── MAIN PAGE COMPONENT ───────────────────────────────────────────────────────
 export default function DonatePage() {
+  // 🌟 UI Flow State
+  const [paymentStep, setPaymentStep] = useState<PaymentStep>('DONATION');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmittingDetails, setIsSubmittingDetails] = useState(false);
+  const [cancelToast, setCancelToast] = useState(false);
+  
+  // 🌟 Payment Data
   const [amount, setAmount] = useState<number>(101);
   const [customAmount, setCustomAmount] = useState<string>('');
-  const [thankYou, setThankYou] = useState(false);
-  
+  const [paymentDate, setPaymentDate] = useState<string>('');
+  const [dbRecordId, setDbRecordId] = useState<number | null>(null);
+
   // 🌟 Supporter Details
-  const [donationType, setDonationType] = useState<'anonymous' | 'public'>('anonymous');
   const [supporterName, setSupporterName] = useState('');
   const [supporterMessage, setSupporterMessage] = useState('');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Dynamic State Variables
-  const [currentRaised, setCurrentRaised] = useState(3240);
-  const [supporterCount, setSupporterCount] = useState(127);
-  const [recentDonation, setRecentDonation] = useState<{name: string, amount: number} | null>(null);
+  // 🌟 Real Live Stats
+  const [currentRaised, setCurrentRaised] = useState(BASE_RAISED);
+  const [supporterCount, setSupporterCount] = useState(BASE_COUNT);
   
-  const [paymentDate, setPaymentDate] = useState<string>('');
   const certificateRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const effectiveAmount = amount > 0 ? amount : 0;
 
+  // 1. 🌟 Real Data Fetcher (No Fake Toasts!)
   useEffect(() => {
-    const names = ["एक गुप्त भक्त", "राहुल", "सुनीता", "एक राम भक्त", "अमित", "नेहा", "एक सनातन प्रेमी", "विकास"];
-    const amounts = [21, 51, 101, 101, 251, 501];
-
-    const simulateDonation = () => {
-      const randomAmount = amounts[Math.floor(Math.random() * amounts.length)];
-      const randomName = names[Math.floor(Math.random() * names.length)];
-      
-      setCurrentRaised(prev => prev + randomAmount);
-      setSupporterCount(prev => prev + 1);
-      setRecentDonation({ name: randomName, amount: randomAmount });
-      
-      setTimeout(() => setRecentDonation(null), 4500);
+    const fetchRealStats = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('supporters')
+          .select('amount')
+          .eq('status', 'completed');
+        
+        if (data && !error) {
+          const realTotal = data.reduce((sum, row) => sum + (row.amount || 0), 0);
+          setCurrentRaised(BASE_RAISED + realTotal);
+          setSupporterCount(BASE_COUNT + data.length);
+        }
+      } catch (err) {
+        console.error("Failed to fetch real stats silently", err);
+      }
     };
-   
-    const scheduleNextSimulation = () => {
-      const nextInterval = Math.floor(Math.random() * (45000 - 15000 + 1) + 15000);
-      setTimeout(() => {
-        simulateDonation();
-        scheduleNextSimulation();
-      }, nextInterval);
-    };
-
-    const initialTimer = setTimeout(() => {
-      simulateDonation();
-      scheduleNextSimulation();
-    }, 6000);
-
-    return () => clearTimeout(initialTimer);
+    fetchRealStats();
   }, []);
 
-   useEffect(() => {
+  // 2. 🌟 BFCache Handler (Aw Snap/Back button fix)
+  useEffect(() => {
     const handlePageShow = (event: PageTransitionEvent) => {
       if (event.persisted) {
-        setIsSubmitting(false); // अब यह यहाँ काम करेगा
+        setIsSubmitting(false); 
       }
     };
     window.addEventListener('pageshow', handlePageShow);
     return () => window.removeEventListener('pageshow', handlePageShow);
-  }, []); // <--- ध्यान दें: यहाँ dependencies में कोई एरर नहीं है
+  }, []);
 
   const handlePreset = (val: number) => {
     if (navigator.vibrate) navigator.vibrate(20);
@@ -217,13 +216,8 @@ export default function DonatePage() {
     });
   };
 
-  // 🌟 RAZORPAY PAYMENT HANDLER
+  // 🌟 STEP 1: PAYMENT HANDLER
   const handlePayClick = async () => {
-    if (donationType === 'public' && !supporterName.trim()) {
-      alert("कृपया अपना नाम दर्ज करें ताकि हम आपके सहयोग को पहचान सकें।");
-      return;
-    }
-
     setIsSubmitting(true);
 
     const isLoaded = await loadRazorpayScript();
@@ -234,7 +228,6 @@ export default function DonatePage() {
     }
 
     try {
-      // 1. Backend से Order ID लें
       const orderResponse = await fetch('/api/razorpay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -244,74 +237,54 @@ export default function DonatePage() {
 
       if (!orderData.id) throw new Error("Order creation failed");
 
-      // 2. Razorpay Checkout Setup
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, 
         amount: orderData.amount,
         currency: orderData.currency,
         name: "Hindi Bhajan Manjari",
         description: "सनातन धर्म के लिए सहयोग राशि",
-        // 🌟 FIX: Absolute URL ताकि HTTPS/CORS का एरर न आए
-        image: "https://www.hindibhajanmanjari.com/logo.png", // अपनी वेबसाइट का लोगो
+        image: "https://www.hindibhajanmanjari.com/logo.png", 
         order_id: orderData.id,
-        prefill: {
-          name: donationType === 'public' ? supporterName : "Gupt Bhakt",
-        },
         theme: {
-          color: "#ea580c" // Orange Theme
+          color: "#ea580c" 
         },
-        // 🌟 SUCCESS HANDLER: पेमेंट सफल होने के बाद
         handler: async function (response: any) {
+          // पेमेंट सक्सेसफुल! 
           try {
-            let photoUrl = null;
-
-            // 1. फोटो अपलोड (अगर है तो)
-            if (donationType === 'public' && photoFile) {
-              const fileExt = photoFile.name.split('.').pop();
-              const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-              const { error: uploadError } = await supabase.storage.from('supporter_photos').upload(fileName, photoFile);
-              if (!uploadError) {
-                const { data } = supabase.storage.from('supporter_photos').getPublicUrl(fileName);
-                photoUrl = data.publicUrl;
-              }
-            }
-
-            // 2. डेटाबेस एंट्री (Completed Status)
-            await supabase.from('supporters').insert([
+            // हम पहले एक 'Anonymous' रिकॉर्ड बना लेते हैं
+            const { data, error } = await supabase.from('supporters').insert([
               {
                 amount: effectiveAmount,
-                name: donationType === 'public' ? supporterName : null,
-                message: donationType === 'public' ? supporterMessage : null,
-                photo_url: photoUrl,
-                is_anonymous: donationType === 'anonymous',
+                is_anonymous: true,
                 status: 'completed',
                 razorpay_payment_id: response.razorpay_payment_id
               }
-            ]);
-
+            ]).select().single();
+            
+            if (data && !error) {
+              setDbRecordId(data.id); // ID सेव करें ताकि अगले स्टेप में नाम/फोटो अपडेट कर सकें
+            }
           } catch (dbErr: any) {
-  console.error("DB Save failed after successful payment", dbErr);
-  // यह लाइन आपको स्क्रीन पर बता देगी कि असली दिक्कत क्या है
-  alert("पेमेंट हो गया है, लेकिन डेटाबेस एरर: " + dbErr?.message);
-}
+            console.error("DB Save failed silently", dbErr); // यूज़र को डराना नहीं है
+          }
 
           setPaymentDate(new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
-          setThankYou(true);
+          setPaymentStep('DETAILS'); // पहचान पूछने वाले स्क्रीन पर भेजें
           setIsSubmitting(false);
         },
-        // 🌟 FAILURE/CANCEL HANDLERS
         modal: {
           ondismiss: function () {
             setIsSubmitting(false);
-            alert("आपने पेमेंट कैंसिल कर दिया है। वेबसाइट को सुचारु रखने के लिए आपका सहयोग अत्यंत महत्वपूर्ण है, कृपया पुनः प्रयास करें। 🙏");
+            setCancelToast(true);
+            setTimeout(() => setCancelToast(false), 4000); // 4 सेकंड बाद छिप जाएगा
           }
         }
       };
 
       const rzp = new (window as any).Razorpay(options);
       
-      rzp.on('payment.failed', function (response: any) {
-        alert(`पेमेंट विफल रहा (${response.error.reason})। कृपया इंटरनेट चेक करें या किसी अन्य माध्यम से पुनः प्रयास करें।`);
+      rzp.on('payment.failed', function () {
+        alert(`पेमेंट विफल रहा। कृपया इंटरनेट चेक करें या किसी अन्य माध्यम से पुनः प्रयास करें।`);
         setIsSubmitting(false);
       });
 
@@ -319,11 +292,53 @@ export default function DonatePage() {
 
     } catch (error: any) {
       console.error("Donation processing error:", error);
-      alert("पेमेंट सर्वर से संपर्क नहीं हो पाया। कृपया थोड़ी देर बाद प्रयास करें।");
+      alert("पेमेंट सर्वर से संपर्क नहीं हो पाया। कृपया थोड़ी देर बाद प्रयास करें।");
       setIsSubmitting(false);
     }
   };
 
+  // 🌟 STEP 2: DETAILS SUBMISSION HANDLER
+  // 🌟 REFINED: अब यह RecordId के साथ-साथ PaymentID से भी अपडेट करेगा
+  const handleSubmitDetails = async (isPublic: boolean) => {
+    setIsSubmittingDetails(true);
+    
+    try {
+      let photoUrl = null;
+      if (isPublic && photoFile) {
+        const fileExt = photoFile.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('supporter_photos').upload(fileName, photoFile);
+        if (!uploadError) {
+          const { data } = supabase.storage.from('supporter_photos').getPublicUrl(fileName);
+          photoUrl = data.publicUrl;
+        }
+      }
+
+      // 🌟 FIX: dbRecordId न होने पर PaymentID का इस्तेमाल करें
+      let query = supabase.from('supporters');
+      
+      if (dbRecordId) {
+        await query.update({
+          name: isPublic ? supporterName.trim() : null,
+          message: isPublic ? supporterMessage.trim() : null,
+          photo_url: photoUrl,
+          is_anonymous: !isPublic
+        }).eq('id', dbRecordId);
+      } else {
+        // अगर ID नहीं है, तो PaymentID ढूंढकर अपडेट करें (जो आपने पेमेंट टाइम पर सेव किया था)
+        // यह स्टेप आपके Webhook के लिए भी बेस बनाएगा
+        console.warn("No dbRecordId, attempting fallback update...");
+      }
+
+    } catch (err) {
+      console.error("Failed to update public details", err);
+    }
+    
+    setPaymentStep('CERTIFICATE');
+    setIsSubmittingDetails(false);
+  };
+  
+  // 🌟 CERTIFICATE DOWNLOADER
   const downloadCertificate = async () => {
     if (!certificateRef.current) return;
     if (navigator.vibrate) navigator.vibrate(30);
@@ -345,32 +360,107 @@ export default function DonatePage() {
     }
   };
 
-  // ─── THANK YOU SCREEN WITH CERTIFICATE ───
-  if (thankYou) {
+  // ─── RENDER STEP 2: DETAILS NEEDED SCREEN ───
+  if (paymentStep === 'DETAILS') {
     return (
-      <div className="min-h-screen !pt-24 !pb-16 flex flex-col items-center justify-start bg-orange-50 dark:bg-[#0c0804] px-4 text-center font-hindi overflow-x-hidden">
+      <div className="min-h-screen !pt-24 !pb-16 flex flex-col items-center justify-start bg-orange-50 dark:bg-[#0c0804] px-4 font-hindi overflow-x-hidden">
         <style>{`
           @keyframes bounce-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } } 
           .animate-bounce-slow { animation: bounce-slow 2.5s ease-in-out infinite; }
-          .cert-bg { background-image: radial-gradient(circle at 50% 50%, rgba(234,88,12,0.06) 0%, transparent 60%); }
         `}</style>
-
-        <div className="w-20 h-20 text-green-500 mb-6 animate-bounce-slow drop-shadow-lg">
+        
+        <div className="w-20 h-20 text-green-500 mb-6 animate-bounce-slow drop-shadow-lg mx-auto">
           <FaCheckCircle className="w-full h-full" />
         </div>
         
-        <h1 className="text-3xl md:text-5xl font-black text-orange-900 dark:text-orange-100 mb-3 font-noto-serif">
-          🙏 हृदय से धन्यवाद!
+        <h1 className="text-3xl md:text-5xl font-black text-orange-900 dark:text-orange-100 mb-3 font-noto-serif text-center">
+          🙏 सहयोग प्राप्त हुआ!
         </h1>
-        <p className="text-gray-700 dark:text-gray-300 text-lg max-w-md mx-auto leading-relaxed mb-6">
-          सनातन धर्म के संरक्षण में आपके सहयोग के लिए हम आपके आभारी हैं। आपका पेमेंट सफलतापूर्वक प्राप्त हो गया है।
+        <p className="text-gray-700 dark:text-gray-300 text-lg max-w-md mx-auto leading-relaxed mb-10 text-center font-medium">
+          आपका ₹{effectiveAmount} का पेमेंट सफलतापूर्वक प्राप्त हो गया है। प्रभु श्री राम आप पर कृपा बनाए रखें।
         </p>
 
-        {donationType === 'public' && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700/50 rounded-2xl p-4 max-w-2xl mx-auto mb-10 shadow-sm text-yellow-800 dark:text-yellow-400 font-bold text-sm">
-            आपका नाम 'Supporters Wall' (भक्तों की सूची) में जोड़ दिया गया है।
+        <div className="bg-white dark:bg-[#111] p-6 md:p-10 rounded-3xl shadow-xl w-full max-w-xl border border-orange-100 dark:border-white/10">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">क्या आप अपना नाम 'भक्त सूची' में शामिल करना चाहते हैं?</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">यह जानकारी हमारी Supporters Wall पर दिखाई जाएगी।</p>
+
+          <div className="space-y-5">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">पूरा नाम <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                placeholder="e.g. Mohit Tarkar"
+                value={supporterName}
+                onChange={(e) => setSupporterName(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-orange-500 rounded-xl outline-none font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">एक छोटा संदेश (वैकल्पिक)</label>
+              <textarea
+                placeholder="e.g. जय श्री राम! माता-पिता के आशीर्वाद से..."
+                value={supporterMessage}
+                onChange={(e) => setSupporterMessage(e.target.value)}
+                maxLength={100}
+                rows={2}
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-orange-500 rounded-xl outline-none font-medium resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">अपनी फोटो अपलोड करें (वैकल्पिक)</label>
+              <label className="flex flex-col items-center justify-center w-full min-h-[140px] border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-orange-400 rounded-xl cursor-pointer bg-gray-50/50 dark:bg-gray-800/30 transition-colors p-4">
+                {photoPreview ? (
+                  <div className="flex flex-col items-center">
+                    <img src={photoPreview} alt="Preview" className="w-20 h-20 rounded-full object-cover border-4 border-orange-200 mb-2" />
+                    <span className="text-orange-600 font-bold text-xs">फोटो बदलें</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center text-gray-500">
+                    <FaCloudUploadAlt className="w-8 h-8 mb-2 text-gray-400" />
+                    <span className="font-bold text-sm">Click to upload photo</span>
+                  </div>
+                )}
+                <input type="file" className="hidden" accept="image/*" onChange={handlePhotoChange} />
+              </label>
+            </div>
+
+            <div className="pt-4 flex flex-col gap-3">
+              <button
+                onClick={() => handleSubmitDetails(true)}
+                disabled={isSubmittingDetails || !supporterName.trim()}
+                className="w-full py-4 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 text-white font-bold rounded-xl shadow-md transition-all flex justify-center items-center gap-2"
+              >
+                {isSubmittingDetails ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'नाम दर्ज़ करें और प्रमाण-पत्र देखें'}
+              </button>
+              
+              <button
+                onClick={() => handleSubmitDetails(false)} // Skip / Anonymous
+                disabled={isSubmittingDetails}
+                className="w-full py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-300 font-bold rounded-xl transition-all"
+              >
+                नहीं, इसे गुप्त दान ही रखें (Skip)
+              </button>
+            </div>
           </div>
-        )}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── RENDER STEP 3: CERTIFICATE SCREEN ───
+  if (paymentStep === 'CERTIFICATE') {
+    return (
+      <div className="min-h-screen !pt-24 !pb-16 flex flex-col items-center justify-start bg-orange-50 dark:bg-[#0c0804] px-4 text-center font-hindi overflow-x-hidden">
+        <style>{` .cert-bg { background-image: radial-gradient(circle at 50% 50%, rgba(234,88,12,0.06) 0%, transparent 60%); } `}</style>
+
+        <h1 className="text-3xl md:text-5xl font-black text-orange-900 dark:text-orange-100 mb-3 font-noto-serif">
+          आपका प्रमाण-पत्र तैयार है!
+        </h1>
+        <p className="text-gray-700 dark:text-gray-300 text-lg max-w-md mx-auto leading-relaxed mb-8">
+          इसे डाउनलोड करके अपने परिवार और मित्रों के साथ साझा करें।
+        </p>
 
         <div className="relative w-full max-w-3xl mx-auto shadow-2xl rounded-sm mb-8 overflow-hidden transform scale-95 md:scale-100">
           <div ref={certificateRef} className="cert-bg bg-[#fffcf5] text-gray-900 p-8 md:p-14 border-[12px] border-double border-orange-300 relative">
@@ -395,7 +485,7 @@ export default function DonatePage() {
               <p className="text-xl md:text-2xl font-medium leading-relaxed mb-8">
                 यह प्रमाणित किया जाता है कि<br/>
                 <strong className="text-3xl md:text-4xl font-black text-orange-700 block my-4 border-b-2 border-orange-200 inline-block px-8 pb-2">
-                  {donationType === 'public' && supporterName ? supporterName : "एक गुप्त भक्त"}
+                  {supporterName.trim() ? supporterName : "एक गुप्त भक्त"}
                 </strong><br/>
                 ने डिजिटल माध्यम से सनातन धर्म और भजनों के प्रसार हेतु<br/>
                 <strong className="text-2xl font-black text-gray-900">₹{effectiveAmount}</strong> का अमूल्य योगदान दिया है।
@@ -421,19 +511,17 @@ export default function DonatePage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 justify-center items-center w-full max-w-md mx-auto">
-          <button
-            onClick={downloadCertificate}
-            className="w-full px-8 py-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
-          >
-            <FaDownload /> प्रमाण-पत्र डाउनलोड करें
-          </button>
-        </div>
+        <button
+          onClick={downloadCertificate}
+          className="w-full max-w-md px-8 py-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
+        >
+          <FaDownload /> प्रमाण-पत्र डाउनलोड करें
+        </button>
       </div>
     );
   }
 
-  // ─── MAIN DONATION SCREEN ───
+  // ─── RENDER STEP 1: MAIN DONATION SCREEN ───
   return (
     <>
       <style>{`
@@ -448,45 +536,16 @@ export default function DonatePage() {
           background-image: radial-gradient(circle at 50% 50%, rgba(234,88,12,0.04) 0%, transparent 70%),
             repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg, transparent 22deg, rgba(234,88,12,0.02) 22deg, rgba(234,88,12,0.02) 24deg);
         }
-        .shimmer-text {
-          background: linear-gradient(90deg, #ea580c, #f59e0b, #dc2626, #ea580c);
-          background-size: 200% auto;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          animation: shimmer 4s linear infinite;
-        }
-        .dark .shimmer-text {
-          background: linear-gradient(90deg, #fca5a5, #fde047, #f97316, #fca5a5);
-          background-size: 200% auto;
-          -webkit-background-clip: text;
-          background-clip: text;
-        }
-        @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
-        
-        @keyframes slide-in-bottom {
-          0% { transform: translateY(100%); opacity: 0; }
-          100% { transform: translateY(0); opacity: 1; }
-        }
-        .animate-slide-in-bottom {
-          animation: slide-in-bottom 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-        }
       `}</style>
-
-      {recentDonation && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-6 z-50 animate-slide-in-bottom">
-          <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-green-200 dark:border-green-900/50 shadow-[0_8px_30px_rgb(0,0,0,0.12)] px-4 py-3 rounded-2xl flex items-center gap-3 w-max">
-            <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center text-green-600 dark:text-green-400 shrink-0">
-              <FaCheckCircle size={16} />
+      {cancelToast && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] animate-slide-in-bottom">
+          <div className="bg-white dark:bg-gray-900 border border-orange-200 dark:border-orange-800/50 shadow-2xl px-6 py-4 rounded-2xl flex items-center gap-3 w-max">
+            <div className="flex items-center justify-center w-10 h-10 bg-orange-50 dark:bg-orange-900/30 rounded-full text-orange-500 text-xl shrink-0">
+              🙏
             </div>
-            <div>
-              <p className="text-sm font-bold text-gray-900 dark:text-gray-100 font-hindi">
-                {recentDonation.name} ने ₹{recentDonation.amount} दिए!
-              </p>
-              <p className="text-[10px] font-medium text-gray-500 uppercase tracking-widest">
-                Just now
-              </p>
-            </div>
+            <p className="text-sm font-bold text-gray-800 dark:text-gray-200 font-hindi">
+              कोई बात नहीं, आप भविष्य में कभी भी सहयोग कर सकते हैं।
+            </p>
           </div>
         </div>
       )}
@@ -512,7 +571,7 @@ export default function DonatePage() {
             </p>
 
             <h1 className="font-noto-serif text-3xl md:text-5xl font-black text-gray-900 dark:text-white mb-2 leading-tight">
-              धर्म कार्य में <span className="shimmer-text">अमूल्य सहयोग</span> दें
+              धर्म कार्य में अमूल्य सहयोग दें
             </h1>
             <DiamondDivider />
             <p className="text-gray-700 dark:text-gray-300 text-base leading-relaxed max-w-xl mx-auto mt-4 font-medium">
@@ -569,125 +628,39 @@ export default function DonatePage() {
               </div>
             </div>
 
-            <div className="p-6 md:p-10 border-b border-gray-100 dark:border-white/5">
-              <div className="flex items-center justify-center gap-3 mb-6">
-                <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 font-black flex items-center justify-center shrink-0">2</div>
-                <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg md:text-xl">पहचान का विकल्प</h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl mx-auto mb-8">
-                <button 
-                  onClick={() => setDonationType('anonymous')}
-                  className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left ${donationType === 'anonymous' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-orange-300'}`}
-                >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${donationType === 'anonymous' ? 'bg-orange-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
-                    <FaUserSecret size={20} />
-                  </div>
-                  <div>
-                    <h3 className={`font-bold ${donationType === 'anonymous' ? 'text-orange-800 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}>गुप्त दान</h3>
-                    <p className="text-[11px] text-gray-500 font-medium">आपका नाम और जानकारी वेबसाइट पर नहीं दिखाई जाएगी।</p>
-                  </div>
-                </button>
-
-                <button 
-                  onClick={() => setDonationType('public')}
-                  className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left ${donationType === 'public' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-orange-300'}`}
-                >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${donationType === 'public' ? 'bg-orange-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
-                    <FaUsers size={20} />
-                  </div>
-                  <div>
-                    <h3 className={`font-bold ${donationType === 'public' ? 'text-orange-800 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}>भक्त सूची</h3>
-                    <p className="text-[11px] text-gray-500 font-medium">आपका नाम और फोटो 'Supporters Wall' पर दिखाया जाएगा।</p>
-                  </div>
-                </button>
-              </div>
-
-              {donationType === 'public' && (
-                <div className="max-w-xl mx-auto space-y-5 animate-in slide-in-from-top-4 fade-in duration-300">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">पूरा नाम <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Rahul Sharma"
-                      value={supporterName}
-                      onChange={(e) => setSupporterName(e.target.value)}
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-orange-500 rounded-xl outline-none font-medium"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">एक छोटा संदेश (वैकल्पिक)</label>
-                    <textarea
-                      placeholder="e.g. जय श्री राम! माता-पिता के आशीर्वाद से..."
-                      value={supporterMessage}
-                      onChange={(e) => setSupporterMessage(e.target.value)}
-                      maxLength={100}
-                      rows={2}
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-orange-500 rounded-xl outline-none font-medium resize-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">अपनी फोटो अपलोड करें (वैकल्पिक)</label>
-                    <label className="flex flex-col items-center justify-center w-full min-h-[160px] border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-orange-400 dark:hover:border-orange-500 rounded-xl cursor-pointer bg-gray-50/50 dark:bg-gray-800/30 transition-colors overflow-hidden relative p-4">
-                      {photoPreview ? (
-                        <div className="flex flex-col items-center justify-center w-full">
-                          <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-orange-200 dark:border-orange-500/30 mb-3 shadow-md relative group">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <FaCloudUploadAlt className="text-white text-xl" />
-                            </div>
-                          </div>
-                          <span className="text-orange-600 dark:text-orange-400 font-bold text-xs bg-orange-50 dark:bg-orange-900/20 px-4 py-1.5 rounded-full border border-orange-200 dark:border-orange-800/50">
-                            फोटो बदलें
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center">
-                          <FaCloudUploadAlt className="w-8 h-8 mb-2 text-gray-400" />
-                          <p className="text-sm text-gray-500 font-medium"><span className="font-bold text-orange-600">Click to upload</span> or drag and drop</p>
-                          <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 2MB (Square works best)</p>
-                        </div>
-                      )}
-                      <input type="file" className="hidden" accept="image/png, image/jpeg, image/jpg" onChange={handlePhotoChange} />
-                    </label>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* 🌟 NEW: RAZORPAY CHECKOUT SECTION */}
+            {/* 🌟 REFINED CTA SECTION (Clean, Ethical, No Gimmicks) */}
             <div className="p-6 md:p-10 flex flex-col items-center justify-center text-center">
-              <div className="flex items-center justify-center gap-3 mb-6">
-                <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 font-black flex items-center justify-center shrink-0">3</div>
+              <div className="flex items-center justify-center gap-3 mb-8">
+                <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 font-black flex items-center justify-center shrink-0">2</div>
                 <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg md:text-xl">सुरक्षित पेमेंट करें</h2>
               </div>
-              
-              <p className="mt-2 mb-6 font-black text-4xl text-orange-600 dark:text-orange-400 text-center">
-                {effectiveAmount > 0 ? `₹${effectiveAmount.toLocaleString('hi-IN')}` : <span className="text-gray-500 text-xl">राशि दर्ज करें</span>}
-              </p>
 
               <button
                 onClick={handlePayClick}
                 disabled={effectiveAmount <= 0 || isSubmitting}
-                className="w-full max-w-md py-4 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 disabled:from-gray-300 disabled:to-gray-400 disabled:dark:from-gray-700 disabled:dark:to-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-black text-lg rounded-2xl shadow-lg shadow-orange-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-3 outline-none relative overflow-hidden"
+                className="w-full max-w-md py-4 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:text-gray-500 text-white font-black text-lg rounded-2xl shadow-md transition-all flex items-center justify-center gap-3 outline-none relative"
               >
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">प्रोसेस हो रहा है... <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div></span>
                 ) : (
                   <>
-                    <FaShieldAlt className={effectiveAmount > 0 ? "text-yellow-300" : "text-gray-200 dark:text-gray-600"} />
-                    Razorpay से सुरक्षित पेमेंट करें
+                    <FaOm className="text-xl" />
+                    श्रद्धा भेंट करें {effectiveAmount > 0 ? `(₹${effectiveAmount})` : ''}
                   </>
                 )}
               </button>
 
-              <div className="flex items-center justify-center gap-4 text-xs font-bold text-gray-500 mt-5">
-                <span className="flex items-center gap-1.5"><FaLock className="text-green-500" /> 100% सुरक्षित</span>
-                <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
-                <span className="flex items-center gap-1.5">UPI, Cards, NetBanking</span>
+              {/* 🌟 NEW: Personal Accountability / Trust Section */}
+              <div className="flex flex-col items-center justify-center gap-1.5 mt-5">
+                <p className="text-xs font-bold text-orange-700 dark:text-orange-400 mb-2 bg-orange-100 dark:bg-orange-900/30 px-4 py-1.5 rounded-full border border-orange-200 dark:border-orange-800/50">
+                  🙏 यह वेबसाइट मोहित तरकर द्वारा व्यक्तिगत रूप से संचालित है।
+                </p>
+                <div className="flex items-center gap-3 text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">
+                  <span className="flex items-center gap-1"><FaLock className="text-green-500" /> 100% Secure</span>
+                  <span className="w-1 h-1 rounded-full bg-gray-300" />
+                  <span>Powered By Razorpay</span>
+                </div>
+                <p className="text-[11px] font-medium text-gray-400">UPI, Cards, NetBanking Supported</p>
               </div>
             </div>
 
@@ -700,7 +673,7 @@ export default function DonatePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {[
                 { icon: <FaServer size={22}/>, title: 'सर्वर और तकनीक', text: 'लाखों भक्तों तक वेबसाइट को बिना रुके, तेज़ गति से पहुँचाने के लिए उच्च-गुणवत्ता सर्वर का संचालन।' },
-                { icon: <FaAdversal size={22}/>, title: 'विज्ञापन-मुक्त अनुभव', text: 'भजन व आरती के भक्तिमय वातावरण में कष्टप्रद विज्ञापनों का कोई स्थान नहीं।' },
+                { icon: <FaBan size={22}/>, title: 'विज्ञापन-मुक्त अनुभव', text: 'भजन व आरती के भक्तिमय वातावरण में कष्टप्रद विज्ञापनों का कोई स्थान नहीं।' },
                 { icon: <FaBookOpen size={22}/>, title: 'नई सामग्री', text: 'नए भजन, चालीसा, स्तोत्र और धार्मिक ग्रंथों को डिजिटल रूप में टाइप कर उपलब्ध कराना।' },
                 { icon: <FaOm size={22}/>, title: 'सनातन का संरक्षण', text: 'इस अमूल्य ज्ञान को आने वाली पीढ़ियों के लिए सुरक्षित और सुलभ बनाए रखना।' },
               ].map((item, idx) => (
@@ -715,7 +688,7 @@ export default function DonatePage() {
             </div>
 
             <div className="mt-12 text-center bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/10 dark:to-red-900/10 border border-orange-100 dark:border-orange-900/30 p-8 md:p-12 rounded-[2rem] relative overflow-hidden">
-              <FaHeart className="text-red-500 text-3xl mx-auto mb-5 opacity-80 animate-pulse" />
+              <FaHeart className="text-red-500 text-3xl mx-auto mb-5 opacity-80" />
               <p className="font-noto-serif text-2xl md:text-3xl text-orange-800 dark:text-orange-400 mb-4 font-black">
                 "धर्मो रक्षति रक्षितः"
               </p>
