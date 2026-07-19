@@ -15,6 +15,8 @@ type VerifyResult = { paid: boolean; paymentId?: string; supporterId?: string; a
 
 const PRESET_AMOUNTS = [21, 51, 101, 251, 501, 1100];
 const MONTHLY_GOAL = 5000;
+const PENDING_KEY = 'hbm_pending_order';
+const SYNC_CHANNEL = 'hbm_donate_sync';
 
 const OmSymbol = () => (
   <svg viewBox="0 0 60 60" fill="currentColor" className="w-full h-full">
@@ -38,6 +40,21 @@ const BorderCorner = ({ className }: { className: string }) => (
     <circle cx="2" cy="2" r="2.5" fill="currentColor" />
   </svg>
 );
+
+// 🌟 Guarantees a promise resolves within `ms`, otherwise falls back — never lets the UI hang forever
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) { settled = true; resolve(fallback); }
+    }, ms);
+    promise.then((val) => {
+      if (!settled) { settled = true; clearTimeout(timer); resolve(val); }
+    }).catch(() => {
+      if (!settled) { settled = true; clearTimeout(timer); resolve(fallback); }
+    });
+  });
+}
 
 function FloatingParticles() {
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -118,6 +135,7 @@ export default function DonatePage() {
 
   const certificateRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const channelRef = useRef<BroadcastChannel | null>(null);
 
   const effectiveAmount = amount > 0 ? amount : 0;
 
@@ -149,43 +167,49 @@ export default function DonatePage() {
     setPaymentStep('DETAILS');
   }, []);
 
-  // 🌟 NEW: Lock ताकि एक साथ दो बार रिकवरी न चले
+  // 🌟 Lock ताकि एक साथ दो बार रिकवरी न चले (race-condition से बचाव)
   const isRecovering = useRef(false);
 
-  // 🌟 Handles cases where the app was fully killed and resumed
+  // 🌟 Handles cases where the app was fully killed and resumed — with a hard timeout
+  // so the UI can NEVER stay stuck on the spinner forever.
   const recoverFromLocalStorage = useCallback(async () => {
-    // अगर रिकवरी पहले से चल रही है, तो दोबारा रन न करें
     if (isRecovering.current) return;
 
-    const raw = localStorage.getItem('hbm_pending_order');
+    const raw = localStorage.getItem(PENDING_KEY);
     if (!raw) return;
-    
-    const pending = JSON.parse(raw);
-    if (Date.now() - pending.ts > 30 * 60 * 1000) {
-      localStorage.removeItem('hbm_pending_order');
+
+    let pending: { orderId: string; amount: number; ts: number };
+    try {
+      pending = JSON.parse(raw);
+    } catch {
+      localStorage.removeItem(PENDING_KEY);
       return;
     }
 
-    isRecovering.current = true; // 🔒 Lock लगा दिया
-    setIsVerifyingReturn(true);  // स्पिनर चालू
+    if (Date.now() - pending.ts > 30 * 60 * 1000) {
+      localStorage.removeItem(PENDING_KEY);
+      return;
+    }
+
+    isRecovering.current = true;
+    setIsVerifyingReturn(true);
 
     try {
-      const result = await verifyWithRetry(pending.orderId);
-      
-      setIsVerifyingReturn(false); // स्पिनर बंद
-      localStorage.removeItem('hbm_pending_order');
-      
+      // 🌟 अगर 20 सेकंड में जवाब न आए, तो भी UI आगे बढ़ जाए (कभी permanently stuck नहीं रहेगी)
+      const result = await withTimeout(verifyWithRetry(pending.orderId), 20000, { paid: false });
+
+      localStorage.removeItem(PENDING_KEY);
+      setIsVerifyingReturn(false);
+
       if (result.paid) {
         applyPaidResult(result);
+        // दूसरे किसी पुराने/डुप्लीकेट instance को बता दें कि पेमेंट कन्फर्म हो चुका है
+        channelRef.current?.postMessage({ type: 'PAID', result });
       } else {
-        // अगर यूज़र ने GPay में कैंसल कर दिया या पेमेंट फेल हो गया
-        alert("पेमेंट पूरा नहीं हो पाया या रद्द कर दिया गया है। अगर पैसा कट गया है, तो कृपया 5 मिनट प्रतीक्षा करें।");
+        alert("पेमेंट पूरा नहीं हो पाया या रद्द कर दिया गया है। अगर आपके खाते से पैसा कटा है, तो कृपया कुछ मिनट बाद दोबारा जांचें — हम स्वतः पुष्टि कर लेंगे।");
       }
-    } catch (err) {
-      setIsVerifyingReturn(false);
-      localStorage.removeItem('hbm_pending_order');
     } finally {
-      isRecovering.current = false; // 🔓 Lock खोल दिया
+      isRecovering.current = false;
     }
   }, [verifyWithRetry, applyPaidResult]);
 
@@ -199,7 +223,6 @@ export default function DonatePage() {
       })
       .catch(err => console.error("Failed to fetch stats", err));
 
-    // Clear any lingering URL params from old redirect logic just to keep it clean
     if (window.location.search) {
       window.history.replaceState({}, '', '/donate');
     }
@@ -228,6 +251,31 @@ export default function DonatePage() {
     };
   }, [recoverFromLocalStorage]);
 
+  // 3. 🌟 BroadcastChannel: अगर Android डुप्लीकेट instance बना दे, तो सब instances
+  // आपस में sync रहें — कोई भी instance हमेशा के लिए frozen spinner पर नहीं अटकेगा।
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
+    const channel = new BroadcastChannel(SYNC_CHANNEL);
+    channelRef.current = channel;
+
+    channel.onmessage = (e) => {
+      if (e.data?.type === 'PAID' && e.data.result) {
+        // किसी दूसरे (नए) instance ने पेमेंट कन्फर्म कर दिया — यह instance भी उसी स्टेट पर आ जाए
+        setIsVerifyingReturn(false);
+        applyPaidResult(e.data.result);
+      }
+      if (e.data?.type === 'PING') {
+        // कोई नया instance खुला है — पुराना instance खुद को रिकवरी के लिए ट्रिगर कर ले
+        recoverFromLocalStorage();
+      }
+    };
+
+    // बताएं कि एक नया instance जिंदा हुआ है (अगर कोई पुराना stuck instance है, वो सुन लेगा)
+    channel.postMessage({ type: 'PING' });
+
+    return () => channel.close();
+  }, [applyPaidResult, recoverFromLocalStorage]);
+
   const handlePreset = (val: number) => {
     if (navigator.vibrate) navigator.vibrate(20);
     setAmount(val);
@@ -251,6 +299,7 @@ export default function DonatePage() {
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
+      if ((window as any).Razorpay) return resolve(true);
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.onload = () => resolve(true);
@@ -277,8 +326,7 @@ export default function DonatePage() {
       const orderData = await orderResponse.json();
       if (!orderData.id) throw new Error("Order creation failed");
 
-      // Save to localStorage just in case the app is killed while in GPay/Paytm
-      localStorage.setItem('hbm_pending_order', JSON.stringify({
+      localStorage.setItem(PENDING_KEY, JSON.stringify({
         orderId: orderData.id, amount: effectiveAmount, ts: Date.now(),
       }));
 
@@ -292,17 +340,20 @@ export default function DonatePage() {
         order_id: orderData.id,
         theme: { color: "#ea580c" },
         handler: async function (response: any) {
-          // The modal closes automatically, we show our "Verifying" screen
           setIsSubmitting(false);
           setIsVerifyingReturn(true);
 
           try {
-            // Even though the client says success, we still ask Razorpay's API to be 100% sure
-            const result = await verifyWithRetry(response.razorpay_order_id);
+            const result = await withTimeout(
+              verifyWithRetry(response.razorpay_order_id),
+              20000,
+              { paid: false }
+            );
             setIsVerifyingReturn(false);
 
             if (result.paid) {
               applyPaidResult(result);
+              channelRef.current?.postMessage({ type: 'PAID', result });
             } else {
               alert("पेमेंट की पुष्टि नहीं हो पाई। अगर आपके खाते से पैसा कटा है, तो कृपया कुछ मिनट बाद पेज दोबारा खोलें — हम स्वतः जांच लेंगे।");
             }
@@ -311,14 +362,13 @@ export default function DonatePage() {
             console.error("Verification error:", err);
             alert("वेरिफिकेशन में समस्या आई। कृपया बाद में जांचें।");
           } finally {
-            // Clean up once verification is done
-            localStorage.removeItem('hbm_pending_order');
+            localStorage.removeItem(PENDING_KEY);
           }
         },
         modal: {
           ondismiss: function () {
             setIsSubmitting(false);
-            localStorage.removeItem('hbm_pending_order');
+            localStorage.removeItem(PENDING_KEY);
             setCancelToast(true);
             setTimeout(() => setCancelToast(false), 4000);
           }
@@ -327,7 +377,6 @@ export default function DonatePage() {
 
       const rzp = new (window as any).Razorpay(options);
       rzp.on('payment.failed', function () {
-        // Just clear the spinner. Let the verification checks handle the actual truth.
         setIsSubmitting(false);
       });
       rzp.open();
