@@ -136,6 +136,7 @@ export default function DonatePage() {
   const [customAmount, setCustomAmount] = useState<string>('');
   const [paymentDate, setPaymentDate] = useState<string>('');
   const [dbRecordId, setDbRecordId] = useState<number | null>(null);
+  const [paymentId, setPaymentId] = useState<string | null>(null); // 🌟 NEW: To store Razorpay Payment ID for fallback
 
   // 🌟 Supporter Details
   const [supporterName, setSupporterName] = useState('');
@@ -152,7 +153,7 @@ export default function DonatePage() {
 
   const effectiveAmount = amount > 0 ? amount : 0;
 
-  // 1. 🌟 Real Data Fetcher (No Fake Toasts!)
+  // 1. 🌟 Real Data Fetcher
   useEffect(() => {
     const fetchRealStats = async () => {
       try {
@@ -173,15 +174,22 @@ export default function DonatePage() {
     fetchRealStats();
   }, []);
 
-  // 2. 🌟 BFCache Handler (Aw Snap/Back button fix)
+  // 2. 🌟 Browser Return Fix (Handles returning from UPI apps like GPay)
   useEffect(() => {
     const handlePageShow = (event: PageTransitionEvent) => {
-      if (event.persisted) {
-        setIsSubmitting(false); 
-      }
+      if (event.persisted) setIsSubmitting(false); 
     };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') setIsSubmitting(false);
+    };
+
     window.addEventListener('pageshow', handlePageShow);
-    return () => window.removeEventListener('pageshow', handlePageShow);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const handlePreset = (val: number) => {
@@ -249,7 +257,10 @@ export default function DonatePage() {
           color: "#ea580c" 
         },
         handler: async function (response: any) {
-          // पेमेंट सक्सेसफुल! 
+          // 🌟 Save Payment ID instantly
+          const pId = response.razorpay_payment_id;
+          setPaymentId(pId);
+          
           try {
             // हम पहले एक 'Anonymous' रिकॉर्ड बना लेते हैं
             const { data, error } = await supabase.from('supporters').insert([
@@ -257,26 +268,26 @@ export default function DonatePage() {
                 amount: effectiveAmount,
                 is_anonymous: true,
                 status: 'completed',
-                razorpay_payment_id: response.razorpay_payment_id
+                razorpay_payment_id: pId
               }
             ]).select().single();
             
             if (data && !error) {
-              setDbRecordId(data.id); // ID सेव करें ताकि अगले स्टेप में नाम/फोटो अपडेट कर सकें
+              setDbRecordId(data.id); 
             }
           } catch (dbErr: any) {
-            console.error("DB Save failed silently", dbErr); // यूज़र को डराना नहीं है
+            console.error("Initial DB Save failed silently", dbErr); 
           }
 
           setPaymentDate(new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
-          setPaymentStep('DETAILS'); // पहचान पूछने वाले स्क्रीन पर भेजें
+          setPaymentStep('DETAILS'); 
           setIsSubmitting(false);
         },
         modal: {
           ondismiss: function () {
             setIsSubmitting(false);
             setCancelToast(true);
-            setTimeout(() => setCancelToast(false), 4000); // 4 सेकंड बाद छिप जाएगा
+            setTimeout(() => setCancelToast(false), 4000);
           }
         }
       };
@@ -297,13 +308,13 @@ export default function DonatePage() {
     }
   };
 
-  // 🌟 STEP 2: DETAILS SUBMISSION HANDLER
-  // 🌟 REFINED: अब यह RecordId के साथ-साथ PaymentID से भी अपडेट करेगा
+  // 🌟 STEP 2: DETAILS SUBMISSION HANDLER (100% Solid Fallback Logic)
   const handleSubmitDetails = async (isPublic: boolean) => {
     setIsSubmittingDetails(true);
     
     try {
       let photoUrl = null;
+      // 1. फोटो अपलोड करें (अगर है)
       if (isPublic && photoFile) {
         const fileExt = photoFile.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -314,26 +325,40 @@ export default function DonatePage() {
         }
       }
 
-      // 🌟 FIX: dbRecordId न होने पर PaymentID का इस्तेमाल करें
-      let query = supabase.from('supporters');
-      
-      if (dbRecordId) {
-        await query.update({
+      let currentRecordId = dbRecordId;
+
+      // 2. 🌟 FALLBACK: अगर पहला इंसर्ट फेल हो गया था, तो PaymentID से ID ढूँढें
+      if (!currentRecordId && paymentId) {
+        const { data } = await supabase.from('supporters').select('id').eq('razorpay_payment_id', paymentId).single();
+        if (data) currentRecordId = data.id;
+      }
+
+      if (currentRecordId) {
+        // 3. रिकॉर्ड मिल गया -> Update करें
+        await supabase.from('supporters').update({
           name: isPublic ? supporterName.trim() : null,
           message: isPublic ? supporterMessage.trim() : null,
           photo_url: photoUrl,
           is_anonymous: !isPublic
-        }).eq('id', dbRecordId);
-      } else {
-        // अगर ID नहीं है, तो PaymentID ढूंढकर अपडेट करें (जो आपने पेमेंट टाइम पर सेव किया था)
-        // यह स्टेप आपके Webhook के लिए भी बेस बनाएगा
-        console.warn("No dbRecordId, attempting fallback update...");
+        }).eq('id', currentRecordId);
+      } else if (paymentId) {
+        // 4. रिकॉर्ड बना ही नहीं था (नेटवर्क ड्रॉप) -> Insert करें
+        await supabase.from('supporters').insert([{
+          amount: effectiveAmount,
+          name: isPublic ? supporterName.trim() : null,
+          message: isPublic ? supporterMessage.trim() : null,
+          photo_url: photoUrl,
+          is_anonymous: !isPublic,
+          status: 'completed',
+          razorpay_payment_id: paymentId
+        }]);
       }
 
     } catch (err) {
       console.error("Failed to update public details", err);
     }
     
+    // हमेशा सफलता की स्क्रीन दिखाएं
     setPaymentStep('CERTIFICATE');
     setIsSubmittingDetails(false);
   };
@@ -628,7 +653,7 @@ export default function DonatePage() {
               </div>
             </div>
 
-            {/* 🌟 REFINED CTA SECTION (Clean, Ethical, No Gimmicks) */}
+            {/* 🌟 REFINED CTA SECTION */}
             <div className="p-6 md:p-10 flex flex-col items-center justify-center text-center">
               <div className="flex items-center justify-center gap-3 mb-8">
                 <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 font-black flex items-center justify-center shrink-0">2</div>
@@ -650,7 +675,7 @@ export default function DonatePage() {
                 )}
               </button>
 
-              {/* 🌟 NEW: Personal Accountability / Trust Section */}
+              {/* 🌟 Personal Accountability / Trust Section */}
               <div className="flex flex-col items-center justify-center gap-1.5 mt-5">
                 <p className="text-xs font-bold text-orange-700 dark:text-orange-400 mb-2 bg-orange-100 dark:bg-orange-900/30 px-4 py-1.5 rounded-full border border-orange-200 dark:border-orange-800/50">
                   🙏 यह वेबसाइट मोहित तरकर द्वारा व्यक्तिगत रूप से संचालित है।
