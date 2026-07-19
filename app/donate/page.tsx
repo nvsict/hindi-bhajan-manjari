@@ -15,7 +15,6 @@ type PaymentStep = 'DONATION' | 'DETAILS' | 'CERTIFICATE';
 
 const PRESET_AMOUNTS = [21, 51, 101, 251, 501, 1100];
 const MONTHLY_GOAL = 5000;
-// बेसलाइन डोनेशन (ऑफ़लाइन या पिछले सहयोग) ताकि गोल बार एकदम खाली न दिखे
 const BASE_RAISED = 0; 
 const BASE_COUNT = 0;
 
@@ -125,26 +124,22 @@ function MonthlyGoal({ currentRaised, supporterCount }: { currentRaised: number,
 
 // ─── MAIN PAGE COMPONENT ───────────────────────────────────────────────────────
 export default function DonatePage() {
-  // 🌟 UI Flow State
   const [paymentStep, setPaymentStep] = useState<PaymentStep>('DONATION');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmittingDetails, setIsSubmittingDetails] = useState(false);
   const [cancelToast, setCancelToast] = useState(false);
   
-  // 🌟 Payment Data
   const [amount, setAmount] = useState<number>(101);
   const [customAmount, setCustomAmount] = useState<string>('');
   const [paymentDate, setPaymentDate] = useState<string>('');
-  const [dbRecordId, setDbRecordId] = useState<number | null>(null);
-  const [paymentId, setPaymentId] = useState<string | null>(null); // 🌟 NEW: To store Razorpay Payment ID for fallback
+  const [dbRecordId, setDbRecordId] = useState<string | null>(null);
+  const [paymentId, setPaymentId] = useState<string | null>(null); 
 
-  // 🌟 Supporter Details
   const [supporterName, setSupporterName] = useState('');
   const [supporterMessage, setSupporterMessage] = useState('');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
-  // 🌟 Real Live Stats
   const [currentRaised, setCurrentRaised] = useState(BASE_RAISED);
   const [supporterCount, setSupporterCount] = useState(BASE_COUNT);
   
@@ -153,7 +148,7 @@ export default function DonatePage() {
 
   const effectiveAmount = amount > 0 ? amount : 0;
 
-  // 1. 🌟 Real Data Fetcher
+  // 1. Fetch Real Stats
   useEffect(() => {
     const fetchRealStats = async () => {
       try {
@@ -174,22 +169,47 @@ export default function DonatePage() {
     fetchRealStats();
   }, []);
 
-  // 2. 🌟 Browser Return Fix (Handles returning from UPI apps like GPay)
+  // 2. 🌟 NEW: Browser Crash / Background App Recovery
   useEffect(() => {
-    const handlePageShow = (event: PageTransitionEvent) => {
-      if (event.persisted) setIsSubmitting(false); 
-    };
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') setIsSubmitting(false);
-    };
+    const recoverPendingOrder = async () => {
+      const raw = localStorage.getItem('hbm_pending_order');
+      if (!raw) return;
+      const pending = JSON.parse(raw);
 
-    window.addEventListener('pageshow', handlePageShow);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      window.removeEventListener('pageshow', handlePageShow);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // अगर आर्डर 30 मिनट से पुराना है, तो उसे हटा दें
+      if (Date.now() - pending.ts > 30 * 60 * 1000) {
+        localStorage.removeItem('hbm_pending_order');
+        return;
+      }
+
+      try {
+        // हमारे नए बैकएंड से चेक करें कि क्या सच में पेमेंट हो गया था
+        const res = await fetch(`/api/razorpay/verify?order_id=${pending.orderId}`);
+        const result = await res.json();
+        
+        if (result.paid) {
+          setPaymentId(result.paymentId);
+          setDbRecordId(result.supporterId ?? null);
+          setAmount(pending.amount);
+          setPaymentDate(new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
+          setPaymentStep('DETAILS'); // यूज़र को वापस डिटेल्स/सक्सेस स्क्रीन पर ले जाएं
+        }
+      } catch (err) {
+        console.error("Pending order recovery failed", err);
+      } finally {
+        localStorage.removeItem('hbm_pending_order');
+      }
     };
+    recoverPendingOrder();
+  }, []);
+
+  // 3. 🌟 NEW: Memory Saver (Pause animations when tab is hidden)
+  useEffect(() => {
+    const handleVisibility = () => {
+      document.body.classList.toggle('paused-animations', document.hidden);
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
 
   const handlePreset = (val: number) => {
@@ -213,7 +233,6 @@ export default function DonatePage() {
     }
   };
 
-  // 🌟 RAZORPAY SDK LOADER
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
       const script = document.createElement('script');
@@ -224,7 +243,6 @@ export default function DonatePage() {
     });
   };
 
-  // 🌟 STEP 1: PAYMENT HANDLER
   const handlePayClick = async () => {
     setIsSubmitting(true);
 
@@ -245,6 +263,13 @@ export default function DonatePage() {
 
       if (!orderData.id) throw new Error("Order creation failed");
 
+      // 🌟 FIX: आर्डर की डिटेल्स ब्राउज़र में सेव करें ताकि क्रैश होने पर रिकवर हो सके
+      localStorage.setItem('hbm_pending_order', JSON.stringify({
+        orderId: orderData.id,
+        amount: effectiveAmount,
+        ts: Date.now(),
+      }));
+
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, 
         amount: orderData.amount,
@@ -253,16 +278,13 @@ export default function DonatePage() {
         description: "सनातन धर्म के लिए सहयोग राशि",
         image: "https://www.hindibhajanmanjari.com/logo.png", 
         order_id: orderData.id,
-        theme: {
-          color: "#ea580c" 
-        },
+        theme: { color: "#ea580c" },
         handler: async function (response: any) {
-          // 🌟 Save Payment ID instantly
+          // अगर ब्राउज़र क्रैश नहीं हुआ और सब नॉर्मल रहा:
           const pId = response.razorpay_payment_id;
           setPaymentId(pId);
           
           try {
-            // हम पहले एक 'Anonymous' रिकॉर्ड बना लेते हैं
             const { data, error } = await supabase.from('supporters').insert([
               {
                 amount: effectiveAmount,
@@ -272,13 +294,12 @@ export default function DonatePage() {
               }
             ]).select().single();
             
-            if (data && !error) {
-              setDbRecordId(data.id); 
-            }
+            if (data && !error) setDbRecordId(data.id); 
           } catch (dbErr: any) {
             console.error("Initial DB Save failed silently", dbErr); 
           }
 
+          localStorage.removeItem('hbm_pending_order'); // काम हो गया, इसे हटा दें
           setPaymentDate(new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
           setPaymentStep('DETAILS'); 
           setIsSubmitting(false);
@@ -286,6 +307,7 @@ export default function DonatePage() {
         modal: {
           ondismiss: function () {
             setIsSubmitting(false);
+            localStorage.removeItem('hbm_pending_order'); // कैंसिल किया तो भी हटा दें
             setCancelToast(true);
             setTimeout(() => setCancelToast(false), 4000);
           }
@@ -295,6 +317,7 @@ export default function DonatePage() {
       const rzp = new (window as any).Razorpay(options);
       
       rzp.on('payment.failed', function () {
+        localStorage.removeItem('hbm_pending_order');
         alert(`पेमेंट विफल रहा। कृपया इंटरनेट चेक करें या किसी अन्य माध्यम से पुनः प्रयास करें।`);
         setIsSubmitting(false);
       });
@@ -308,13 +331,11 @@ export default function DonatePage() {
     }
   };
 
-  // 🌟 STEP 2: DETAILS SUBMISSION HANDLER (100% Solid Fallback Logic)
   const handleSubmitDetails = async (isPublic: boolean) => {
     setIsSubmittingDetails(true);
     
     try {
       let photoUrl = null;
-      // 1. फोटो अपलोड करें (अगर है)
       if (isPublic && photoFile) {
         const fileExt = photoFile.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -327,14 +348,12 @@ export default function DonatePage() {
 
       let currentRecordId = dbRecordId;
 
-      // 2. 🌟 FALLBACK: अगर पहला इंसर्ट फेल हो गया था, तो PaymentID से ID ढूँढें
       if (!currentRecordId && paymentId) {
         const { data } = await supabase.from('supporters').select('id').eq('razorpay_payment_id', paymentId).single();
         if (data) currentRecordId = data.id;
       }
 
       if (currentRecordId) {
-        // 3. रिकॉर्ड मिल गया -> Update करें
         await supabase.from('supporters').update({
           name: isPublic ? supporterName.trim() : null,
           message: isPublic ? supporterMessage.trim() : null,
@@ -342,7 +361,6 @@ export default function DonatePage() {
           is_anonymous: !isPublic
         }).eq('id', currentRecordId);
       } else if (paymentId) {
-        // 4. रिकॉर्ड बना ही नहीं था (नेटवर्क ड्रॉप) -> Insert करें
         await supabase.from('supporters').insert([{
           amount: effectiveAmount,
           name: isPublic ? supporterName.trim() : null,
@@ -358,12 +376,10 @@ export default function DonatePage() {
       console.error("Failed to update public details", err);
     }
     
-    // हमेशा सफलता की स्क्रीन दिखाएं
     setPaymentStep('CERTIFICATE');
     setIsSubmittingDetails(false);
   };
   
-  // 🌟 CERTIFICATE DOWNLOADER
   const downloadCertificate = async () => {
     if (!certificateRef.current) return;
     if (navigator.vibrate) navigator.vibrate(30);
@@ -385,7 +401,6 @@ export default function DonatePage() {
     }
   };
 
-  // ─── RENDER STEP 2: DETAILS NEEDED SCREEN ───
   if (paymentStep === 'DETAILS') {
     return (
       <div className="min-h-screen !pt-24 !pb-16 flex flex-col items-center justify-start bg-orange-50 dark:bg-[#0c0804] px-4 font-hindi overflow-x-hidden">
@@ -461,7 +476,7 @@ export default function DonatePage() {
               </button>
               
               <button
-                onClick={() => handleSubmitDetails(false)} // Skip / Anonymous
+                onClick={() => handleSubmitDetails(false)}
                 disabled={isSubmittingDetails}
                 className="w-full py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-300 font-bold rounded-xl transition-all"
               >
@@ -474,7 +489,6 @@ export default function DonatePage() {
     );
   }
 
-  // ─── RENDER STEP 3: CERTIFICATE SCREEN ───
   if (paymentStep === 'CERTIFICATE') {
     return (
       <div className="min-h-screen !pt-24 !pb-16 flex flex-col items-center justify-start bg-orange-50 dark:bg-[#0c0804] px-4 text-center font-hindi overflow-x-hidden">
@@ -546,7 +560,6 @@ export default function DonatePage() {
     );
   }
 
-  // ─── RENDER STEP 1: MAIN DONATION SCREEN ───
   return (
     <>
       <style>{`
@@ -560,6 +573,10 @@ export default function DonatePage() {
         .mandala-bg {
           background-image: radial-gradient(circle at 50% 50%, rgba(234,88,12,0.04) 0%, transparent 70%),
             repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg, transparent 22deg, rgba(234,88,12,0.02) 22deg, rgba(234,88,12,0.02) 24deg);
+        }
+        /* 🌟 NEW: Animations pause when tab goes to background to save Android memory */
+        .paused-animations .animate-float-up, .paused-animations .animate-pulse {
+          animation-play-state: paused;
         }
       `}</style>
       {cancelToast && (
@@ -653,7 +670,6 @@ export default function DonatePage() {
               </div>
             </div>
 
-            {/* 🌟 REFINED CTA SECTION */}
             <div className="p-6 md:p-10 flex flex-col items-center justify-center text-center">
               <div className="flex items-center justify-center gap-3 mb-8">
                 <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 font-black flex items-center justify-center shrink-0">2</div>
@@ -675,7 +691,6 @@ export default function DonatePage() {
                 )}
               </button>
 
-              {/* 🌟 Personal Accountability / Trust Section */}
               <div className="flex flex-col items-center justify-center gap-1.5 mt-5">
                 <p className="text-xs font-bold text-orange-700 dark:text-orange-400 mb-2 bg-orange-100 dark:bg-orange-900/30 px-4 py-1.5 rounded-full border border-orange-200 dark:border-orange-800/50">
                   🙏 यह वेबसाइट मोहित तरकर द्वारा व्यक्तिगत रूप से संचालित है।
