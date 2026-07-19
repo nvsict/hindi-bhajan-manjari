@@ -153,15 +153,27 @@ export default function DonatePage() {
   const recoverFromLocalStorage = useCallback(async () => {
     const raw = localStorage.getItem('hbm_pending_order');
     if (!raw) return;
+    
     const pending = JSON.parse(raw);
     if (Date.now() - pending.ts > 30 * 60 * 1000) {
       localStorage.removeItem('hbm_pending_order');
       return;
     }
-    const result = await verifyOrder(pending.orderId);
-    if (result.paid) applyPaidResult(result);
+
+    // 🌟 FIX: तुरंत लोडिंग स्क्रीन दिखाएं ताकि यूज़र को ऐप क्रैश फील न हो
+    setIsVerifyingReturn(true);
+
+    // 🌟 FIX: verifyOrder की जगह verifyWithRetry का यूज़ करें ताकि UPI डिले हैंडल हो सके
+    const result = await verifyWithRetry(pending.orderId);
+    
+    setIsVerifyingReturn(false); // वेरिफिकेशन खत्म, स्पिनर हटाएं
+    
+    if (result.paid) {
+      applyPaidResult(result);
+    }
+    
     localStorage.removeItem('hbm_pending_order');
-  }, [verifyOrder, applyPaidResult]);
+  }, [verifyWithRetry, applyPaidResult]);
 
   // 1. Fetch stats on mount + recover if app crashed
   useEffect(() => {
@@ -265,7 +277,6 @@ export default function DonatePage() {
         image: "https://www.hindibhajanmanjari.com/logo.png",
         order_id: orderData.id,
         theme: { color: "#ea580c" },
-        // 🌟 FIX: Removed redirect:true and callback_url. Switched back to handler flow.
         handler: async function (response: any) {
           // The modal closes automatically, we show our "Verifying" screen
           setIsSubmitting(false);
@@ -334,7 +345,7 @@ export default function DonatePage() {
       if (!paymentId) {
         console.error("No paymentId available — cannot save supporter details");
       } else {
-        const res = await fetch('/api/supporters/details', {
+        const res = await fetch('/api/supporter/details', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -442,7 +453,7 @@ export default function DonatePage() {
       <div className="min-h-screen !pt-24 !pb-16 flex flex-col items-center justify-start bg-orange-50 dark:bg-[#0c0804] px-4 text-center font-hindi overflow-x-hidden">
         <style>{` .cert-bg { background-image: radial-gradient(circle at 50% 50%, rgba(234,88,12,0.06) 0%, transparent 60%); } `}</style>
         <h1 className="text-3xl md:text-5xl font-black text-orange-900 dark:text-orange-100 mb-3 font-noto-serif">आपका प्रमाण-पत्र तैयार है!</h1>
-        <p className="text-gray-700 dark:text-gray-300 text-lg max-w-md mx-auto leading-relaxed mb-8">इसे डाउनलोड करके अपने परिवार और मित्रों के साथ साझा करें。</p>
+        <p className="text-gray-700 dark:text-gray-300 text-lg max-w-md mx-auto leading-relaxed mb-8">इसे डाउनलोड करके अपने परिवार और मित्रों के साथ साझा करें।</p>
         <div className="relative w-full max-w-3xl mx-auto shadow-2xl rounded-sm mb-8 overflow-hidden transform scale-95 md:scale-100">
           <div ref={certificateRef} className="cert-bg bg-[#fffcf5] text-gray-900 p-8 md:p-14 border-[12px] border-double border-orange-300 relative">
             <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
