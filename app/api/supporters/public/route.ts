@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   }
 
   // 🌟 Server-side redaction — belt-and-suspenders even though our own
-  // write path (/api/supporter/details) already nulls these out for
+  // write path (s) already nulls these out for
   // anonymous donors. If a row is ever anonymous for any reason, identity
   // fields never leave this route, regardless of what's actually in the DB.
   const supporters = (data ?? []).map((s) => ({

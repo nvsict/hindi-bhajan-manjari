@@ -328,7 +328,7 @@ export default function DonatePage() {
       if (!paymentId) {
         console.error("No paymentId available — cannot save supporter details");
       } else {
-        const res = await fetch('/api/supporter/details', {
+        const res = await fetch('/api/supporters/details', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

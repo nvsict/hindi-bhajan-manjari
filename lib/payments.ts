@@ -25,7 +25,7 @@ export type ConfirmResult =
  * if the row already exists — because the webhook and a client verify
  * call raced each other, or because this is a later recovery check — the
  * row may already carry a name/photo the donor added via
- * /api/supporter/details. A blind upsert would silently wipe that back
+ * /api/supporters/details. A blind upsert would silently wipe that back
  * to null. So a duplicate-key error here just means "someone beat us to
  * it," and we fetch what's already there instead of overwriting it.
  */
