@@ -279,7 +279,7 @@ export default function DonatePage() {
   };
 
   const handlePayClick = async () => {
-    setIsSubmitting(true);
+    setIsSubmitting(true); // shows only during script load + order creation — genuinely brief
     const isLoaded = await loadRazorpayScript();
     if (!isLoaded) {
       alert("पेमेंट गेटवे लोड नहीं हो पा रहा है। कृपया अपना इंटरनेट कनेक्शन चेक करें।");
@@ -332,6 +332,7 @@ export default function DonatePage() {
         setIsSubmitting(false);
       });
       rzp.open();
+      setIsSubmitting(false); // 🌟 hand off — Razorpay's own UI is now the "something is happening" signal
 
     } catch (error: any) {
       console.error("Donation processing error:", error);
