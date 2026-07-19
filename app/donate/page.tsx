@@ -121,7 +121,7 @@ export default function DonatePage() {
 
   const effectiveAmount = amount > 0 ? amount : 0;
 
-  // ─── The only two functions that talk to the payment backend ───
+  // ─── Verification logic ───
 
   const verifyOrder = useCallback(async (orderId: string): Promise<VerifyResult> => {
     try {
@@ -144,11 +144,12 @@ export default function DonatePage() {
 
   const applyPaidResult = useCallback((result: VerifyResult) => {
     setPaymentId(result.paymentId ?? null);
-    if (result.amount) setAmount(result.amount); // authoritative amount from Razorpay, never local state
+    if (result.amount) setAmount(result.amount);
     setPaymentDate(new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
     setPaymentStep('DETAILS');
   }, []);
 
+  // 🌟 Handles cases where the app was fully killed and resumed
   const recoverFromLocalStorage = useCallback(async () => {
     const raw = localStorage.getItem('hbm_pending_order');
     if (!raw) return;
@@ -162,7 +163,7 @@ export default function DonatePage() {
     localStorage.removeItem('hbm_pending_order');
   }, [verifyOrder, applyPaidResult]);
 
-  // 1. Fetch real stats (server route) + handle redirect return + localStorage fallback
+  // 1. Fetch stats on mount + recover if app crashed
   useEffect(() => {
     fetch('/api/supporters/stats')
       .then(res => res.json())
@@ -172,29 +173,13 @@ export default function DonatePage() {
       })
       .catch(err => console.error("Failed to fetch stats", err));
 
-    const params = new URLSearchParams(window.location.search);
-    const orderId = params.get('order_id');
-    const status = params.get('status');
-
-    if (orderId) {
-      setIsVerifyingReturn(true);
-      verifyWithRetry(orderId).then((result) => {
-        window.history.replaceState({}, '', '/donate');
-        localStorage.removeItem('hbm_pending_order');
-        setIsVerifyingReturn(false);
-        if (result.paid) {
-          applyPaidResult(result);
-        } else {
-          alert("पेमेंट की पुष्टि नहीं हो पाई। अगर आपके खाते से पैसा कटा है, तो कृपया कुछ मिनट बाद पेज दोबारा खोलें — हम स्वतः जांच लेंगे। असुविधा के लिए क्षमा करें।");
-        }
-      });
-    } else if (status === 'failed') {
-      alert("पेमेंट शुरू नहीं हो पाया। कृपया पुनः प्रयास करें।");
+    // Clear any lingering URL params from old redirect logic just to keep it clean
+    if (window.location.search) {
       window.history.replaceState({}, '', '/donate');
-    } else {
-      recoverFromLocalStorage();
     }
-  }, [verifyWithRetry, applyPaidResult, recoverFromLocalStorage]);
+
+    recoverFromLocalStorage();
+  }, [recoverFromLocalStorage]);
 
   // 2. Stuck-button fix on bfcache/visibility return
   useEffect(() => {
@@ -249,7 +234,7 @@ export default function DonatePage() {
   };
 
   const handlePayClick = async () => {
-    setIsSubmitting(true); // brief — only covers script load + order creation
+    setIsSubmitting(true);
     const isLoaded = await loadRazorpayScript();
     if (!isLoaded) {
       alert("पेमेंट गेटवे लोड नहीं हो पा रहा है। कृपया अपना इंटरनेट कनेक्शन चेक करें।");
@@ -266,6 +251,7 @@ export default function DonatePage() {
       const orderData = await orderResponse.json();
       if (!orderData.id) throw new Error("Order creation failed");
 
+      // Save to localStorage just in case the app is killed while in GPay/Paytm
       localStorage.setItem('hbm_pending_order', JSON.stringify({
         orderId: orderData.id, amount: effectiveAmount, ts: Date.now(),
       }));
@@ -279,8 +265,31 @@ export default function DonatePage() {
         image: "https://www.hindibhajanmanjari.com/logo.png",
         order_id: orderData.id,
         theme: { color: "#ea580c" },
-        redirect: true,
-        callback_url: `${window.location.origin}/api/razorpay/callback`,
+        // 🌟 FIX: Removed redirect:true and callback_url. Switched back to handler flow.
+        handler: async function (response: any) {
+          // The modal closes automatically, we show our "Verifying" screen
+          setIsSubmitting(false);
+          setIsVerifyingReturn(true);
+
+          try {
+            // Even though the client says success, we still ask Razorpay's API to be 100% sure
+            const result = await verifyWithRetry(response.razorpay_order_id);
+            setIsVerifyingReturn(false);
+
+            if (result.paid) {
+              applyPaidResult(result);
+            } else {
+              alert("पेमेंट की पुष्टि नहीं हो पाई। अगर आपके खाते से पैसा कटा है, तो कृपया कुछ मिनट बाद पेज दोबारा खोलें — हम स्वतः जांच लेंगे।");
+            }
+          } catch (err) {
+            setIsVerifyingReturn(false);
+            console.error("Verification error:", err);
+            alert("वेरिफिकेशन में समस्या आई। कृपया बाद में जांचें।");
+          } finally {
+            // Clean up once verification is done
+            localStorage.removeItem('hbm_pending_order');
+          }
+        },
         modal: {
           ondismiss: function () {
             setIsSubmitting(false);
@@ -293,12 +302,11 @@ export default function DonatePage() {
 
       const rzp = new (window as any).Razorpay(options);
       rzp.on('payment.failed', function () {
-        // Don't remove hbm_pending_order — a client-side "failed" event
-        // isn't proof; only /verify against Razorpay's own API decides that.
+        // Just clear the spinner. Let the verification checks handle the actual truth.
         setIsSubmitting(false);
       });
       rzp.open();
-      setIsSubmitting(false); // hand off — Razorpay's own UI is now the loading signal
+      setIsSubmitting(false);
 
     } catch (error: any) {
       console.error("Donation processing error:", error);
@@ -307,8 +315,6 @@ export default function DonatePage() {
     }
   };
 
-  // 🌟 The only remaining direct Supabase client call — Storage upload
-  // only, never the supporters table itself.
   const handleSubmitDetails = async (isPublic: boolean) => {
     setIsSubmittingDetails(true);
     try {
@@ -436,7 +442,7 @@ export default function DonatePage() {
       <div className="min-h-screen !pt-24 !pb-16 flex flex-col items-center justify-start bg-orange-50 dark:bg-[#0c0804] px-4 text-center font-hindi overflow-x-hidden">
         <style>{` .cert-bg { background-image: radial-gradient(circle at 50% 50%, rgba(234,88,12,0.06) 0%, transparent 60%); } `}</style>
         <h1 className="text-3xl md:text-5xl font-black text-orange-900 dark:text-orange-100 mb-3 font-noto-serif">आपका प्रमाण-पत्र तैयार है!</h1>
-        <p className="text-gray-700 dark:text-gray-300 text-lg max-w-md mx-auto leading-relaxed mb-8">इसे डाउनलोड करके अपने परिवार और मित्रों के साथ साझा करें।</p>
+        <p className="text-gray-700 dark:text-gray-300 text-lg max-w-md mx-auto leading-relaxed mb-8">इसे डाउनलोड करके अपने परिवार और मित्रों के साथ साझा करें。</p>
         <div className="relative w-full max-w-3xl mx-auto shadow-2xl rounded-sm mb-8 overflow-hidden transform scale-95 md:scale-100">
           <div ref={certificateRef} className="cert-bg bg-[#fffcf5] text-gray-900 p-8 md:p-14 border-[12px] border-double border-orange-300 relative">
             <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
