@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
+  // 🌟 FIX: अपना लाइव डोमेन यहाँ हार्डकोड कर दें (या ENV से लें)
+  // ताकि Nginx/VPS के इंटरनल localhost से कोई फर्क न पड़े
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.hindibhajanmanjari.com";
+
   try {
     const formData = await req.formData();
     const paymentId = formData.get("razorpay_payment_id") as string;
@@ -9,7 +13,7 @@ export async function POST(req: NextRequest) {
     const signature = formData.get("razorpay_signature") as string;
 
     if (!paymentId || !orderId || !signature) {
-       return NextResponse.redirect(new URL(`/donate?status=failed`, req.url));
+       return NextResponse.redirect(new URL(`/donate?status=failed`, baseUrl), 303);
     }
 
     const expected = crypto
@@ -22,10 +26,11 @@ export async function POST(req: NextRequest) {
       ? `/donate?status=success&order_id=${orderId}`
       : `/donate?status=failed`;
 
-    // 🌟 Razorpay POST रिक्वेस्ट करता है, हम उसे 303 Redirect करके वापस वेबसाइट पर भेज रहे हैं
-    return NextResponse.redirect(new URL(redirectUrl, req.url), 303);
+    // 🌟 अब यह localhost की जगह हमेशा आपकी असली साइट पर ही Redirect करेगा
+    return NextResponse.redirect(new URL(redirectUrl, baseUrl), 303);
+
   } catch (error) {
     console.error("Callback verification failed:", error);
-    return NextResponse.redirect(new URL(`/donate?status=failed`, req.url), 303);
+    return NextResponse.redirect(new URL(`/donate?status=failed`, baseUrl), 303);
   }
 }
