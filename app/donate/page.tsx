@@ -342,49 +342,44 @@ export default function DonatePage() {
   };
 
   const handleSubmitDetails = async (isPublic: boolean) => {
-    setIsSubmittingDetails(true);
-    try {
-      let photoUrl = null;
-      if (isPublic && photoFile) {
-        const fileExt = photoFile.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from('supporter_photos').upload(fileName, photoFile);
-        if (!uploadError) {
-          const { data } = supabase.storage.from('supporter_photos').getPublicUrl(fileName);
-          photoUrl = data.publicUrl;
-        }
+  setIsSubmittingDetails(true);
+  try {
+    let photoUrl = null;
+    if (isPublic && photoFile) {
+      const fileExt = photoFile.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('supporter_photos').upload(fileName, photoFile);
+      if (uploadError) {
+        console.error("Photo upload failed:", uploadError); // 👈 also log this
+      } else {
+        const { data } = supabase.storage.from('supporter_photos').getPublicUrl(fileName);
+        photoUrl = data.publicUrl;
       }
-
-      let currentRecordId = dbRecordId;
-      if (!currentRecordId && paymentId) {
-        const { data } = await supabase.from('supporters').select('id').eq('razorpay_payment_id', paymentId).single();
-        if (data) currentRecordId = data.id;
-      }
-
-      if (currentRecordId) {
-        await supabase.from('supporters').update({
-          name: isPublic ? supporterName.trim() : null,
-          message: isPublic ? supporterMessage.trim() : null,
-          photo_url: photoUrl,
-          is_anonymous: !isPublic
-        }).eq('id', currentRecordId);
-      } else if (paymentId) {
-        await supabase.from('supporters').insert([{
-          amount: effectiveAmount,
-          name: isPublic ? supporterName.trim() : null,
-          message: isPublic ? supporterMessage.trim() : null,
-          photo_url: photoUrl,
-          is_anonymous: !isPublic,
-          status: 'completed',
-          razorpay_payment_id: paymentId
-        }]);
-      }
-    } catch (err) {
-      console.error("Failed to update public details", err);
     }
-    setPaymentStep('CERTIFICATE');
-    setIsSubmittingDetails(false);
-  };
+
+    if (paymentId) {
+      const res = await fetch('/api/supporter/details', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentId,
+          isPublic,
+          name: supporterName,
+          message: supporterMessage,
+          photoUrl,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) console.error("Details save failed:", result.error);
+    } else {
+      console.error("No paymentId available — cannot save supporter details");
+    }
+  } catch (err) {
+    console.error("Failed to update public details", err);
+  }
+  setPaymentStep('CERTIFICATE');
+  setIsSubmittingDetails(false);
+};
 
   const downloadCertificate = async () => {
     if (!certificateRef.current) return;
