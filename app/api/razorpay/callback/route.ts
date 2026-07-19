@@ -8,12 +8,7 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const orderId = formData.get("razorpay_order_id") as string | null;
-
-    // सीधे डोनेट पेज पर आर्डर ID भेजें, बाकि काम Verify API करेगा
-    const redirectUrl = orderId
-      ? `/donate?order_id=${orderId}`
-      : `/donate?status=failed`;
-
+    const redirectUrl = orderId ? `/donate?order_id=${orderId}` : `/donate?status=failed`;
     return NextResponse.redirect(new URL(redirectUrl, baseUrl), 303);
   } catch (error) {
     return NextResponse.redirect(new URL(`/donate?status=failed`, baseUrl), 303);

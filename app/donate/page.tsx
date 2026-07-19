@@ -7,15 +7,14 @@ import {
   FaCheckCircle, FaBookOpen, FaBan, FaOm, FaDownload, FaCloudUploadAlt, FaWhatsapp
 } from 'react-icons/fa';
 import { FaLock } from 'react-icons/fa6';
-import { supabase } from '@/utils/supabase';
+import { supabase } from '@/utils/supabase'; // only used for Storage photo upload now
 
 type Particle = { id: number; x: number; size: number; duration: number; delay: number; opacity: number };
 type PaymentStep = 'DONATION' | 'DETAILS' | 'CERTIFICATE';
+type VerifyResult = { paid: boolean; paymentId?: string; supporterId?: string; amount?: number };
 
 const PRESET_AMOUNTS = [21, 51, 101, 251, 501, 1100];
 const MONTHLY_GOAL = 5000;
-const BASE_RAISED = 0;
-const BASE_COUNT = 0;
 
 const OmSymbol = () => (
   <svg viewBox="0 0 60 60" fill="currentColor" className="w-full h-full">
@@ -45,11 +44,8 @@ function FloatingParticles() {
   useEffect(() => {
     setParticles(
       Array.from({ length: 15 }, (_, i) => ({
-        id: i,
-        x: Math.random() * 100,
-        size: 4 + Math.random() * 8,
-        duration: 12 + Math.random() * 16,
-        delay: Math.random() * 10,
+        id: i, x: Math.random() * 100, size: 4 + Math.random() * 8,
+        duration: 12 + Math.random() * 16, delay: Math.random() * 10,
         opacity: 0.15 + Math.random() * 0.35,
       }))
     );
@@ -57,14 +53,10 @@ function FloatingParticles() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden z-0">
       {particles.map((p) => (
-        <div
-          key={p.id}
-          className="absolute animate-float-up"
-          style={{
-            left: `${p.x}%`, bottom: '-20px', width: `${p.size}px`, height: `${p.size}px`,
-            opacity: p.opacity, animationDuration: `${p.duration}s`, animationDelay: `${p.delay}s`,
-          }}
-        >
+        <div key={p.id} className="absolute animate-float-up" style={{
+          left: `${p.x}%`, bottom: '-20px', width: `${p.size}px`, height: `${p.size}px`,
+          opacity: p.opacity, animationDuration: `${p.duration}s`, animationDelay: `${p.delay}s`,
+        }}>
           <svg viewBox="0 0 10 14" className="text-orange-400 dark:text-orange-500 w-full h-full drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]">
             <ellipse cx="5" cy="10" rx="4" ry="3" fill="currentColor" opacity="0.6" />
             <path d="M5 10 Q3 5 5 2 Q7 5 5 10Z" fill="#FCD34D" />
@@ -104,20 +96,16 @@ function MonthlyGoal({ currentRaised, supporterCount }: { currentRaised: number,
   );
 }
 
-// ─── verification result type ───
-type VerifyResult = { paid: boolean; paymentId?: string; supporterId?: string | null; amount?: number };
-
 export default function DonatePage() {
   const [paymentStep, setPaymentStep] = useState<PaymentStep>('DONATION');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmittingDetails, setIsSubmittingDetails] = useState(false);
   const [cancelToast, setCancelToast] = useState(false);
-  const [isVerifyingReturn, setIsVerifyingReturn] = useState(false); // 🌟 NEW
+  const [isVerifyingReturn, setIsVerifyingReturn] = useState(false);
 
   const [amount, setAmount] = useState<number>(101);
   const [customAmount, setCustomAmount] = useState<string>('');
   const [paymentDate, setPaymentDate] = useState<string>('');
-  const [dbRecordId, setDbRecordId] = useState<string | null>(null);
   const [paymentId, setPaymentId] = useState<string | null>(null);
 
   const [supporterName, setSupporterName] = useState('');
@@ -125,17 +113,16 @@ export default function DonatePage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
-  const [currentRaised, setCurrentRaised] = useState(BASE_RAISED);
-  const [supporterCount, setSupporterCount] = useState(BASE_COUNT);
+  const [currentRaised, setCurrentRaised] = useState(0);
+  const [supporterCount, setSupporterCount] = useState(0);
 
   const certificateRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const effectiveAmount = amount > 0 ? amount : 0;
 
-  // 🌟 FIXED: single call to Razorpay via /verify, always trusted as the source
-  // of truth for both "did it succeed" AND "how much" — never relies on a
-  // redirect's own status flag or on localStorage alone for the amount.
+  // ─── The only two functions that talk to the payment backend ───
+
   const verifyOrder = useCallback(async (orderId: string): Promise<VerifyResult> => {
     try {
       const res = await fetch(`/api/razorpay/verify?order_id=${orderId}`);
@@ -146,10 +133,6 @@ export default function DonatePage() {
     }
   }, []);
 
-  // Retries a few times with a short delay — a genuinely successful UPI
-  // payment can take a few seconds to show as "captured" on Razorpay's side
-  // after the app-switch return, so a single failed check should not be
-  // treated as a real failure.
   const verifyWithRetry = useCallback(async (orderId: string, attempts = 3): Promise<VerifyResult> => {
     for (let i = 0; i < attempts; i++) {
       const result = await verifyOrder(orderId);
@@ -161,14 +144,11 @@ export default function DonatePage() {
 
   const applyPaidResult = useCallback((result: VerifyResult) => {
     setPaymentId(result.paymentId ?? null);
-    setDbRecordId(result.supporterId ?? null);
-    if (result.amount) setAmount(result.amount); // 🌟 authoritative amount from Razorpay
+    if (result.amount) setAmount(result.amount); // authoritative amount from Razorpay, never local state
     setPaymentDate(new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
     setPaymentStep('DETAILS');
   }, []);
 
-  // Checks localStorage for a pending order left by handlePayClick — used
-  // for the bfcache/visibility-return path, not the URL-redirect path.
   const recoverFromLocalStorage = useCallback(async () => {
     const raw = localStorage.getItem('hbm_pending_order');
     if (!raw) return;
@@ -178,34 +158,25 @@ export default function DonatePage() {
       return;
     }
     const result = await verifyOrder(pending.orderId);
-    if (result.paid) {
-      applyPaidResult(result);
-    }
+    if (result.paid) applyPaidResult(result);
     localStorage.removeItem('hbm_pending_order');
   }, [verifyOrder, applyPaidResult]);
 
-  // 1. Fetch real stats + handle redirect return + handle localStorage fallback, on mount
+  // 1. Fetch real stats (server route) + handle redirect return + localStorage fallback
   useEffect(() => {
-    const fetchRealStats = async () => {
-      try {
-        const { data, error } = await supabase.from('supporters').select('amount').eq('status', 'completed');
-        if (data && !error) {
-          const realTotal = data.reduce((sum, row) => sum + (row.amount || 0), 0);
-          setCurrentRaised(BASE_RAISED + realTotal);
-          setSupporterCount(BASE_COUNT + data.length);
-        }
-      } catch (err) {
-        console.error("Failed to fetch real stats silently", err);
-      }
-    };
-    fetchRealStats();
+    fetch('/api/supporters/stats')
+      .then(res => res.json())
+      .then(({ totalRaised, supporterCount }) => {
+        setCurrentRaised(totalRaised ?? 0);
+        setSupporterCount(supporterCount ?? 0);
+      })
+      .catch(err => console.error("Failed to fetch stats", err));
 
     const params = new URLSearchParams(window.location.search);
     const orderId = params.get('order_id');
-    const status = params.get('status'); // only meaningful when orderId is absent (see callback route)
+    const status = params.get('status');
 
     if (orderId) {
-      // 🌟 Always independently verify — never trust a redirect flag alone
       setIsVerifyingReturn(true);
       verifyWithRetry(orderId).then((result) => {
         window.history.replaceState({}, '', '/donate');
@@ -218,7 +189,6 @@ export default function DonatePage() {
         }
       });
     } else if (status === 'failed') {
-      // No order_id at all means the order was never created — genuinely nothing to verify
       alert("पेमेंट शुरू नहीं हो पाया। कृपया पुनः प्रयास करें।");
       window.history.replaceState({}, '', '/donate');
     } else {
@@ -226,7 +196,7 @@ export default function DonatePage() {
     }
   }, [verifyWithRetry, applyPaidResult, recoverFromLocalStorage]);
 
-  // 2. Stuck-button fix (bfcache / visibility return without a URL redirect)
+  // 2. Stuck-button fix on bfcache/visibility return
   useEffect(() => {
     const resetAndRecover = () => {
       setIsSubmitting(false);
@@ -279,7 +249,7 @@ export default function DonatePage() {
   };
 
   const handlePayClick = async () => {
-    setIsSubmitting(true); // shows only during script load + order creation — genuinely brief
+    setIsSubmitting(true); // brief — only covers script load + order creation
     const isLoaded = await loadRazorpayScript();
     if (!isLoaded) {
       alert("पेमेंट गेटवे लोड नहीं हो पा रहा है। कृपया अपना इंटरनेट कनेक्शन चेक करें।");
@@ -288,7 +258,7 @@ export default function DonatePage() {
     }
 
     try {
-      const orderResponse = await fetch('/api/razorpay', {
+      const orderResponse = await fetch('/api/razorpay/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: effectiveAmount }),
@@ -297,9 +267,7 @@ export default function DonatePage() {
       if (!orderData.id) throw new Error("Order creation failed");
 
       localStorage.setItem('hbm_pending_order', JSON.stringify({
-        orderId: orderData.id,
-        amount: effectiveAmount,
-        ts: Date.now(),
+        orderId: orderData.id, amount: effectiveAmount, ts: Date.now(),
       }));
 
       const options = {
@@ -325,14 +293,12 @@ export default function DonatePage() {
 
       const rzp = new (window as any).Razorpay(options);
       rzp.on('payment.failed', function () {
-        // 🌟 Don't remove hbm_pending_order here — Razorpay's client-side
-        // "failed" event can fire even when the payment later settles as
-        // captured (e.g. a UPI confirmation that arrives after a timeout).
-        // Let the next verify pass be the judge, not this event alone.
+        // Don't remove hbm_pending_order — a client-side "failed" event
+        // isn't proof; only /verify against Razorpay's own API decides that.
         setIsSubmitting(false);
       });
       rzp.open();
-      setIsSubmitting(false); // 🌟 hand off — Razorpay's own UI is now the "something is happening" signal
+      setIsSubmitting(false); // hand off — Razorpay's own UI is now the loading signal
 
     } catch (error: any) {
       console.error("Donation processing error:", error);
@@ -341,45 +307,43 @@ export default function DonatePage() {
     }
   };
 
+  // 🌟 The only remaining direct Supabase client call — Storage upload
+  // only, never the supporters table itself.
   const handleSubmitDetails = async (isPublic: boolean) => {
-  setIsSubmittingDetails(true);
-  try {
-    let photoUrl = null;
-    if (isPublic && photoFile) {
-      const fileExt = photoFile.name.split('.').pop();
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from('supporter_photos').upload(fileName, photoFile);
-      if (uploadError) {
-        console.error("Photo upload failed:", uploadError); // 👈 also log this
-      } else {
-        const { data } = supabase.storage.from('supporter_photos').getPublicUrl(fileName);
-        photoUrl = data.publicUrl;
+    setIsSubmittingDetails(true);
+    try {
+      let photoUrl: string | null = null;
+      if (isPublic && photoFile) {
+        const fileExt = photoFile.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('supporter_photos').upload(fileName, photoFile);
+        if (uploadError) {
+          console.error("Photo upload failed:", uploadError);
+        } else {
+          const { data } = supabase.storage.from('supporter_photos').getPublicUrl(fileName);
+          photoUrl = data.publicUrl;
+        }
       }
-    }
 
-    if (paymentId) {
-      const res = await fetch('/api/supporter/details', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paymentId,
-          isPublic,
-          name: supporterName,
-          message: supporterMessage,
-          photoUrl,
-        }),
-      });
-      const result = await res.json();
-      if (!res.ok) console.error("Details save failed:", result.error);
-    } else {
-      console.error("No paymentId available — cannot save supporter details");
+      if (!paymentId) {
+        console.error("No paymentId available — cannot save supporter details");
+      } else {
+        const res = await fetch('/api/supporter/details', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            paymentId, isPublic, name: supporterName, message: supporterMessage, photoUrl,
+          }),
+        });
+        const result = await res.json();
+        if (!res.ok) console.error("Details save failed:", result.error);
+      }
+    } catch (err) {
+      console.error("Failed to update public details", err);
     }
-  } catch (err) {
-    console.error("Failed to update public details", err);
-  }
-  setPaymentStep('CERTIFICATE');
-  setIsSubmittingDetails(false);
-};
+    setPaymentStep('CERTIFICATE');
+    setIsSubmittingDetails(false);
+  };
 
   const downloadCertificate = async () => {
     if (!certificateRef.current) return;
@@ -396,9 +360,6 @@ export default function DonatePage() {
     }
   };
 
-  // 🌟 NEW: brief full-page state while verifying a redirect return, so the
-  // user isn't looking at the plain donation form for a couple of seconds
-  // wondering if anything happened.
   if (isVerifyingReturn) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-orange-50 dark:bg-[#0c0804] px-4 text-center font-hindi">
