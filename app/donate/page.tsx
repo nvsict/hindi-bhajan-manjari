@@ -314,7 +314,7 @@ export default function DonatePage() {
         order_id: orderData.id,
         theme: { color: "#ea580c" },
         redirect: true, // 🌟 Force Redirect Mode
-        callback_url: "https://www.hindibhajanmanjari.com/api/razorpay/callback",
+        callback_url: `${window.location.origin}/api/razorpay/callback`,
         modal: {
           ondismiss: function () {
             setIsSubmitting(false);
