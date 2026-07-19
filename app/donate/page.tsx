@@ -149,8 +149,14 @@ export default function DonatePage() {
     setPaymentStep('DETAILS');
   }, []);
 
+  // 🌟 NEW: Lock ताकि एक साथ दो बार रिकवरी न चले
+  const isRecovering = useRef(false);
+
   // 🌟 Handles cases where the app was fully killed and resumed
   const recoverFromLocalStorage = useCallback(async () => {
+    // अगर रिकवरी पहले से चल रही है, तो दोबारा रन न करें
+    if (isRecovering.current) return;
+
     const raw = localStorage.getItem('hbm_pending_order');
     if (!raw) return;
     
@@ -160,19 +166,27 @@ export default function DonatePage() {
       return;
     }
 
-    // 🌟 FIX: तुरंत लोडिंग स्क्रीन दिखाएं ताकि यूज़र को ऐप क्रैश फील न हो
-    setIsVerifyingReturn(true);
+    isRecovering.current = true; // 🔒 Lock लगा दिया
+    setIsVerifyingReturn(true);  // स्पिनर चालू
 
-    // 🌟 FIX: verifyOrder की जगह verifyWithRetry का यूज़ करें ताकि UPI डिले हैंडल हो सके
-    const result = await verifyWithRetry(pending.orderId);
-    
-    setIsVerifyingReturn(false); // वेरिफिकेशन खत्म, स्पिनर हटाएं
-    
-    if (result.paid) {
-      applyPaidResult(result);
+    try {
+      const result = await verifyWithRetry(pending.orderId);
+      
+      setIsVerifyingReturn(false); // स्पिनर बंद
+      localStorage.removeItem('hbm_pending_order');
+      
+      if (result.paid) {
+        applyPaidResult(result);
+      } else {
+        // अगर यूज़र ने GPay में कैंसल कर दिया या पेमेंट फेल हो गया
+        alert("पेमेंट पूरा नहीं हो पाया या रद्द कर दिया गया है। अगर पैसा कट गया है, तो कृपया 5 मिनट प्रतीक्षा करें।");
+      }
+    } catch (err) {
+      setIsVerifyingReturn(false);
+      localStorage.removeItem('hbm_pending_order');
+    } finally {
+      isRecovering.current = false; // 🔓 Lock खोल दिया
     }
-    
-    localStorage.removeItem('hbm_pending_order');
   }, [verifyWithRetry, applyPaidResult]);
 
   // 1. Fetch stats on mount + recover if app crashed
