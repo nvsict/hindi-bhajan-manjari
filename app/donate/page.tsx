@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { toJpeg } from 'html-to-image'; 
 import { 
   FaShieldAlt, FaServer, FaHeart, 
@@ -148,15 +148,52 @@ export default function DonatePage() {
 
   const effectiveAmount = amount > 0 ? amount : 0;
 
-  // 1. Fetch Real Stats
+  // 🌟 RECOVERY FUNCTION (Used by URL Redirect and Background checks)
+  const recoverPendingOrder = useCallback(async (forcedOrderId?: string) => {
+    let targetOrderId = forcedOrderId;
+    let pendingAmount = null;
+
+    if (!targetOrderId) {
+      const raw = localStorage.getItem('hbm_pending_order');
+      if (!raw) return;
+      const pending = JSON.parse(raw);
+      if (Date.now() - pending.ts > 30 * 60 * 1000) {
+        localStorage.removeItem('hbm_pending_order');
+        return;
+      }
+      targetOrderId = pending.orderId;
+      pendingAmount = pending.amount;
+    }
+
+    try {
+      const res = await fetch(`/api/razorpay/verify?order_id=${targetOrderId}`);
+      const result = await res.json();
+      
+      if (result.paid) {
+        setPaymentId(result.paymentId);
+        setDbRecordId(result.supporterId ?? null);
+        if (pendingAmount) setAmount(pendingAmount);
+        
+        setPaymentDate(new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
+        setPaymentStep('DETAILS'); 
+        
+        // Clean URL to prevent loops if we came from a redirect
+        if (forcedOrderId) {
+          window.history.replaceState({}, '', '/donate');
+        }
+      }
+    } catch (err) {
+      console.error("Pending order recovery failed", err);
+    } finally {
+      localStorage.removeItem('hbm_pending_order');
+    }
+  }, []);
+
+  // 1. Fetch Real Stats & Handle Redirects/Recovery on Mount
   useEffect(() => {
     const fetchRealStats = async () => {
       try {
-        const { data, error } = await supabase
-          .from('supporters')
-          .select('amount')
-          .eq('status', 'completed');
-        
+        const { data, error } = await supabase.from('supporters').select('amount').eq('status', 'completed');
         if (data && !error) {
           const realTotal = data.reduce((sum, row) => sum + (row.amount || 0), 0);
           setCurrentRaised(BASE_RAISED + realTotal);
@@ -167,50 +204,47 @@ export default function DonatePage() {
       }
     };
     fetchRealStats();
-  }, []);
 
-  // 2. 🌟 NEW: Browser Crash / Background App Recovery
+    // 🌟 URL Params Check (For Razorpay Redirect Mode)
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('status');
+    const orderId = params.get('order_id');
+
+    if (status === 'success' && orderId) {
+      recoverPendingOrder(orderId);
+    } else if (status === 'failed') {
+      alert("पेमेंट विफल रहा। कृपया इंटरनेट चेक करें या पुनः प्रयास करें।");
+      window.history.replaceState({}, '', '/donate');
+    } else {
+      // Fallback: Check LocalStorage if no URL params
+      recoverPendingOrder();
+    }
+  }, [recoverPendingOrder]);
+
+  // 2. 🌟 Stuck Button Fix (BFCache / Visibility Reset)
   useEffect(() => {
-    const recoverPendingOrder = async () => {
-      const raw = localStorage.getItem('hbm_pending_order');
-      if (!raw) return;
-      const pending = JSON.parse(raw);
-
-      // अगर आर्डर 30 मिनट से पुराना है, तो उसे हटा दें
-      if (Date.now() - pending.ts > 30 * 60 * 1000) {
-        localStorage.removeItem('hbm_pending_order');
-        return;
-      }
-
-      try {
-        // हमारे नए बैकएंड से चेक करें कि क्या सच में पेमेंट हो गया था
-        const res = await fetch(`/api/razorpay/verify?order_id=${pending.orderId}`);
-        const result = await res.json();
-        
-        if (result.paid) {
-          setPaymentId(result.paymentId);
-          setDbRecordId(result.supporterId ?? null);
-          setAmount(pending.amount);
-          setPaymentDate(new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
-          setPaymentStep('DETAILS'); // यूज़र को वापस डिटेल्स/सक्सेस स्क्रीन पर ले जाएं
-        }
-      } catch (err) {
-        console.error("Pending order recovery failed", err);
-      } finally {
-        localStorage.removeItem('hbm_pending_order');
-      }
+    const resetAndRecover = () => {
+      setIsSubmitting(false);
+      recoverPendingOrder(); 
     };
-    recoverPendingOrder();
-  }, []);
 
-  // 3. 🌟 NEW: Memory Saver (Pause animations when tab is hidden)
-  useEffect(() => {
-    const handleVisibility = () => {
-      document.body.classList.toggle('paused-animations', document.hidden);
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) resetAndRecover();
     };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, []);
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') resetAndRecover();
+      document.body.classList.toggle('paused-animations', document.hidden); // Memory saver
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [recoverPendingOrder]);
 
   const handlePreset = (val: number) => {
     if (navigator.vibrate) navigator.vibrate(20);
@@ -263,13 +297,13 @@ export default function DonatePage() {
 
       if (!orderData.id) throw new Error("Order creation failed");
 
-      // 🌟 FIX: आर्डर की डिटेल्स ब्राउज़र में सेव करें ताकि क्रैश होने पर रिकवर हो सके
       localStorage.setItem('hbm_pending_order', JSON.stringify({
         orderId: orderData.id,
         amount: effectiveAmount,
         ts: Date.now(),
       }));
 
+      // 🌟 REDIRECT MODE CONFIGURATION
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, 
         amount: orderData.amount,
@@ -279,35 +313,12 @@ export default function DonatePage() {
         image: "https://www.hindibhajanmanjari.com/logo.png", 
         order_id: orderData.id,
         theme: { color: "#ea580c" },
-        handler: async function (response: any) {
-          // अगर ब्राउज़र क्रैश नहीं हुआ और सब नॉर्मल रहा:
-          const pId = response.razorpay_payment_id;
-          setPaymentId(pId);
-          
-          try {
-            const { data, error } = await supabase.from('supporters').insert([
-              {
-                amount: effectiveAmount,
-                is_anonymous: true,
-                status: 'completed',
-                razorpay_payment_id: pId
-              }
-            ]).select().single();
-            
-            if (data && !error) setDbRecordId(data.id); 
-          } catch (dbErr: any) {
-            console.error("Initial DB Save failed silently", dbErr); 
-          }
-
-          localStorage.removeItem('hbm_pending_order'); // काम हो गया, इसे हटा दें
-          setPaymentDate(new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
-          setPaymentStep('DETAILS'); 
-          setIsSubmitting(false);
-        },
+        redirect: true, // 🌟 Force Redirect Mode
+        callback_url: "https://www.hindibhajanmanjari.com/api/razorpay/callback",
         modal: {
           ondismiss: function () {
             setIsSubmitting(false);
-            localStorage.removeItem('hbm_pending_order'); // कैंसिल किया तो भी हटा दें
+            localStorage.removeItem('hbm_pending_order');
             setCancelToast(true);
             setTimeout(() => setCancelToast(false), 4000);
           }
@@ -315,13 +326,11 @@ export default function DonatePage() {
       };
 
       const rzp = new (window as any).Razorpay(options);
-      
       rzp.on('payment.failed', function () {
         localStorage.removeItem('hbm_pending_order');
         alert(`पेमेंट विफल रहा। कृपया इंटरनेट चेक करें या किसी अन्य माध्यम से पुनः प्रयास करें।`);
         setIsSubmitting(false);
       });
-
       rzp.open();
 
     } catch (error: any) {
@@ -401,6 +410,7 @@ export default function DonatePage() {
     }
   };
 
+  // ─── RENDER STEP 2: DETAILS NEEDED SCREEN ───
   if (paymentStep === 'DETAILS') {
     return (
       <div className="min-h-screen !pt-24 !pb-16 flex flex-col items-center justify-start bg-orange-50 dark:bg-[#0c0804] px-4 font-hindi overflow-x-hidden">
@@ -489,6 +499,7 @@ export default function DonatePage() {
     );
   }
 
+  // ─── RENDER STEP 3: CERTIFICATE SCREEN ───
   if (paymentStep === 'CERTIFICATE') {
     return (
       <div className="min-h-screen !pt-24 !pb-16 flex flex-col items-center justify-start bg-orange-50 dark:bg-[#0c0804] px-4 text-center font-hindi overflow-x-hidden">
@@ -560,6 +571,7 @@ export default function DonatePage() {
     );
   }
 
+  // ─── RENDER STEP 1: MAIN DONATION SCREEN ───
   return (
     <>
       <style>{`
@@ -574,7 +586,7 @@ export default function DonatePage() {
           background-image: radial-gradient(circle at 50% 50%, rgba(234,88,12,0.04) 0%, transparent 70%),
             repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg, transparent 22deg, rgba(234,88,12,0.02) 22deg, rgba(234,88,12,0.02) 24deg);
         }
-        /* 🌟 NEW: Animations pause when tab goes to background to save Android memory */
+        /* Memory Saver for Android */
         .paused-animations .animate-float-up, .paused-animations .animate-pulse {
           animation-play-state: paused;
         }
@@ -593,7 +605,6 @@ export default function DonatePage() {
       )}
 
       <div className="min-h-screen !pt-24 !pb-20 md:!pb-24 bg-orange-50/40 dark:bg-[#0c0804] relative overflow-hidden transition-colors duration-300 font-hindi">
-        
         <FloatingParticles />
         <div className="pointer-events-none absolute inset-0 mandala-bg z-0" />
         <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full bg-orange-500/10 dark:bg-orange-600/10 blur-[120px] z-0" />
