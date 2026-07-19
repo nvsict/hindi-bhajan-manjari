@@ -30,6 +30,26 @@ export type ConfirmResult =
  * it," and we fetch what's already there instead of overwriting it.
  */
 export async function confirmPayment(orderId: string): Promise<ConfirmResult> {
+  // 🌟 Layer 0: सबसे पहले DB में देख लें — अगर वेबहुक या पहले किसी retry ने
+  // पहले ही confirm कर दिया है, तो Razorpay API हिट करने की ज़रूरत नहीं
+  // (हर retry/instance पर बार-बार API कॉल से rate-limit का खतरा कम होता है)
+  const { data: existingRow } = await supabaseAdmin
+    .from("supporters")
+    .select("id, razorpay_payment_id, amount")
+    .eq("razorpay_order_id", orderId)
+    .eq("status", "completed")
+    .maybeSingle();
+
+  if (existingRow) {
+    return {
+      paid: true,
+      paymentId: existingRow.razorpay_payment_id,
+      supporterId: existingRow.id,
+      amount: existingRow.amount,
+    };
+  }
+
+  // DB में नहीं मिला — Razorpay से लाइव पूछें (यही असली सोर्स है)
   const payments = await razorpay.orders.fetchPayments(orderId);
   const captured = payments.items.find((p: any) => p.status === "captured");
   if (!captured) return { paid: false };
@@ -53,11 +73,20 @@ export async function confirmPayment(orderId: string): Promise<ConfirmResult> {
   }
 
   if (insertError?.code === "23505") {
-    const { data: existing } = await supabaseAdmin
+    // 🌟 FIX: .single() की जगह .maybeSingle() — अगर replication lag की वजह से
+    // row अभी readable न हो, तो यह throw नहीं करेगा, सिर्फ null देगा।
+    // दोनों ही स्थिति में हम Razorpay से मिला कैप्चर्ड डेटा लौटाते हैं —
+    // पेमेंट तो कैप्चर हो ही चुका है, इसे "paid: true" कहने से रोकने की कोई वजह नहीं।
+    const { data: existing, error: lookupError } = await supabaseAdmin
       .from("supporters")
       .select("id")
       .eq("razorpay_payment_id", captured.id)
-      .single();
+      .maybeSingle();
+
+    if (lookupError) {
+      console.error("confirmPayment conflict-lookup error:", lookupError);
+    }
+
     return { paid: true, paymentId: captured.id, supporterId: existing?.id ?? "", amount };
   }
 
