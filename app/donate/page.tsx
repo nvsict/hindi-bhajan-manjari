@@ -14,6 +14,8 @@ type VerifyResult = { paid: boolean; paymentId?: string; amount?: number };
 
 const PRESET_AMOUNTS = [21, 51, 101, 251, 501, 1100];
 const MONTHLY_GOAL = 5000;
+const PENDING_KEY = 'hbm_pending_order';
+const SYNC_CHANNEL = 'hbm_donate_sync';
 
 // 🌟 UI Components
 const OmSymbol = () => (
@@ -96,7 +98,7 @@ function MonthlyGoal({ currentRaised, supporterCount }: { currentRaised: number,
   );
 }
 
-// 🌟 Timeout Wrapper (ताकि UI कभी अनिश्चित काल के लिए न लटके)
+// 🌟 Timeout Wrapper (UI को अनिश्चित काल के लिए लटकने से बचाता है)
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
   return new Promise((resolve) => {
     let settled = false;
@@ -127,6 +129,7 @@ export default function DonatePage() {
 
   const certificateRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const channelRef = useRef<BroadcastChannel | null>(null);
 
   const effectiveAmount = amount > 0 ? amount : 0;
 
@@ -140,11 +143,77 @@ export default function DonatePage() {
     }
   }, []);
 
+  const verifyWithRetry = useCallback(async (orderId: string, attempts = 3): Promise<VerifyResult> => {
+    for (let i = 0; i < attempts; i++) {
+      const result = await verifyOrder(orderId);
+      if (result.paid) return result;
+      if (i < attempts - 1) await new Promise(r => setTimeout(r, 2000));
+    }
+    return { paid: false };
+  }, [verifyOrder]);
+
   const applyPaidResult = useCallback((result: VerifyResult) => {
     if (result.amount) setAmount(result.amount);
     setPaymentDate(new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
-    setPaymentStep('CERTIFICATE'); // सीधा सर्टिफिकेट पेज! (कोई फॉर्म नहीं)
+    setPaymentStep('CERTIFICATE');
   }, []);
+
+  // 🌟 THE NINJA FIX: Razorpay के क्रैश होने से पहले उसे नष्ट करना!
+  const handleSuccessBypass = useCallback((result: VerifyResult) => {
+    // 1. Razorpay के iframe को ज़बरदस्ती हटा दें
+    document.querySelectorAll('.razorpay-container').forEach(el => el.remove());
+    
+    // 2. Razorpay के घटिया "Error in opening checkout" वाले Popup को 4 सेकंड के लिए ब्लॉक करें
+    const originalAlert = window.alert;
+    window.alert = function(msg: any) {
+      if (msg && msg.toString().toLowerCase().includes("checkout")) return; 
+      originalAlert(msg);
+    };
+    setTimeout(() => { window.alert = originalAlert; }, 4000);
+
+    // 3. अपना सक्सेस पेज दिखाएं
+    localStorage.removeItem(PENDING_KEY);
+    applyPaidResult(result);
+    channelRef.current?.postMessage({ type: 'PAID', result });
+  }, [applyPaidResult]);
+
+  const isRecovering = useRef(false);
+
+  const recoverFromLocalStorage = useCallback(async () => {
+    if (isRecovering.current) return;
+
+    const raw = localStorage.getItem(PENDING_KEY);
+    if (!raw) return;
+
+    let pending;
+    try { pending = JSON.parse(raw); } catch { localStorage.removeItem(PENDING_KEY); return; }
+    if (Date.now() - pending.ts > 30 * 60 * 1000) {
+      localStorage.removeItem(PENDING_KEY);
+      return;
+    }
+
+    isRecovering.current = true;
+    setIsVerifyingReturn(true);
+
+    try {
+      // पहली कोशिश: अगर तुरंत वेरीफाई हो जाए
+      let result = await verifyOrder(pending.orderId);
+      if (result.paid) {
+         handleSuccessBypass(result);
+         return;
+      }
+
+      // दूसरी कोशिश: UPI के डिले के लिए 12 सेकंड तक इंतज़ार करें
+      result = await withTimeout(verifyWithRetry(pending.orderId, 3), 12000, { paid: false });
+      if (result.paid) {
+         handleSuccessBypass(result);
+         return;
+      }
+    } finally {
+      setIsVerifyingReturn(false);
+      isRecovering.current = false;
+    }
+  }, [verifyOrder, verifyWithRetry, handleSuccessBypass]);
 
   // Fetch initial stats
   useEffect(() => {
@@ -154,7 +223,47 @@ export default function DonatePage() {
         setCurrentRaised(totalRaised ?? 0);
         setSupporterCount(supporterCount ?? 0);
       }).catch(err => console.error(err));
-  }, []);
+
+    if (window.location.search) {
+      window.history.replaceState({}, '', '/donate');
+    }
+    recoverFromLocalStorage(); 
+  }, [recoverFromLocalStorage]);
+
+  // 🌟 BACK IN ACTION: GPay से वापस लौटते ही सबसे पहले हम चेक करेंगे!
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        document.body.classList.remove('paused-animations');
+        recoverFromLocalStorage(); 
+      } else {
+        document.body.classList.add('paused-animations');
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [recoverFromLocalStorage]);
+
+  // BroadcastChannel (Duplicate PWA instances sync)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
+    const channel = new BroadcastChannel(SYNC_CHANNEL);
+    channelRef.current = channel;
+
+    channel.onmessage = (e) => {
+      if (e.data?.type === 'PAID' && e.data.result) {
+        setIsVerifyingReturn(false);
+        applyPaidResult(e.data.result);
+      }
+      if (e.data?.type === 'PING') {
+        recoverFromLocalStorage();
+      }
+    };
+    channel.postMessage({ type: 'PING' });
+    return () => channel.close();
+  }, [applyPaidResult, recoverFromLocalStorage]);
 
   const handlePreset = (val: number) => {
     if (navigator.vibrate) navigator.vibrate(20);
@@ -199,6 +308,10 @@ export default function DonatePage() {
       const orderData = await orderResponse.json();
       if (!orderData.id) throw new Error("Order creation failed");
 
+      localStorage.setItem(PENDING_KEY, JSON.stringify({
+        orderId: orderData.id, amount: effectiveAmount, ts: Date.now(),
+      }));
+
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: orderData.amount,
@@ -208,20 +321,16 @@ export default function DonatePage() {
         image: "https://www.hindibhajanmanjari.com/logo.png",
         order_id: orderData.id,
         theme: { color: "#ea580c" },
-        // 🌟 Razorpay's direct handler is the ONLY verification source now
         handler: async function (response: any) {
-          setIsSubmitting(false);
-          setIsVerifyingReturn(true); // Show spinner while confirming
-
+          setIsVerifyingReturn(true); 
           try {
-            // Give Razorpay backend 1.5s to sync UPI status
             await new Promise(r => setTimeout(r, 1500));
             const result = await withTimeout(verifyOrder(response.razorpay_order_id), 15000, { paid: false });
 
-            setIsVerifyingReturn(false);
             if (result.paid) {
-              applyPaidResult(result);
+              handleSuccessBypass(result);
             } else {
+              setIsVerifyingReturn(false);
               alert("पेमेंट की पुष्टि नहीं हो पाई। यदि आपका पैसा कट गया है, तो वह 100% सुरक्षित है।");
             }
           } catch (err) {
@@ -243,7 +352,9 @@ export default function DonatePage() {
         setIsSubmitting(false);
       });
       rzp.open();
-      setIsSubmitting(false); // Hand over control to Razorpay Modal
+      
+      // ध्यान दें: यहाँ से setIsSubmitting(false) हटा दिया गया है ताकि Modal खुला रहने तक बटन लॉक रहे।
+
     } catch (error: any) {
       alert("पेमेंट सर्वर से संपर्क नहीं हो पाया। कृपया थोड़ी देर बाद प्रयास करें।");
       setIsSubmitting(false);
@@ -275,7 +386,7 @@ export default function DonatePage() {
     );
   }
 
-  // ─── SCREEN 2: SUCCESS & CERTIFICATE (No more forms!) ───
+  // ─── SCREEN 2: SUCCESS & CERTIFICATE ───
   if (paymentStep === 'CERTIFICATE') {
     return (
       <div className="min-h-screen !pt-24 !pb-16 flex flex-col items-center justify-start bg-orange-50 dark:bg-[#0c0804] px-4 text-center font-hindi overflow-x-hidden">
@@ -346,7 +457,7 @@ export default function DonatePage() {
     );
   }
 
-  // ─── SCREEN 3: DONATION FORM (Default) ───
+  // ─── SCREEN 3: DONATION FORM ───
   return (
     <>
       <style>{`
