@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Script from 'next/script';
 import { toJpeg } from 'html-to-image';
+import { useLenis } from 'lenis/react'; // 🌟 Added Lenis hook
 import {
   FaServer, FaHeart, FaCheckCircle, FaBookOpen, FaBan, FaOm, 
   FaDownload, FaWhatsapp, FaEnvelope
@@ -122,11 +123,12 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 
 // ─── MAIN COMPONENT ───
 export default function DonatePage() {
+  const lenis = useLenis(); // 🌟 Grab the Lenis scroll controller
+  
   const [paymentStep, setPaymentStep] = useState<PaymentStep>('DONATION');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerifyingReturn, setIsVerifyingReturn] = useState(false);
   
-  // Custom Toast States
   const [cancelToast, setCancelToast] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -140,9 +142,8 @@ export default function DonatePage() {
   const certificateRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const channelRef = useRef<BroadcastChannel | null>(null);
-  
-  // 🌟 The Safe Way to handle Razorpay instances
   const rzpRef = useRef<any>(null);
+  const isRecovering = useRef(false);
 
   const effectiveAmount = amount > 0 ? amount : 0;
 
@@ -178,21 +179,27 @@ export default function DonatePage() {
   }, []);
 
   const handleSuccessBypass = useCallback((result: VerifyResult) => {
-    // 🌟 SAFE FIX: Gracefully close Razorpay instead of destroying the DOM
     if (rzpRef.current) {
-      try {
-        rzpRef.current.close();
-      } catch (e) { console.error("Could not close Razorpay:", e); }
+      try { rzpRef.current.close(); } catch (e) {}
+    }
+    
+    // 🌟 FIX: Strip Razorpay's native CSS scroll locks
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.documentElement.style.overflow = '';
+    
+    // 🌟 FIX: Force Lenis to resume tracking scroll
+    if (lenis) {
+      lenis.start();
     }
 
     localStorage.removeItem(PENDING_KEY);
     applyPaidResult(result);
     channelRef.current?.postMessage({ type: 'PAID', result });
-  }, [applyPaidResult]);
+  }, [applyPaidResult, lenis]); 
 
-  const isRecovering = useRef(false);
-
-  const recoverFromLocalStorage = useCallback(async () => {
+  // isForeground dictates if we freeze the UI with a spinner
+  const recoverFromLocalStorage = useCallback(async (isForeground = false) => {
     if (isRecovering.current) return;
     const raw = localStorage.getItem(PENDING_KEY);
     if (!raw) return;
@@ -205,7 +212,7 @@ export default function DonatePage() {
     }
 
     isRecovering.current = true;
-    setIsVerifyingReturn(true);
+    if (isForeground) setIsVerifyingReturn(true);
 
     try {
       let result = await verifyOrder(pending.orderId);
@@ -213,17 +220,21 @@ export default function DonatePage() {
          handleSuccessBypass(result);
          return;
       }
-      result = await withTimeout(verifyWithRetry(pending.orderId, 3), 12000, { paid: false });
-      if (result.paid) {
-         handleSuccessBypass(result);
-         return;
+      // Only do the long 6-second retry if they actively returned to the tab
+      if (isForeground) {
+         result = await withTimeout(verifyWithRetry(pending.orderId, 3), 12000, { paid: false });
+         if (result.paid) {
+           handleSuccessBypass(result);
+           return;
+         }
       }
     } finally {
-      setIsVerifyingReturn(false);
+      if (isForeground) setIsVerifyingReturn(false);
       isRecovering.current = false;
     }
   }, [verifyOrder, verifyWithRetry, handleSuccessBypass]);
 
+  // Strict empty dependency arrays block infinite re-renders
   useEffect(() => {
     fetch('/api/supporters/stats')
       .then(res => res.json())
@@ -235,21 +246,28 @@ export default function DonatePage() {
     if (window.location.search) {
       window.history.replaceState({}, '', '/donate');
     }
-    recoverFromLocalStorage(); 
-  }, [recoverFromLocalStorage]);
+    
+    // Check quietly in the background on initial load
+    recoverFromLocalStorage(false); 
+    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         document.body.classList.remove('paused-animations');
-        recoverFromLocalStorage(); 
+        // Check loudly with a spinner when returning from UPI app
+        recoverFromLocalStorage(true); 
       } else {
         document.body.classList.add('paused-animations');
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [recoverFromLocalStorage]);
+    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
@@ -262,12 +280,14 @@ export default function DonatePage() {
         applyPaidResult(e.data.result);
       }
       if (e.data?.type === 'PING') {
-        recoverFromLocalStorage();
+        recoverFromLocalStorage(false);
       }
     };
     channel.postMessage({ type: 'PING' });
     return () => channel.close();
-  }, [applyPaidResult, recoverFromLocalStorage]);
+    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handlePreset = (val: number) => {
     if (navigator.vibrate) navigator.vibrate(20);
@@ -282,7 +302,6 @@ export default function DonatePage() {
     setAmount(v && !isNaN(n) && n > 0 ? n : 0);
   };
 
-  // ─── Razorpay Payment Flow ───
   const handlePayClick = async () => {
     if (!window.Razorpay) {
       showError("पेमेंट गेटवे लोड नहीं हो पा रहा है। कृपया अपना इंटरनेट कनेक्शन चेक करें।");
@@ -323,11 +342,11 @@ export default function DonatePage() {
               handleSuccessBypass(result);
             } else {
               setIsVerifyingReturn(false);
-              showError("पेमेंट की पुष्टि नहीं हो पाई। यदि आपका पैसा कट गया है, तो वह 100% सुरक्षित है।");
+              showError("पेमेंट की पुष्टि नहीं हो पाई। यदि आपका पैसा कट गया है, तो वह सुरक्षित है।");
             }
           } catch (err) {
             setIsVerifyingReturn(false);
-            showError("वेरिफिकेशन में समस्या आई। कृपया बाद में जांचें।");
+            showError("वेरिफिकेशन में समस्या आई।");
           }
         },
         modal: {
@@ -340,15 +359,11 @@ export default function DonatePage() {
       };
 
       rzpRef.current = new window.Razorpay(options);
-      
-      rzpRef.current.on('payment.failed', function () {
-        setIsSubmitting(false);
-      });
-      
+      rzpRef.current.on('payment.failed', function () { setIsSubmitting(false); });
       rzpRef.current.open();
 
     } catch (error: any) {
-      showError("पेमेंट सर्वर से संपर्क नहीं हो पाया। कृपया थोड़ी देर बाद प्रयास करें।");
+      showError("पेमेंट सर्वर से संपर्क नहीं हो पाया।");
       setIsSubmitting(false);
     }
   };
@@ -379,7 +394,6 @@ export default function DonatePage() {
 
   if (paymentStep === 'CERTIFICATE') {
     return (
-      // Your existing Certificate JSX (kept identical)
       <div className="min-h-screen !pt-24 !pb-16 flex flex-col items-center justify-start bg-orange-50 dark:bg-[#0c0804] px-4 text-center font-hindi overflow-x-hidden">
         <style>{` .cert-bg { background-image: radial-gradient(circle at 50% 50%, rgba(234,88,12,0.06) 0%, transparent 60%); } `}</style>
         <FaCheckCircle className="text-green-500 text-6xl mb-4 animate-bounce" />
@@ -420,6 +434,22 @@ export default function DonatePage() {
         <button onClick={downloadCertificate} className="w-full max-w-md px-8 py-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 mb-8">
           <FaDownload /> प्रमाण-पत्र डाउनलोड करें
         </button>
+
+        <div className="w-full max-w-md bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border border-orange-100 text-left">
+          <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">धर्म कार्य में स्वयंसेवक (Volunteer) बनें</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 font-medium">
+            यदि आप अपनी पहचान बताना चाहते हैं या हमारी टीम के साथ जुड़कर भजनों के संकलन में मदद करना चाहते हैं, तो हमसे सीधे संपर्क करें:
+          </p>
+          <div className="flex flex-col gap-3">
+            <a href="https://wa.me/918384844353" target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-xl hover:bg-green-100 transition-colors font-bold">
+              <FaWhatsapp className="text-xl" /> +91 8384844353
+            </a>
+            <a href="mailto:nvsict06@gmail.com" className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-xl hover:bg-blue-100 transition-colors font-bold">
+              <FaEnvelope className="text-xl" /> nvsict06@gmail.com
+            </a>
+          </div>
+        </div>
+
       </div>
     );
   }
@@ -433,7 +463,6 @@ export default function DonatePage() {
         .mandala-bg { background-image: radial-gradient(circle at 50% 50%, rgba(234,88,12,0.04) 0%, transparent 70%), repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg, transparent 22deg, rgba(234,88,12,0.02) 22deg, rgba(234,88,12,0.02) 24deg); }
       `}</style>
       
-      {/* 🌟 New Error Toast System */}
       {errorMsg && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] animate-slide-in-bottom">
           <div className="bg-red-50 dark:bg-red-900/50 border border-red-200 shadow-xl px-6 py-4 rounded-2xl flex items-center gap-3 w-max">
