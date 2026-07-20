@@ -3,21 +3,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Script from 'next/script';
 import { toJpeg } from 'html-to-image';
-import { useLenis } from 'lenis/react'; // 🌟 Added Lenis hook
+import { useLenis } from 'lenis/react'; 
 import {
-  FaServer, FaHeart, FaCheckCircle, FaBookOpen, FaBan, FaOm, 
+  FaHeart, FaCheckCircle, FaBan, FaOm, 
   FaDownload, FaWhatsapp, FaEnvelope
 } from 'react-icons/fa';
 import { FaLock } from 'react-icons/fa6';
 
-// 🌟 TypeScript Global for Razorpay
 declare global {
   interface Window {
     Razorpay: any;
   }
 }
 
-type Particle = { id: number; x: number; size: number; duration: number; delay: number; opacity: number };
 type PaymentStep = 'DONATION' | 'CERTIFICATE';
 type VerifyResult = { paid: boolean; paymentId?: string; amount?: number };
 
@@ -49,34 +47,6 @@ const BorderCorner = ({ className }: { className: string }) => (
     <circle cx="2" cy="2" r="2.5" fill="currentColor" />
   </svg>
 );
-
-function FloatingParticles() {
-  const [particles, setParticles] = useState<Particle[]>([]);
-  useEffect(() => {
-    setParticles(
-      Array.from({ length: 15 }, (_, i) => ({
-        id: i, x: Math.random() * 100, size: 4 + Math.random() * 8,
-        duration: 12 + Math.random() * 16, delay: Math.random() * 10,
-        opacity: 0.15 + Math.random() * 0.35,
-      }))
-    );
-  }, []);
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden z-0">
-      {particles.map((p) => (
-        <div key={p.id} className="absolute animate-float-up" style={{
-          left: `${p.x}%`, bottom: '-20px', width: `${p.size}px`, height: `${p.size}px`,
-          opacity: p.opacity, animationDuration: `${p.duration}s`, animationDelay: `${p.delay}s`,
-        }}>
-          <svg viewBox="0 0 10 14" className="text-orange-400 dark:text-orange-500 w-full h-full drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]">
-            <ellipse cx="5" cy="10" rx="4" ry="3" fill="currentColor" opacity="0.6" />
-            <path d="M5 10 Q3 5 5 2 Q7 5 5 10Z" fill="#FCD34D" />
-          </svg>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function MonthlyGoal({ currentRaised, supporterCount }: { currentRaised: number, supporterCount: number }) {
   const pct = Math.min(100, Math.round((currentRaised / MONTHLY_GOAL) * 100));
@@ -123,7 +93,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 
 // ─── MAIN COMPONENT ───
 export default function DonatePage() {
-  const lenis = useLenis(); // 🌟 Grab the Lenis scroll controller
+  const lenis = useLenis(); 
   
   const [paymentStep, setPaymentStep] = useState<PaymentStep>('DONATION');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -183,22 +153,18 @@ export default function DonatePage() {
       try { rzpRef.current.close(); } catch (e) {}
     }
     
-    // 🌟 FIX: Strip Razorpay's native CSS scroll locks
+    // Strip Razorpay's native CSS scroll locks
     document.body.style.overflow = '';
     document.body.style.position = '';
     document.documentElement.style.overflow = '';
     
-    // 🌟 FIX: Force Lenis to resume tracking scroll
-    if (lenis) {
-      lenis.start();
-    }
+    if (lenis) lenis.start();
 
     localStorage.removeItem(PENDING_KEY);
     applyPaidResult(result);
     channelRef.current?.postMessage({ type: 'PAID', result });
   }, [applyPaidResult, lenis]); 
 
-  // isForeground dictates if we freeze the UI with a spinner
   const recoverFromLocalStorage = useCallback(async (isForeground = false) => {
     if (isRecovering.current) return;
     const raw = localStorage.getItem(PENDING_KEY);
@@ -220,7 +186,6 @@ export default function DonatePage() {
          handleSuccessBypass(result);
          return;
       }
-      // Only do the long 6-second retry if they actively returned to the tab
       if (isForeground) {
          result = await withTimeout(verifyWithRetry(pending.orderId, 3), 12000, { paid: false });
          if (result.paid) {
@@ -234,7 +199,6 @@ export default function DonatePage() {
     }
   }, [verifyOrder, verifyWithRetry, handleSuccessBypass]);
 
-  // Strict empty dependency arrays block infinite re-renders
   useEffect(() => {
     fetch('/api/supporters/stats')
       .then(res => res.json())
@@ -246,10 +210,7 @@ export default function DonatePage() {
     if (window.location.search) {
       window.history.replaceState({}, '', '/donate');
     }
-    
-    // Check quietly in the background on initial load
     recoverFromLocalStorage(false); 
-    
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -257,7 +218,6 @@ export default function DonatePage() {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         document.body.classList.remove('paused-animations');
-        // Check loudly with a spinner when returning from UPI app
         recoverFromLocalStorage(true); 
       } else {
         document.body.classList.add('paused-animations');
@@ -265,7 +225,6 @@ export default function DonatePage() {
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -285,7 +244,6 @@ export default function DonatePage() {
     };
     channel.postMessage({ type: 'PING' });
     return () => channel.close();
-    
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -309,6 +267,9 @@ export default function DonatePage() {
     }
 
     setIsSubmitting(true);
+    
+    // 🌟 PERFORMANCE FIX: Pause scrolling BEFORE the modal even tries to open
+    if (lenis) lenis.stop();
 
     try {
       const orderResponse = await fetch('/api/razorpay/order', {
@@ -352,6 +313,15 @@ export default function DonatePage() {
         modal: {
           ondismiss: function () {
             setIsSubmitting(false);
+            
+            // 🌟 MEMORY CLEANUP: Destroy Razorpay from memory
+            if (rzpRef.current) {
+              try { rzpRef.current = null; } catch(e) {}
+            }
+            
+            // 🌟 WAKE UP LENIS
+            if (lenis) lenis.start();
+
             setCancelToast(true);
             setTimeout(() => setCancelToast(false), 4000);
           }
@@ -359,12 +329,16 @@ export default function DonatePage() {
       };
 
       rzpRef.current = new window.Razorpay(options);
-      rzpRef.current.on('payment.failed', function () { setIsSubmitting(false); });
+      rzpRef.current.on('payment.failed', function () { 
+        setIsSubmitting(false); 
+        if (lenis) lenis.start();
+      });
       rzpRef.current.open();
 
     } catch (error: any) {
       showError("पेमेंट सर्वर से संपर्क नहीं हो पाया।");
       setIsSubmitting(false);
+      if (lenis) lenis.start(); // Fallback if API fails
     }
   };
 
@@ -458,8 +432,6 @@ export default function DonatePage() {
     <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <style>{`
-        @keyframes float-up { 0% { transform: translateY(0) rotate(0deg); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 0.8; } 100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; } }
-        .animate-float-up { animation: float-up linear infinite; }
         .mandala-bg { background-image: radial-gradient(circle at 50% 50%, rgba(234,88,12,0.04) 0%, transparent 70%), repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg, transparent 22deg, rgba(234,88,12,0.02) 22deg, rgba(234,88,12,0.02) 24deg); }
       `}</style>
       
@@ -482,9 +454,7 @@ export default function DonatePage() {
       )}
       
       <div className="min-h-screen !pt-24 !pb-20 md:!pb-24 bg-orange-50/40 dark:bg-[#0c0804] relative overflow-hidden transition-colors duration-300 font-hindi">
-        <FloatingParticles />
         <div className="pointer-events-none absolute inset-0 mandala-bg z-0" />
-        <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full bg-orange-500/10 blur-[120px] z-0" />
         
         <div className="max-w-3xl mx-auto px-4 sm:px-6 relative z-10">
           <div className="text-center mb-10">

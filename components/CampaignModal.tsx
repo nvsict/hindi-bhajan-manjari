@@ -113,6 +113,10 @@ export default function CampaignModal() {
 
   if (!isOpen || !currentCampaign) return null;
 
+  if (pathname === '/donate') {
+    return null;
+  }
+
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6">
       <div 
