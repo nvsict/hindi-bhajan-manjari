@@ -114,6 +114,7 @@ export default function DonatePage() {
   const channelRef = useRef<BroadcastChannel | null>(null);
   const rzpRef = useRef<any>(null);
   const isRecovering = useRef(false);
+  const isSuccessHandled = useRef(false); // 🌟 THE NEW LOCK
 
   const effectiveAmount = amount > 0 ? amount : 0;
 
@@ -149,8 +150,18 @@ export default function DonatePage() {
   }, []);
 
   const handleSuccessBypass = useCallback((result: VerifyResult) => {
+    // 🌟 FIX 1: The "Traffic Cop" to stop double execution
+    if (isSuccessHandled.current) return;
+    isSuccessHandled.current = true;
+
     if (rzpRef.current) {
-      try { rzpRef.current.close(); } catch (e) {}
+      // 🌟 FIX 2: 500ms delay to prevent tearing the iframe while the browser is rendering
+      setTimeout(() => {
+        try { 
+          rzpRef.current.close(); 
+          rzpRef.current = null;
+        } catch (e) {}
+      }, 500);
     }
     
     // Strip Razorpay's native CSS scroll locks
@@ -166,7 +177,8 @@ export default function DonatePage() {
   }, [applyPaidResult, lenis]); 
 
   const recoverFromLocalStorage = useCallback(async (isForeground = false) => {
-    if (isRecovering.current) return;
+    if (isRecovering.current || isSuccessHandled.current) return;
+    
     const raw = localStorage.getItem(PENDING_KEY);
     if (!raw) return;
 
@@ -178,7 +190,12 @@ export default function DonatePage() {
     }
 
     isRecovering.current = true;
-    if (isForeground) setIsVerifyingReturn(true);
+    
+    // 🌟 FIX 3: Do not show full-screen spinner if Razorpay is already open
+    const isRazorpayOpen = !!rzpRef.current;
+    if (isForeground && !isRazorpayOpen) {
+      setIsVerifyingReturn(true);
+    }
 
     try {
       let result = await verifyOrder(pending.orderId);
@@ -194,7 +211,9 @@ export default function DonatePage() {
          }
       }
     } finally {
-      if (isForeground) setIsVerifyingReturn(false);
+      if (isForeground && !isRazorpayOpen) {
+        setIsVerifyingReturn(false);
+      }
       isRecovering.current = false;
     }
   }, [verifyOrder, verifyWithRetry, handleSuccessBypass]);
@@ -267,9 +286,9 @@ export default function DonatePage() {
     }
 
     setIsSubmitting(true);
+    isSuccessHandled.current = false; // Reset lock for new payment attempt
     
-    // 🌟 PERFORMANCE FIX: Pause scrolling BEFORE the modal even tries to open
-    if (lenis) lenis.stop();
+    if (lenis) lenis.stop(); // Stop scroll math before UI loads
 
     try {
       const orderResponse = await fetch('/api/razorpay/order', {
@@ -294,7 +313,6 @@ export default function DonatePage() {
         order_id: orderData.id,
         theme: { color: "#ea580c" },
         handler: async function (response: any) {
-          setIsVerifyingReturn(true); 
           try {
             await new Promise(r => setTimeout(r, 1500));
             const result = await withTimeout(verifyOrder(response.razorpay_order_id), 15000, { paid: false });
@@ -302,11 +320,9 @@ export default function DonatePage() {
             if (result.paid) {
               handleSuccessBypass(result);
             } else {
-              setIsVerifyingReturn(false);
               showError("पेमेंट की पुष्टि नहीं हो पाई। यदि आपका पैसा कट गया है, तो वह सुरक्षित है।");
             }
           } catch (err) {
-            setIsVerifyingReturn(false);
             showError("वेरिफिकेशन में समस्या आई।");
           }
         },
@@ -314,13 +330,12 @@ export default function DonatePage() {
           ondismiss: function () {
             setIsSubmitting(false);
             
-            // 🌟 MEMORY CLEANUP: Destroy Razorpay from memory
+            // Unmount Razorpay safely
             if (rzpRef.current) {
               try { rzpRef.current = null; } catch(e) {}
             }
             
-            // 🌟 WAKE UP LENIS
-            if (lenis) lenis.start();
+            if (lenis) lenis.start(); // Give scrolling back
 
             setCancelToast(true);
             setTimeout(() => setCancelToast(false), 4000);
@@ -338,7 +353,7 @@ export default function DonatePage() {
     } catch (error: any) {
       showError("पेमेंट सर्वर से संपर्क नहीं हो पाया।");
       setIsSubmitting(false);
-      if (lenis) lenis.start(); // Fallback if API fails
+      if (lenis) lenis.start(); 
     }
   };
 
