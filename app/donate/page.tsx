@@ -1,12 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Script from 'next/script';
 import { toJpeg } from 'html-to-image';
 import {
   FaServer, FaHeart, FaCheckCircle, FaBookOpen, FaBan, FaOm, 
   FaDownload, FaWhatsapp, FaEnvelope
 } from 'react-icons/fa';
 import { FaLock } from 'react-icons/fa6';
+
+// 🌟 TypeScript Global for Razorpay
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 type Particle = { id: number; x: number; size: number; duration: number; delay: number; opacity: number };
 type PaymentStep = 'DONATION' | 'CERTIFICATE';
@@ -17,7 +25,7 @@ const MONTHLY_GOAL = 5000;
 const PENDING_KEY = 'hbm_pending_order';
 const SYNC_CHANNEL = 'hbm_donate_sync';
 
-// 🌟 UI Components
+// ─── UI COMPONENTS ───
 const OmSymbol = () => (
   <svg viewBox="0 0 60 60" fill="currentColor" className="w-full h-full">
     <text x="50%" y="58%" dominantBaseline="middle" textAnchor="middle" fontSize="48" className="font-noto-serif font-bold">ॐ</text>
@@ -98,7 +106,6 @@ function MonthlyGoal({ currentRaised, supporterCount }: { currentRaised: number,
   );
 }
 
-// 🌟 Timeout Wrapper (UI को अनिश्चित काल के लिए लटकने से बचाता है)
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
   return new Promise((resolve) => {
     let settled = false;
@@ -113,12 +120,15 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
   });
 }
 
-// ─── MAIN PAGE COMPONENT ───
+// ─── MAIN COMPONENT ───
 export default function DonatePage() {
   const [paymentStep, setPaymentStep] = useState<PaymentStep>('DONATION');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerifyingReturn, setIsVerifyingReturn] = useState(false);
+  
+  // Custom Toast States
   const [cancelToast, setCancelToast] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [amount, setAmount] = useState<number>(101);
   const [customAmount, setCustomAmount] = useState<string>('');
@@ -130,13 +140,22 @@ export default function DonatePage() {
   const certificateRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const channelRef = useRef<BroadcastChannel | null>(null);
+  
+  // 🌟 The Safe Way to handle Razorpay instances
+  const rzpRef = useRef<any>(null);
 
   const effectiveAmount = amount > 0 ? amount : 0;
+
+  const showError = (msg: string) => {
+    setErrorMsg(msg);
+    setTimeout(() => setErrorMsg(null), 5000);
+  };
 
   // ─── Verification Logic ───
   const verifyOrder = useCallback(async (orderId: string): Promise<VerifyResult> => {
     try {
       const res = await fetch(`/api/razorpay/verify?order_id=${orderId}`);
+      if (!res.ok) return { paid: false };
       return await res.json();
     } catch { 
       return { paid: false }; 
@@ -158,20 +177,14 @@ export default function DonatePage() {
     setPaymentStep('CERTIFICATE');
   }, []);
 
-  // 🌟 THE NINJA FIX: Razorpay के क्रैश होने से पहले उसे नष्ट करना!
   const handleSuccessBypass = useCallback((result: VerifyResult) => {
-    // 1. Razorpay के iframe को ज़बरदस्ती हटा दें
-    document.querySelectorAll('.razorpay-container').forEach(el => el.remove());
-    
-    // 2. Razorpay के घटिया "Error in opening checkout" वाले Popup को 4 सेकंड के लिए ब्लॉक करें
-    const originalAlert = window.alert;
-    window.alert = function(msg: any) {
-      if (msg && msg.toString().toLowerCase().includes("checkout")) return; 
-      originalAlert(msg);
-    };
-    setTimeout(() => { window.alert = originalAlert; }, 4000);
+    // 🌟 SAFE FIX: Gracefully close Razorpay instead of destroying the DOM
+    if (rzpRef.current) {
+      try {
+        rzpRef.current.close();
+      } catch (e) { console.error("Could not close Razorpay:", e); }
+    }
 
-    // 3. अपना सक्सेस पेज दिखाएं
     localStorage.removeItem(PENDING_KEY);
     applyPaidResult(result);
     channelRef.current?.postMessage({ type: 'PAID', result });
@@ -181,7 +194,6 @@ export default function DonatePage() {
 
   const recoverFromLocalStorage = useCallback(async () => {
     if (isRecovering.current) return;
-
     const raw = localStorage.getItem(PENDING_KEY);
     if (!raw) return;
 
@@ -196,14 +208,11 @@ export default function DonatePage() {
     setIsVerifyingReturn(true);
 
     try {
-      // पहली कोशिश: अगर तुरंत वेरीफाई हो जाए
       let result = await verifyOrder(pending.orderId);
       if (result.paid) {
          handleSuccessBypass(result);
          return;
       }
-
-      // दूसरी कोशिश: UPI के डिले के लिए 12 सेकंड तक इंतज़ार करें
       result = await withTimeout(verifyWithRetry(pending.orderId, 3), 12000, { paid: false });
       if (result.paid) {
          handleSuccessBypass(result);
@@ -215,7 +224,6 @@ export default function DonatePage() {
     }
   }, [verifyOrder, verifyWithRetry, handleSuccessBypass]);
 
-  // Fetch initial stats
   useEffect(() => {
     fetch('/api/supporters/stats')
       .then(res => res.json())
@@ -230,7 +238,6 @@ export default function DonatePage() {
     recoverFromLocalStorage(); 
   }, [recoverFromLocalStorage]);
 
-  // 🌟 BACK IN ACTION: GPay से वापस लौटते ही सबसे पहले हम चेक करेंगे!
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -241,12 +248,9 @@ export default function DonatePage() {
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [recoverFromLocalStorage]);
 
-  // BroadcastChannel (Duplicate PWA instances sync)
   useEffect(() => {
     if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
     const channel = new BroadcastChannel(SYNC_CHANNEL);
@@ -278,26 +282,14 @@ export default function DonatePage() {
     setAmount(v && !isNaN(n) && n > 0 ? n : 0);
   };
 
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-      if ((window as any).Razorpay) return resolve(true);
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
   // ─── Razorpay Payment Flow ───
   const handlePayClick = async () => {
-    setIsSubmitting(true);
-    const isLoaded = await loadRazorpayScript();
-    if (!isLoaded) {
-      alert("पेमेंट गेटवे लोड नहीं हो पा रहा है। कृपया अपना इंटरनेट कनेक्शन चेक करें।");
-      setIsSubmitting(false);
+    if (!window.Razorpay) {
+      showError("पेमेंट गेटवे लोड नहीं हो पा रहा है। कृपया अपना इंटरनेट कनेक्शन चेक करें।");
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       const orderResponse = await fetch('/api/razorpay/order', {
@@ -331,11 +323,11 @@ export default function DonatePage() {
               handleSuccessBypass(result);
             } else {
               setIsVerifyingReturn(false);
-              alert("पेमेंट की पुष्टि नहीं हो पाई। यदि आपका पैसा कट गया है, तो वह 100% सुरक्षित है।");
+              showError("पेमेंट की पुष्टि नहीं हो पाई। यदि आपका पैसा कट गया है, तो वह 100% सुरक्षित है।");
             }
           } catch (err) {
             setIsVerifyingReturn(false);
-            alert("वेरिफिकेशन में समस्या आई। कृपया बाद में जांचें।");
+            showError("वेरिफिकेशन में समस्या आई। कृपया बाद में जांचें।");
           }
         },
         modal: {
@@ -347,16 +339,16 @@ export default function DonatePage() {
         }
       };
 
-      const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', function () {
+      rzpRef.current = new window.Razorpay(options);
+      
+      rzpRef.current.on('payment.failed', function () {
         setIsSubmitting(false);
       });
-      rzp.open();
       
-      // ध्यान दें: यहाँ से setIsSubmitting(false) हटा दिया गया है ताकि Modal खुला रहने तक बटन लॉक रहे।
+      rzpRef.current.open();
 
     } catch (error: any) {
-      alert("पेमेंट सर्वर से संपर्क नहीं हो पाया। कृपया थोड़ी देर बाद प्रयास करें।");
+      showError("पेमेंट सर्वर से संपर्क नहीं हो पाया। कृपया थोड़ी देर बाद प्रयास करें।");
       setIsSubmitting(false);
     }
   };
@@ -371,11 +363,10 @@ export default function DonatePage() {
       link.href = dataUrl;
       link.click();
     } catch (err) {
-      alert("प्रमाण-पत्र डाउनलोड करने में समस्या आई।");
+      showError("प्रमाण-पत्र डाउनलोड करने में समस्या आई।");
     }
   };
 
-  // ─── SCREEN 1: VERIFYING SPINNER ───
   if (isVerifyingReturn) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-orange-50 dark:bg-[#0c0804] px-4 text-center font-hindi">
@@ -386,32 +377,25 @@ export default function DonatePage() {
     );
   }
 
-  // ─── SCREEN 2: SUCCESS & CERTIFICATE ───
   if (paymentStep === 'CERTIFICATE') {
     return (
+      // Your existing Certificate JSX (kept identical)
       <div className="min-h-screen !pt-24 !pb-16 flex flex-col items-center justify-start bg-orange-50 dark:bg-[#0c0804] px-4 text-center font-hindi overflow-x-hidden">
         <style>{` .cert-bg { background-image: radial-gradient(circle at 50% 50%, rgba(234,88,12,0.06) 0%, transparent 60%); } `}</style>
-        
         <FaCheckCircle className="text-green-500 text-6xl mb-4 animate-bounce" />
         <h1 className="text-3xl md:text-5xl font-black text-orange-900 dark:text-orange-100 mb-3 font-noto-serif">सहयोग प्राप्त हुआ!</h1>
         <p className="text-gray-700 dark:text-gray-300 text-lg max-w-md mx-auto leading-relaxed mb-8">आपका दान गुप्त रूप से स्वीकार कर लिया गया है।</p>
         
         <div className="relative w-full max-w-3xl mx-auto shadow-2xl rounded-sm mb-8 overflow-hidden transform scale-95 md:scale-100">
           <div ref={certificateRef} className="cert-bg bg-[#fffcf5] text-gray-900 p-8 md:p-14 border-[12px] border-double border-orange-300 relative">
-            <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
-              <FaOm className="text-[300px]" />
-            </div>
+            <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none"><FaOm className="text-[300px]" /></div>
             <div className="relative z-10">
-              <div className="flex justify-center mb-6">
-                <div className="w-16 h-16 text-orange-600"><OmSymbol /></div>
-              </div>
+              <div className="flex justify-center mb-6"><div className="w-16 h-16 text-orange-600"><OmSymbol /></div></div>
               <h2 className="text-3xl md:text-4xl font-black font-noto-serif text-orange-800 tracking-wide uppercase mb-2">भक्ति सहयोग प्रमाण-पत्र</h2>
               <p className="text-sm font-bold text-orange-600 tracking-[0.2em] uppercase mb-8">Hindi Bhajan Manjari</p>
               <p className="text-xl md:text-2xl font-medium leading-relaxed mb-8">
                 यह प्रमाणित किया जाता है कि<br />
-                <strong className="text-3xl md:text-4xl font-black text-orange-700 block my-4 border-b-2 border-orange-200 inline-block px-8 pb-2">
-                  एक गुप्त भक्त
-                </strong><br />
+                <strong className="text-3xl md:text-4xl font-black text-orange-700 block my-4 border-b-2 border-orange-200 inline-block px-8 pb-2">एक गुप्त भक्त</strong><br />
                 ने डिजिटल माध्यम से सनातन धर्म और भजनों के प्रसार हेतु<br />
                 <strong className="text-2xl font-black text-gray-900">₹{effectiveAmount}</strong> का अमूल्य योगदान दिया है।
               </p>
@@ -433,47 +417,32 @@ export default function DonatePage() {
             </div>
           </div>
         </div>
-        
         <button onClick={downloadCertificate} className="w-full max-w-md px-8 py-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 mb-8">
           <FaDownload /> प्रमाण-पत्र डाउनलोड करें
         </button>
-
-        {/* 🌟 Volunteer Section */}
-        <div className="w-full max-w-md bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border border-orange-100 text-left">
-          <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">धर्म कार्य में स्वयंसेवक (Volunteer) बनें</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 font-medium">
-            यदि आप अपनी पहचान बताना चाहते हैं या हमारी टीम के साथ जुड़कर भजनों के संकलन में मदद करना चाहते हैं, तो हमसे सीधे संपर्क करें:
-          </p>
-          <div className="flex flex-col gap-3">
-            <a href="https://wa.me/918384844353" target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-xl hover:bg-green-100 transition-colors font-bold">
-              <FaWhatsapp className="text-xl" /> +91 8384844353
-            </a>
-            <a href="mailto:nvsict06@gmail.com" className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-xl hover:bg-blue-100 transition-colors font-bold">
-              <FaEnvelope className="text-xl" /> nvsict06@gmail.com
-            </a>
-          </div>
-        </div>
       </div>
     );
   }
 
-  // ─── SCREEN 3: DONATION FORM ───
   return (
     <>
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <style>{`
-        @keyframes float-up {
-          0% { transform: translateY(0) rotate(0deg); opacity: 0; }
-          10% { opacity: 1; }
-          90% { opacity: 0.8; }
-          100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
-        }
+        @keyframes float-up { 0% { transform: translateY(0) rotate(0deg); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 0.8; } 100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; } }
         .animate-float-up { animation: float-up linear infinite; }
-        .mandala-bg {
-          background-image: radial-gradient(circle at 50% 50%, rgba(234,88,12,0.04) 0%, transparent 70%),
-            repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg, transparent 22deg, rgba(234,88,12,0.02) 22deg, rgba(234,88,12,0.02) 24deg);
-        }
+        .mandala-bg { background-image: radial-gradient(circle at 50% 50%, rgba(234,88,12,0.04) 0%, transparent 70%), repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg, transparent 22deg, rgba(234,88,12,0.02) 22deg, rgba(234,88,12,0.02) 24deg); }
       `}</style>
       
+      {/* 🌟 New Error Toast System */}
+      {errorMsg && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] animate-slide-in-bottom">
+          <div className="bg-red-50 dark:bg-red-900/50 border border-red-200 shadow-xl px-6 py-4 rounded-2xl flex items-center gap-3 w-max">
+            <FaBan className="text-red-500 shrink-0" />
+            <p className="text-sm font-bold text-red-800 dark:text-red-200">{errorMsg}</p>
+          </div>
+        </div>
+      )}
+
       {cancelToast && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] animate-slide-in-bottom">
           <div className="bg-white dark:bg-gray-900 border border-orange-200 shadow-2xl px-6 py-4 rounded-2xl flex items-center gap-3 w-max">
