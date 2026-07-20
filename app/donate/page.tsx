@@ -3,21 +3,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { toJpeg } from 'html-to-image';
 import {
-  FaShieldAlt, FaServer, FaHeart,
-  FaCheckCircle, FaBookOpen, FaBan, FaOm, FaDownload, FaCloudUploadAlt, FaWhatsapp
+  FaServer, FaHeart, FaCheckCircle, FaBookOpen, FaBan, FaOm, 
+  FaDownload, FaWhatsapp, FaEnvelope
 } from 'react-icons/fa';
 import { FaLock } from 'react-icons/fa6';
-import { supabase } from '@/utils/supabase'; // only used for Storage photo upload now
 
 type Particle = { id: number; x: number; size: number; duration: number; delay: number; opacity: number };
-type PaymentStep = 'DONATION' | 'DETAILS' | 'CERTIFICATE';
-type VerifyResult = { paid: boolean; paymentId?: string; supporterId?: string; amount?: number };
+type PaymentStep = 'DONATION' | 'CERTIFICATE';
+type VerifyResult = { paid: boolean; paymentId?: string; amount?: number };
 
 const PRESET_AMOUNTS = [21, 51, 101, 251, 501, 1100];
 const MONTHLY_GOAL = 5000;
-const PENDING_KEY = 'hbm_pending_order';
-const SYNC_CHANNEL = 'hbm_donate_sync';
 
+// 🌟 UI Components
 const OmSymbol = () => (
   <svg viewBox="0 0 60 60" fill="currentColor" className="w-full h-full">
     <text x="50%" y="58%" dominantBaseline="middle" textAnchor="middle" fontSize="48" className="font-noto-serif font-bold">ॐ</text>
@@ -40,21 +38,6 @@ const BorderCorner = ({ className }: { className: string }) => (
     <circle cx="2" cy="2" r="2.5" fill="currentColor" />
   </svg>
 );
-
-// 🌟 Guarantees a promise resolves within `ms`, otherwise falls back — never lets the UI hang forever
-function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
-  return new Promise((resolve) => {
-    let settled = false;
-    const timer = setTimeout(() => {
-      if (!settled) { settled = true; resolve(fallback); }
-    }, ms);
-    promise.then((val) => {
-      if (!settled) { settled = true; clearTimeout(timer); resolve(val); }
-    }).catch(() => {
-      if (!settled) { settled = true; clearTimeout(timer); resolve(fallback); }
-    });
-  });
-}
 
 function FloatingParticles() {
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -113,168 +96,65 @@ function MonthlyGoal({ currentRaised, supporterCount }: { currentRaised: number,
   );
 }
 
+// 🌟 Timeout Wrapper (ताकि UI कभी अनिश्चित काल के लिए न लटके)
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) { settled = true; resolve(fallback); }
+    }, ms);
+    promise.then((val) => {
+      if (!settled) { settled = true; clearTimeout(timer); resolve(val); }
+    }).catch(() => {
+      if (!settled) { settled = true; clearTimeout(timer); resolve(fallback); }
+    });
+  });
+}
+
+// ─── MAIN PAGE COMPONENT ───
 export default function DonatePage() {
   const [paymentStep, setPaymentStep] = useState<PaymentStep>('DONATION');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmittingDetails, setIsSubmittingDetails] = useState(false);
-  const [cancelToast, setCancelToast] = useState(false);
   const [isVerifyingReturn, setIsVerifyingReturn] = useState(false);
+  const [cancelToast, setCancelToast] = useState(false);
 
   const [amount, setAmount] = useState<number>(101);
   const [customAmount, setCustomAmount] = useState<string>('');
   const [paymentDate, setPaymentDate] = useState<string>('');
-  const [paymentId, setPaymentId] = useState<string | null>(null);
-
-  const [supporterName, setSupporterName] = useState('');
-  const [supporterMessage, setSupporterMessage] = useState('');
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-
+  
   const [currentRaised, setCurrentRaised] = useState(0);
   const [supporterCount, setSupporterCount] = useState(0);
 
   const certificateRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const channelRef = useRef<BroadcastChannel | null>(null);
 
   const effectiveAmount = amount > 0 ? amount : 0;
 
-  // ─── Verification logic ───
-
+  // ─── Verification Logic ───
   const verifyOrder = useCallback(async (orderId: string): Promise<VerifyResult> => {
     try {
       const res = await fetch(`/api/razorpay/verify?order_id=${orderId}`);
       return await res.json();
-    } catch (err) {
-      console.error("Verify call failed", err);
-      return { paid: false };
+    } catch { 
+      return { paid: false }; 
     }
   }, []);
-
-  const verifyWithRetry = useCallback(async (orderId: string, attempts = 3): Promise<VerifyResult> => {
-    for (let i = 0; i < attempts; i++) {
-      const result = await verifyOrder(orderId);
-      if (result.paid) return result;
-      if (i < attempts - 1) await new Promise(r => setTimeout(r, 2000));
-    }
-    return { paid: false };
-  }, [verifyOrder]);
 
   const applyPaidResult = useCallback((result: VerifyResult) => {
-    setPaymentId(result.paymentId ?? null);
     if (result.amount) setAmount(result.amount);
     setPaymentDate(new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
-    setPaymentStep('DETAILS');
+    setPaymentStep('CERTIFICATE'); // सीधा सर्टिफिकेट पेज! (कोई फॉर्म नहीं)
   }, []);
 
-  // 🌟 Lock ताकि एक साथ दो बार रिकवरी न चले (race-condition से बचाव)
-  const isRecovering = useRef(false);
-
-  // 🌟 Handles cases where the app was fully killed and resumed — with a hard timeout
-  // so the UI can NEVER stay stuck on the spinner forever.
-  const recoverFromLocalStorage = useCallback(async () => {
-    if (isRecovering.current) return;
-
-    const raw = localStorage.getItem(PENDING_KEY);
-    if (!raw) return;
-
-    let pending: { orderId: string; amount: number; ts: number };
-    try {
-      pending = JSON.parse(raw);
-    } catch {
-      localStorage.removeItem(PENDING_KEY);
-      return;
-    }
-
-    if (Date.now() - pending.ts > 30 * 60 * 1000) {
-      localStorage.removeItem(PENDING_KEY);
-      return;
-    }
-
-    isRecovering.current = true;
-    setIsVerifyingReturn(true);
-
-    try {
-      // 🌟 अगर 20 सेकंड में जवाब न आए, तो भी UI आगे बढ़ जाए (कभी permanently stuck नहीं रहेगी)
-      const result = await withTimeout(verifyWithRetry(pending.orderId), 20000, { paid: false });
-
-      localStorage.removeItem(PENDING_KEY);
-      setIsVerifyingReturn(false);
-
-      if (result.paid) {
-        applyPaidResult(result);
-        // दूसरे किसी पुराने/डुप्लीकेट instance को बता दें कि पेमेंट कन्फर्म हो चुका है
-        channelRef.current?.postMessage({ type: 'PAID', result });
-      } else {
-        alert("पेमेंट पूरा नहीं हो पाया या रद्द कर दिया गया है। अगर आपके खाते से पैसा कटा है, तो कृपया कुछ मिनट बाद दोबारा जांचें — हम स्वतः पुष्टि कर लेंगे।");
-      }
-    } finally {
-      isRecovering.current = false;
-    }
-  }, [verifyWithRetry, applyPaidResult]);
-
-  // 1. Fetch stats on mount + recover if app crashed
+  // Fetch initial stats
   useEffect(() => {
     fetch('/api/supporters/stats')
       .then(res => res.json())
       .then(({ totalRaised, supporterCount }) => {
         setCurrentRaised(totalRaised ?? 0);
         setSupporterCount(supporterCount ?? 0);
-      })
-      .catch(err => console.error("Failed to fetch stats", err));
-
-    if (window.location.search) {
-      window.history.replaceState({}, '', '/donate');
-    }
-
-    recoverFromLocalStorage();
-  }, [recoverFromLocalStorage]);
-
-  // 2. Stuck-button fix on bfcache/visibility return
-  useEffect(() => {
-    const resetAndRecover = () => {
-      setIsSubmitting(false);
-      recoverFromLocalStorage();
-    };
-    const handlePageShow = (event: PageTransitionEvent) => {
-      if (event.persisted) resetAndRecover();
-    };
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') resetAndRecover();
-      document.body.classList.toggle('paused-animations', document.hidden);
-    };
-    window.addEventListener('pageshow', handlePageShow);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      window.removeEventListener('pageshow', handlePageShow);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [recoverFromLocalStorage]);
-
-  // 3. 🌟 BroadcastChannel: अगर Android डुप्लीकेट instance बना दे, तो सब instances
-  // आपस में sync रहें — कोई भी instance हमेशा के लिए frozen spinner पर नहीं अटकेगा।
-  useEffect(() => {
-    if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
-    const channel = new BroadcastChannel(SYNC_CHANNEL);
-    channelRef.current = channel;
-
-    channel.onmessage = (e) => {
-      if (e.data?.type === 'PAID' && e.data.result) {
-        // किसी दूसरे (नए) instance ने पेमेंट कन्फर्म कर दिया — यह instance भी उसी स्टेट पर आ जाए
-        setIsVerifyingReturn(false);
-        applyPaidResult(e.data.result);
-      }
-      if (e.data?.type === 'PING') {
-        // कोई नया instance खुला है — पुराना instance खुद को रिकवरी के लिए ट्रिगर कर ले
-        recoverFromLocalStorage();
-      }
-    };
-
-    // बताएं कि एक नया instance जिंदा हुआ है (अगर कोई पुराना stuck instance है, वो सुन लेगा)
-    channel.postMessage({ type: 'PING' });
-
-    return () => channel.close();
-  }, [applyPaidResult, recoverFromLocalStorage]);
+      }).catch(err => console.error(err));
+  }, []);
 
   const handlePreset = (val: number) => {
     if (navigator.vibrate) navigator.vibrate(20);
@@ -289,14 +169,6 @@ export default function DonatePage() {
     setAmount(v && !isNaN(n) && n > 0 ? n : 0);
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setPhotoFile(file);
-      setPhotoPreview(URL.createObjectURL(file));
-    }
-  };
-
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
       if ((window as any).Razorpay) return resolve(true);
@@ -308,6 +180,7 @@ export default function DonatePage() {
     });
   };
 
+  // ─── Razorpay Payment Flow ───
   const handlePayClick = async () => {
     setIsSubmitting(true);
     const isLoaded = await loadRazorpayScript();
@@ -326,10 +199,6 @@ export default function DonatePage() {
       const orderData = await orderResponse.json();
       if (!orderData.id) throw new Error("Order creation failed");
 
-      localStorage.setItem(PENDING_KEY, JSON.stringify({
-        orderId: orderData.id, amount: effectiveAmount, ts: Date.now(),
-      }));
-
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: orderData.amount,
@@ -339,36 +208,30 @@ export default function DonatePage() {
         image: "https://www.hindibhajanmanjari.com/logo.png",
         order_id: orderData.id,
         theme: { color: "#ea580c" },
+        // 🌟 Razorpay's direct handler is the ONLY verification source now
         handler: async function (response: any) {
           setIsSubmitting(false);
-          setIsVerifyingReturn(true);
+          setIsVerifyingReturn(true); // Show spinner while confirming
 
           try {
-            const result = await withTimeout(
-              verifyWithRetry(response.razorpay_order_id),
-              20000,
-              { paid: false }
-            );
-            setIsVerifyingReturn(false);
+            // Give Razorpay backend 1.5s to sync UPI status
+            await new Promise(r => setTimeout(r, 1500));
+            const result = await withTimeout(verifyOrder(response.razorpay_order_id), 15000, { paid: false });
 
+            setIsVerifyingReturn(false);
             if (result.paid) {
               applyPaidResult(result);
-              channelRef.current?.postMessage({ type: 'PAID', result });
             } else {
-              alert("पेमेंट की पुष्टि नहीं हो पाई। अगर आपके खाते से पैसा कटा है, तो कृपया कुछ मिनट बाद पेज दोबारा खोलें — हम स्वतः जांच लेंगे।");
+              alert("पेमेंट की पुष्टि नहीं हो पाई। यदि आपका पैसा कट गया है, तो वह 100% सुरक्षित है।");
             }
           } catch (err) {
             setIsVerifyingReturn(false);
-            console.error("Verification error:", err);
             alert("वेरिफिकेशन में समस्या आई। कृपया बाद में जांचें।");
-          } finally {
-            localStorage.removeItem(PENDING_KEY);
           }
         },
         modal: {
           ondismiss: function () {
             setIsSubmitting(false);
-            localStorage.removeItem(PENDING_KEY);
             setCancelToast(true);
             setTimeout(() => setCancelToast(false), 4000);
           }
@@ -380,49 +243,11 @@ export default function DonatePage() {
         setIsSubmitting(false);
       });
       rzp.open();
-      setIsSubmitting(false);
-
+      setIsSubmitting(false); // Hand over control to Razorpay Modal
     } catch (error: any) {
-      console.error("Donation processing error:", error);
       alert("पेमेंट सर्वर से संपर्क नहीं हो पाया। कृपया थोड़ी देर बाद प्रयास करें।");
       setIsSubmitting(false);
     }
-  };
-
-  const handleSubmitDetails = async (isPublic: boolean) => {
-    setIsSubmittingDetails(true);
-    try {
-      let photoUrl: string | null = null;
-      if (isPublic && photoFile) {
-        const fileExt = photoFile.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from('supporter_photos').upload(fileName, photoFile);
-        if (uploadError) {
-          console.error("Photo upload failed:", uploadError);
-        } else {
-          const { data } = supabase.storage.from('supporter_photos').getPublicUrl(fileName);
-          photoUrl = data.publicUrl;
-        }
-      }
-
-      if (!paymentId) {
-        console.error("No paymentId available — cannot save supporter details");
-      } else {
-        const res = await fetch('/api/supporter/details', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            paymentId, isPublic, name: supporterName, message: supporterMessage, photoUrl,
-          }),
-        });
-        const result = await res.json();
-        if (!res.ok) console.error("Details save failed:", result.error);
-      }
-    } catch (err) {
-      console.error("Failed to update public details", err);
-    }
-    setPaymentStep('CERTIFICATE');
-    setIsSubmittingDetails(false);
   };
 
   const downloadCertificate = async () => {
@@ -435,11 +260,11 @@ export default function DonatePage() {
       link.href = dataUrl;
       link.click();
     } catch (err) {
-      console.error("Failed to generate certificate:", err);
       alert("प्रमाण-पत्र डाउनलोड करने में समस्या आई।");
     }
   };
 
+  // ─── SCREEN 1: VERIFYING SPINNER ───
   if (isVerifyingReturn) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-orange-50 dark:bg-[#0c0804] px-4 text-center font-hindi">
@@ -450,73 +275,16 @@ export default function DonatePage() {
     );
   }
 
-  if (paymentStep === 'DETAILS') {
-    return (
-      <div className="min-h-screen !pt-24 !pb-16 flex flex-col items-center justify-start bg-orange-50 dark:bg-[#0c0804] px-4 font-hindi overflow-x-hidden">
-        <style>{`
-          @keyframes bounce-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
-          .animate-bounce-slow { animation: bounce-slow 2.5s ease-in-out infinite; }
-        `}</style>
-        <div className="w-20 h-20 text-green-500 mb-6 animate-bounce-slow drop-shadow-lg mx-auto">
-          <FaCheckCircle className="w-full h-full" />
-        </div>
-        <h1 className="text-3xl md:text-5xl font-black text-orange-900 dark:text-orange-100 mb-3 font-noto-serif text-center">🙏 सहयोग प्राप्त हुआ!</h1>
-        <p className="text-gray-700 dark:text-gray-300 text-lg max-w-md mx-auto leading-relaxed mb-10 text-center font-medium">
-          आपका ₹{effectiveAmount} का पेमेंट सफलतापूर्वक प्राप्त हो गया है। प्रभु श्री राम आप पर कृपा बनाए रखें।
-        </p>
-        <div className="bg-white dark:bg-[#111] p-6 md:p-10 rounded-3xl shadow-xl w-full max-w-xl border border-orange-100 dark:border-white/10">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">क्या आप अपना नाम 'भक्त सूची' में शामिल करना चाहते हैं?</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">यह जानकारी हमारी Supporters Wall पर दिखाई जाएगी।</p>
-          <div className="space-y-5">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">पूरा नाम <span className="text-red-500">*</span></label>
-              <input type="text" placeholder="e.g. Mohit Tarkar" value={supporterName} onChange={(e) => setSupporterName(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-orange-500 rounded-xl outline-none font-medium" />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">एक छोटा संदेश (वैकल्पिक)</label>
-              <textarea placeholder="e.g. जय श्री राम! माता-पिता के आशीर्वाद से..." value={supporterMessage} onChange={(e) => setSupporterMessage(e.target.value)}
-                maxLength={100} rows={2} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-orange-500 rounded-xl outline-none font-medium resize-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">अपनी फोटो अपलोड करें (वैकल्पिक)</label>
-              <label className="flex flex-col items-center justify-center w-full min-h-[140px] border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-orange-400 rounded-xl cursor-pointer bg-gray-50/50 dark:bg-gray-800/30 transition-colors p-4">
-                {photoPreview ? (
-                  <div className="flex flex-col items-center">
-                    <img src={photoPreview} alt="Preview" className="w-20 h-20 rounded-full object-cover border-4 border-orange-200 mb-2" />
-                    <span className="text-orange-600 font-bold text-xs">फोटो बदलें</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center text-gray-500">
-                    <FaCloudUploadAlt className="w-8 h-8 mb-2 text-gray-400" />
-                    <span className="font-bold text-sm">Click to upload photo</span>
-                  </div>
-                )}
-                <input type="file" className="hidden" accept="image/*" onChange={handlePhotoChange} />
-              </label>
-            </div>
-            <div className="pt-4 flex flex-col gap-3">
-              <button onClick={() => handleSubmitDetails(true)} disabled={isSubmittingDetails || !supporterName.trim()}
-                className="w-full py-4 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 text-white font-bold rounded-xl shadow-md transition-all flex justify-center items-center gap-2">
-                {isSubmittingDetails ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'नाम दर्ज़ करें और प्रमाण-पत्र देखें'}
-              </button>
-              <button onClick={() => handleSubmitDetails(false)} disabled={isSubmittingDetails}
-                className="w-full py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-300 font-bold rounded-xl transition-all">
-                नहीं, इसे गुप्त दान ही रखें (Skip)
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  // ─── SCREEN 2: SUCCESS & CERTIFICATE (No more forms!) ───
   if (paymentStep === 'CERTIFICATE') {
     return (
       <div className="min-h-screen !pt-24 !pb-16 flex flex-col items-center justify-start bg-orange-50 dark:bg-[#0c0804] px-4 text-center font-hindi overflow-x-hidden">
         <style>{` .cert-bg { background-image: radial-gradient(circle at 50% 50%, rgba(234,88,12,0.06) 0%, transparent 60%); } `}</style>
-        <h1 className="text-3xl md:text-5xl font-black text-orange-900 dark:text-orange-100 mb-3 font-noto-serif">आपका प्रमाण-पत्र तैयार है!</h1>
-        <p className="text-gray-700 dark:text-gray-300 text-lg max-w-md mx-auto leading-relaxed mb-8">इसे डाउनलोड करके अपने परिवार और मित्रों के साथ साझा करें।</p>
+        
+        <FaCheckCircle className="text-green-500 text-6xl mb-4 animate-bounce" />
+        <h1 className="text-3xl md:text-5xl font-black text-orange-900 dark:text-orange-100 mb-3 font-noto-serif">सहयोग प्राप्त हुआ!</h1>
+        <p className="text-gray-700 dark:text-gray-300 text-lg max-w-md mx-auto leading-relaxed mb-8">आपका दान गुप्त रूप से स्वीकार कर लिया गया है।</p>
+        
         <div className="relative w-full max-w-3xl mx-auto shadow-2xl rounded-sm mb-8 overflow-hidden transform scale-95 md:scale-100">
           <div ref={certificateRef} className="cert-bg bg-[#fffcf5] text-gray-900 p-8 md:p-14 border-[12px] border-double border-orange-300 relative">
             <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
@@ -531,7 +299,7 @@ export default function DonatePage() {
               <p className="text-xl md:text-2xl font-medium leading-relaxed mb-8">
                 यह प्रमाणित किया जाता है कि<br />
                 <strong className="text-3xl md:text-4xl font-black text-orange-700 block my-4 border-b-2 border-orange-200 inline-block px-8 pb-2">
-                  {supporterName.trim() ? supporterName : "एक गुप्त भक्त"}
+                  एक गुप्त भक्त
                 </strong><br />
                 ने डिजिटल माध्यम से सनातन धर्म और भजनों के प्रसार हेतु<br />
                 <strong className="text-2xl font-black text-gray-900">₹{effectiveAmount}</strong> का अमूल्य योगदान दिया है।
@@ -554,13 +322,31 @@ export default function DonatePage() {
             </div>
           </div>
         </div>
-        <button onClick={downloadCertificate} className="w-full max-w-md px-8 py-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
+        
+        <button onClick={downloadCertificate} className="w-full max-w-md px-8 py-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 mb-8">
           <FaDownload /> प्रमाण-पत्र डाउनलोड करें
         </button>
+
+        {/* 🌟 Volunteer Section */}
+        <div className="w-full max-w-md bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border border-orange-100 text-left">
+          <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">धर्म कार्य में स्वयंसेवक (Volunteer) बनें</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 font-medium">
+            यदि आप अपनी पहचान बताना चाहते हैं या हमारी टीम के साथ जुड़कर भजनों के संकलन में मदद करना चाहते हैं, तो हमसे सीधे संपर्क करें:
+          </p>
+          <div className="flex flex-col gap-3">
+            <a href="https://wa.me/918384844353" target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-xl hover:bg-green-100 transition-colors font-bold">
+              <FaWhatsapp className="text-xl" /> +91 8384844353
+            </a>
+            <a href="mailto:nvsict06@gmail.com" className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-xl hover:bg-blue-100 transition-colors font-bold">
+              <FaEnvelope className="text-xl" /> nvsict06@gmail.com
+            </a>
+          </div>
+        </div>
       </div>
     );
   }
 
+  // ─── SCREEN 3: DONATION FORM (Default) ───
   return (
     <>
       <style>{`
@@ -575,117 +361,81 @@ export default function DonatePage() {
           background-image: radial-gradient(circle at 50% 50%, rgba(234,88,12,0.04) 0%, transparent 70%),
             repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg, transparent 22deg, rgba(234,88,12,0.02) 22deg, rgba(234,88,12,0.02) 24deg);
         }
-        .paused-animations .animate-float-up, .paused-animations .animate-pulse { animation-play-state: paused; }
       `}</style>
+      
       {cancelToast && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] animate-slide-in-bottom">
-          <div className="bg-white dark:bg-gray-900 border border-orange-200 dark:border-orange-800/50 shadow-2xl px-6 py-4 rounded-2xl flex items-center gap-3 w-max">
-            <div className="flex items-center justify-center w-10 h-10 bg-orange-50 dark:bg-orange-900/30 rounded-full text-orange-500 text-xl shrink-0">🙏</div>
-            <p className="text-sm font-bold text-gray-800 dark:text-gray-200 font-hindi">कोई बात नहीं, आप भविष्य में कभी भी सहयोग कर सकते हैं।</p>
+          <div className="bg-white dark:bg-gray-900 border border-orange-200 shadow-2xl px-6 py-4 rounded-2xl flex items-center gap-3 w-max">
+            <div className="flex items-center justify-center w-10 h-10 bg-orange-50 rounded-full text-orange-500 text-xl shrink-0">🙏</div>
+            <p className="text-sm font-bold text-gray-800 dark:text-gray-200">कोई बात नहीं, आप भविष्य में कभी भी सहयोग कर सकते हैं।</p>
           </div>
         </div>
       )}
+      
       <div className="min-h-screen !pt-24 !pb-20 md:!pb-24 bg-orange-50/40 dark:bg-[#0c0804] relative overflow-hidden transition-colors duration-300 font-hindi">
         <FloatingParticles />
         <div className="pointer-events-none absolute inset-0 mandala-bg z-0" />
-        <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full bg-orange-500/10 dark:bg-orange-600/10 blur-[120px] z-0" />
+        <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full bg-orange-500/10 blur-[120px] z-0" />
+        
         <div className="max-w-3xl mx-auto px-4 sm:px-6 relative z-10">
-          <div className="text-center mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="text-center mb-10">
             <div className="inline-block relative mb-6">
-              <div className="w-20 h-20 mx-auto text-orange-600 dark:text-orange-500 drop-shadow-sm"><OmSymbol /></div>
-              <div className="absolute inset-0 rounded-full border border-orange-400/30 dark:border-orange-500/20 scale-110" />
-              <div className="absolute inset-0 rounded-full border border-orange-400/15 dark:border-orange-500/10 scale-125" />
+              <div className="w-20 h-20 mx-auto text-orange-600 drop-shadow-sm"><OmSymbol /></div>
             </div>
-            <p className="text-orange-700 dark:text-orange-500 text-sm font-bold tracking-[0.25em] uppercase mb-3">हिंदी भजन मंजरी</p>
+            <p className="text-orange-700 text-sm font-bold tracking-[0.25em] uppercase mb-3">हिंदी भजन मंजरी</p>
             <h1 className="font-noto-serif text-3xl md:text-5xl font-black text-gray-900 dark:text-white mb-2 leading-tight">धर्म कार्य में अमूल्य सहयोग दें</h1>
             <DiamondDivider />
-            <p className="text-gray-700 dark:text-gray-300 text-base leading-relaxed max-w-xl mx-auto mt-4 font-medium">
-              इस आध्यात्मिक मंच को <strong className="text-orange-600 dark:text-orange-400">विज्ञापन-मुक्त (Ad-free)</strong> और सुचारु रखने के लिए आपकी ऐच्छिक दक्षिणा अत्यंत महत्वपूर्ण है।
+            <p className="text-gray-700 dark:text-gray-300 text-base max-w-xl mx-auto mt-4 font-medium">
+              इस आध्यात्मिक मंच को <strong className="text-orange-600">विज्ञापन-मुक्त</strong> और सुचारु रखने के लिए आपकी दक्षिणा महत्वपूर्ण है।
             </p>
           </div>
+          
           <MonthlyGoal currentRaised={currentRaised} supporterCount={supporterCount} />
-          <div className="bg-white dark:bg-[#111] rounded-[2rem] shadow-xl dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] border border-orange-100/50 dark:border-white/10 overflow-hidden mb-16 relative">
+          
+          <div className="bg-white dark:bg-[#111] rounded-[2rem] shadow-xl border border-orange-100 overflow-hidden mb-16 relative">
             <div className="h-1.5 w-full bg-gradient-to-r from-orange-400 via-red-500 to-orange-400" />
-            <div className="p-6 md:p-10 border-b border-gray-100 dark:border-white/5 bg-gradient-to-b from-orange-50/50 to-white dark:from-orange-900/10 dark:to-[#111]">
+            <div className="p-6 md:p-10 border-b border-gray-100 bg-gradient-to-b from-orange-50/50 to-white">
               <div className="flex items-center justify-center gap-3 mb-6">
-                <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 font-black flex items-center justify-center shrink-0">1</div>
-                <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg md:text-xl">सहयोग राशि चुनें</h2>
-                <span className="text-gray-500 dark:text-gray-500 text-sm font-medium hidden sm:inline">(शुभ शगुन)</span>
+                <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 font-black flex items-center justify-center">1</div>
+                <h2 className="font-bold text-gray-900 text-lg md:text-xl">सहयोग राशि चुनें</h2>
               </div>
               <div className="flex flex-wrap justify-center gap-3 mb-6">
                 {PRESET_AMOUNTS.map(p => (
                   <button key={p} onClick={() => handlePreset(p)}
-                    className={`relative px-5 py-3 rounded-xl font-bold text-lg transition-all outline-none focus-visible:ring-2 focus-visible:ring-orange-500 select-none ${amount === p && !customAmount
-                      ? 'bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-lg shadow-orange-500/30 scale-105 border-transparent'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-orange-400 hover:text-orange-600 shadow-sm'
+                    className={`relative px-5 py-3 rounded-xl font-bold text-lg transition-all ${amount === p && !customAmount
+                      ? 'bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-lg shadow-orange-500/30 scale-105'
+                      : 'bg-white text-gray-700 border border-gray-200 hover:border-orange-400 hover:text-orange-600 shadow-sm'
                       }`}>
                     ₹{p}
-                    {p === 101 && (
-                      <span className="absolute -top-2.5 -right-2 bg-yellow-400 text-yellow-900 text-[10px] font-black px-2 py-0.5 rounded-full leading-none tracking-wide shadow-sm border border-yellow-200">लोकप्रिय</span>
-                    )}
+                    {p === 101 && <span className="absolute -top-2.5 -right-2 bg-yellow-400 text-yellow-900 text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">लोकप्रिय</span>}
                   </button>
                 ))}
               </div>
-              <div className="max-w-md mx-auto space-y-4">
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500 font-black text-lg pointer-events-none">₹</span>
-                  <input ref={inputRef} type="number" min="1" placeholder="अन्य राशि दर्ज करें (Custom Amount)" value={customAmount} onChange={handleCustom}
-                    className="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 focus:border-orange-500 focus:bg-white dark:focus:bg-[#111] rounded-xl text-gray-900 dark:text-white font-bold text-base transition-colors outline-none shadow-inner placeholder:font-medium" />
-                </div>
+              <div className="max-w-md mx-auto relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-black text-lg pointer-events-none">₹</span>
+                <input ref={inputRef} type="number" min="1" placeholder="अन्य राशि दर्ज करें (Custom Amount)" value={customAmount} onChange={handleCustom}
+                  className="w-full pl-10 pr-4 py-3.5 bg-gray-50 border border-gray-200 focus:border-orange-500 rounded-xl font-bold text-base outline-none" />
               </div>
             </div>
+            
             <div className="p-6 md:p-10 flex flex-col items-center justify-center text-center">
               <div className="flex items-center justify-center gap-3 mb-8">
-                <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 font-black flex items-center justify-center shrink-0">2</div>
-                <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg md:text-xl">सुरक्षित पेमेंट करें</h2>
+                <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 font-black flex items-center justify-center">2</div>
+                <h2 className="font-bold text-gray-900 text-lg md:text-xl">सुरक्षित पेमेंट करें</h2>
               </div>
               <button onClick={handlePayClick} disabled={effectiveAmount <= 0 || isSubmitting}
-                className="w-full max-w-md py-4 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:text-gray-500 text-white font-black text-lg rounded-2xl shadow-md transition-all flex items-center justify-center gap-3 outline-none relative">
+                className="w-full max-w-md py-4 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:text-gray-500 text-white font-black text-lg rounded-2xl shadow-md transition-all flex items-center justify-center gap-3">
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">प्रोसेस हो रहा है... <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div></span>
                 ) : (
-                  <>
-                    <FaOm className="text-xl" />
-                    श्रद्धा भेंट करें {effectiveAmount > 0 ? `(₹${effectiveAmount})` : ''}
-                  </>
+                  <><FaOm className="text-xl" /> श्रद्धा भेंट करें {effectiveAmount > 0 ? `(₹${effectiveAmount})` : ''}</>
                 )}
               </button>
-              <div className="flex flex-col items-center justify-center gap-1.5 mt-5">
-                <p className="text-xs font-bold text-orange-700 dark:text-orange-400 mb-2 bg-orange-100 dark:bg-orange-900/30 px-4 py-1.5 rounded-full border border-orange-200 dark:border-orange-800/50">
-                  🙏 यह वेबसाइट मोहित तरकर द्वारा व्यक्तिगत रूप से संचालित है।
-                </p>
-                <div className="flex items-center gap-3 text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">
-                  <span className="flex items-center gap-1"><FaLock className="text-green-500" /> 100% Secure</span>
-                  <span className="w-1 h-1 rounded-full bg-gray-300" />
-                  <span>Powered By Razorpay</span>
-                </div>
-                <p className="text-[11px] font-medium text-gray-400">UPI, Cards, NetBanking Supported</p>
+              <div className="flex items-center gap-3 text-xs font-bold text-gray-500 uppercase tracking-widest mt-6">
+                <span className="flex items-center gap-1"><FaLock className="text-green-500" /> 100% Secure</span>
+                <span className="w-1 h-1 rounded-full bg-gray-300" />
+                <span>Powered By Razorpay</span>
               </div>
-            </div>
-          </div>
-          <div className="mt-20">
-            <h2 className="text-2xl font-black text-gray-900 dark:text-white text-center mb-8 font-noto-serif">आपका सहयोग इन धर्म कार्यों में जाता है:</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {[
-                { icon: <FaServer size={22} />, title: 'सर्वर और तकनीक', text: 'लाखों भक्तों तक वेबसाइट को बिना रुके, तेज़ गति से पहुँचाने के लिए उच्च-गुणवत्ता सर्वर का संचालन।' },
-                { icon: <FaBan size={22} />, title: 'विज्ञापन-मुक्त अनुभव', text: 'भजन व आरती के भक्तिमय वातावरण में कष्टप्रद विज्ञापनों का कोई स्थान नहीं।' },
-                { icon: <FaBookOpen size={22} />, title: 'नई सामग्री', text: 'नए भजन, चालीसा, स्तोत्र और धार्मिक ग्रंथों को डिजिटल रूप में टाइप कर उपलब्ध कराना।' },
-                { icon: <FaOm size={22} />, title: 'सनातन का संरक्षण', text: 'इस अमूल्य ज्ञान को आने वाली पीढ़ियों के लिए सुरक्षित और सुलभ बनाए रखना।' },
-              ].map((item, idx) => (
-                <div key={idx} className="bg-white dark:bg-[#111] border border-gray-100 dark:border-white/5 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="w-12 h-12 bg-orange-50 dark:bg-orange-900/20 text-orange-500 rounded-xl flex items-center justify-center mb-4">{item.icon}</div>
-                  <h3 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">{item.title}</h3>
-                  <p className="text-gray-600 dark:text-gray-500 text-sm leading-relaxed font-medium">{item.text}</p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-12 text-center bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/10 dark:to-red-900/10 border border-orange-100 dark:border-orange-900/30 p-8 md:p-12 rounded-[2rem] relative overflow-hidden">
-              <FaHeart className="text-red-500 text-3xl mx-auto mb-5 opacity-80" />
-              <p className="font-noto-serif text-2xl md:text-3xl text-orange-800 dark:text-orange-400 mb-4 font-black">"धर्मो रक्षति रक्षितः"</p>
-              <p className="text-gray-700 dark:text-gray-300 font-medium leading-relaxed max-w-lg mx-auto">
-                आपके द्वारा दिया गया प्रत्येक रुपया सनातन धर्म के ज्ञान को डिजिटल जगत में जीवित रखने के हमारे संकल्प को और मजबूत करता है। <br className="hidden md:block" />
-                <span className="font-black text-orange-700 dark:text-orange-400 mt-3 inline-block">प्रभु श्री राम आप पर कृपा बनाए रखें 🙏</span>
-              </p>
             </div>
           </div>
         </div>
