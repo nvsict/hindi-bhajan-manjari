@@ -9,6 +9,8 @@ import Link from 'next/link';
 const BACKGROUND_IMAGES = [
   '/images/pexels-photo-9277866.avif',
   '/images/pexels-photo-9277866t.avif',
+  '/images/debabrata-patra-QBdIEE_eU7g-unsplash.avif',
+
 ];
 
 interface SearchResult {
