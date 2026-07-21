@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>सहयोग करें - हिंदी भजन मंजरी</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@600;800;900&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+
+  <!-- Razorpay SDK -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+  <!-- 🌟 Pure Vanilla CSS -->
+  <style>
+    :root {
+      --primary: #ea580c; 
+      --primary-hover: #c2410c; 
+      --bg-color: #fffaf5;
+      --card-bg: #ffffff;
+      --text-main: #111827; 
+      --text-muted: #4b5563; 
+      --border-color: #e5e7eb; 
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body { 
+      font-family: 'Tiro Devanagari Hindi', serif; 
+      background-color: var(--bg-color);
+      background-image: radial-gradient(circle at top, #ffedd5 0%, #fffaf5 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .font-serif-dev { font-family: 'Noto Serif Devanagari', serif; }
+
+    .card {
+      background: var(--card-bg);
+      width: 100%;
+      max-width: 500px;
+      border-radius: 24px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      border: 1px solid #ffedd5;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .card-top-bar {
+      height: 8px;
+      width: 100%;
+      background: linear-gradient(90deg, #fb923c, #ef4444, #fb923c);
+    }
+
+    .card-content {
+      padding: 2rem 2rem 2.5rem 2rem;
+      text-align: center;
+      position: relative;
+    }
+
+    /* Escape Hatch (Back Button) */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #9ca3af;
+      text-decoration: none;
+      font-family: sans-serif;
+      position: absolute;
+      top: 1.5rem;
+      left: 1.5rem;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--primary); }
+    .back-link svg { width: 14px; height: 14px; }
+
+    .om-logo {
+      width: 64px;
+      height: 64px;
+      margin: 1.5rem auto 1rem auto;
+      color: var(--primary);
+      font-size: 2.5rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #fff7ed;
+      border-radius: 50%;
+      border: 1px solid #ffedd5;
+    }
+
+    .subtitle {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #c2410c;
+      margin-bottom: 0.25rem;
+      font-family: sans-serif;
+    }
+
+    .title {
+      font-size: 1.75rem;
+      font-weight: 900;
+      margin-bottom: 0.5rem;
+      color: #111827;
+    }
+
+    .description {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+
+    .section-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+      font-family: sans-serif;
+    }
+
+    .grid-amounts {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .amt-btn {
+      padding: 0.75rem 0;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background: white;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: sans-serif;
+    }
+
+    .amt-btn:hover {
+      border-color: #fb923c;
+      background: #fff7ed;
+    }
+
+    .amt-btn.active {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.3);
+    }
+
+    .custom-input-wrapper {
+      position: relative;
+      max-width: 250px;
+      margin: 0 auto 2rem auto;
+    }
+
+    .custom-input-wrapper span {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+      font-weight: 700;
+      font-family: sans-serif;
+    }
+
+    .custom-input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      background: #f9fafb;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text-main);
+      outline: none;
+      text-align: center;
+      transition: all 0.2s;
+      font-family: sans-serif;
+    }
+
+    .custom-input:focus {
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+    }
+
+    .pay-btn {
+      width: 100%;
+      padding: 1rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 16px;
+      font-size: 1.25rem;
+      font-weight: 900;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      box-shadow: 0 10px 15px -3px rgba(234, 88, 12, 0.3);
+      font-family: 'Noto Serif Devanagari', serif;
+    }
+
+    .pay-btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .pay-btn:active { transform: translateY(1px); }
+    .pay-btn:disabled { background: #fca5a5; cursor: not-allowed; transform: none; box-shadow: none;}
+
+    /* CSS Spinner */
+    .spinner {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .security-note {
+      margin-top: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-size: 0.7rem;
+      color: #9ca3af;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-family: sans-serif;
+    }
+
+    .footer {
+      margin-top: 1.5rem;
+      font-size: 0.75rem;
+      color: #9ca3af;
+      font-family: sans-serif;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .footer a {
+      color: #9ca3af;
+      text-decoration: underline;
+      transition: color 0.2s;
+    }
+    .footer a:hover { color: var(--primary); }
+
+    .error-box {
+      display: none;
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #b91c1c;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border-radius: 12px;
+      font-family: sans-serif;
+    }
+    .error-box.show { display: block; }
+
+    @media (max-width: 480px) {
+      .card-content { padding: 3rem 1.5rem 2rem 1.5rem; }
+      .title { font-size: 1.5rem; }
+      .grid-amounts { gap: 0.5rem; }
+      .back-link { top: 1rem; left: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="card-top-bar"></div>
+
+    <div class="card-content">
+      
+      <!-- 🌟 The Escape Hatch -->
+      <a href="/" class="back-link">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        मुख्य पृष्ठ
+      </a>
+
+      <div class="om-logo font-serif-dev">ॐ</div>
+
+      <p class="subtitle">हिंदी भजन मंजरी</p>
+      <h1 class="title font-serif-dev">धर्म कार्य में अमूल्य सहयोग दें</h1>
+      <p class="description">इस मंच को विज्ञापन-मुक्त और सुचारु रखने के लिए आपकी दक्षिणा महत्वपूर्ण है।</p>
+
+      <div style="margin-bottom: 1.5rem;">
+        <span class="section-label">सहयोग राशि चुनें</span>
+        <div class="grid-amounts">
+          <button type="button" onclick="selectAmount(21, this)" class="amt-btn">₹21</button>
+          <button type="button" onclick="selectAmount(51, this)" class="amt-btn">₹51</button>
+          <button type="button" onclick="selectAmount(101, this)" class="amt-btn active">₹101</button>
+          <button type="button" onclick="selectAmount(251, this)" class="amt-btn">₹251</button>
+          <button type="button" onclick="selectAmount(501, this)" class="amt-btn">₹501</button>
+          <button type="button" onclick="selectAmount(1100, this)" class="amt-btn">₹1100</button>
+        </div>
+      </div>
+
+      <div class="custom-input-wrapper">
+        <span>₹</span>
+        <input 
+          type="number" 
+          id="custom-amt" 
+          placeholder="अन्य राशि दर्ज करें" 
+          oninput="handleCustomInput(this.value)"
+          class="custom-input"
+          min="1"
+          max="100000"
+        />
+      </div>
+
+      <button type="button" id="pay-btn" onclick="initiatePayment()" class="pay-btn">
+        <div id="btn-spinner" class="spinner"></div>
+        <span id="btn-text">ॐ श्रद्धा भेंट करें</span>
+        <span id="btn-amount-label" style="font-family: sans-serif;">(₹101)</span>
+      </button>
+
+      <div class="security-note">
+        <span>🔒 100% Secure</span>
+        <span>•</span>
+        <span>Razorpay Encrypted</span>
+      </div>
+
+      <div id="error-box" class="error-box"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    &copy; Hindi Bhajan Manjari. All rights reserved.<br>
+    <a href="/contact">सहायता के लिए संपर्क करें</a>
+  </div>
+
+  <script>
+    let selectedAmount = 101;
+
+    function selectAmount(amt, btn) {
+      selectedAmount = amt;
+      document.getElementById('custom-amt').value = '';
+      
+      document.querySelectorAll('.amt-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      updateButtonLabel();
+    }
+
+    function handleCustomInput(val) {
+      const parsed = parseInt(val);
+      
+      // 🌟 Validation: Prevent negative numbers and enforce max limit
+      if (parsed && parsed > 0) {
+        selectedAmount = parsed > 100000 ? 100000 : parsed; // Cap at 1 Lakh
+        if (parsed > 100000) document.getElementById('custom-amt').value = 100000;
+        
+        document.querySelectorAll('.amt-btn').forEach(b => b.classList.remove('active'));
+      } else {
+        selectedAmount = 0;
+      }
+      updateButtonLabel();
+    }
+
+    function updateButtonLabel() {
+      const label = document.getElementById('btn-amount-label');
+      label.innerText = selectedAmount > 0 ? `(₹${selectedAmount})` : '';
+    }
+
+    function showError(msg) {
+      const box = document.getElementById('error-box');
+      box.innerText = msg;
+      box.classList.add('show');
+      setTimeout(() => box.classList.remove('show'), 5000);
+    }
+
+    function toggleLoading(isLoading) {
+      const payBtn = document.getElementById('pay-btn');
+      const spinner = document.getElementById('btn-spinner');
+      const text = document.getElementById('btn-text');
+      const amtLabel = document.getElementById('btn-amount-label');
+      
+      payBtn.disabled = isLoading;
+      if (isLoading) {
+        spinner.style.display = 'block';
+        text.innerText = "प्रोसेस हो रहा है...";
+        amtLabel.style.display = 'none';
+      } else {
+        spinner.style.display = 'none';
+        text.innerText = "ॐ श्रद्धा भेंट करें";
+        amtLabel.style.display = 'inline';
+      }
+    }
+
+    async function initiatePayment() {
+      if (!selectedAmount || selectedAmount < 1) {
+        showError("कृपया सही सहयोग राशि चुनें।");
+        return;
+      }
+
+      toggleLoading(true);
+
+      try {
+        const res = await fetch('/api/razorpay/order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: selectedAmount })
+        });
+        
+        const orderData = await res.json();
+        if (!orderData.id) throw new Error("Order creation failed");
+
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        const options = {
+          key: orderData.key_id || "rzp_live_TEOLlRM13UTm1R", 
+          amount: orderData.amount,
+          currency: orderData.currency,
+          name: "Hindi Bhajan Manjari",
+          description: "सनातन धर्म के लिए सहयोग राशि",
+          order_id: orderData.id,
+          theme: { color: "#ea580c" },
+          modal: {
+            ondismiss: function() { toggleLoading(false); }
+          }
+        };
+
+        if (!isLocalhost) {
+          options.callback_url = `${window.location.origin}/api/razorpay/success-redirect`;
+          options.redirect = true;
+        } else {
+          options.handler = function(response) {
+            window.location.href = `/donate?success=true&payment_id=${response.razorpay_payment_id}`;
+          };
+        }
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+
+      } catch (err) {
+        showError("पेमेंट सर्वर से संपर्क नहीं हो पाया। पुनः प्रयास करें।");
+        toggleLoading(false);
+      }
+    }
+  </script>
+</body>
+</html> 

@@ -15,15 +15,18 @@ export async function POST(req: Request) {
     .update(body.toString())
     .digest("hex");
 
-  // 🌟 THE FIX: Dynamically grab the exact domain you are currently on
-  // If on PC, it stays http://localhost:3000. If live, it becomes https://hindibhajanmanjari.com
-  const requestUrl = new URL(req.url);
-  const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
+  // 🌟 Extract the real public host from proxy headers
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+  const proto = req.headers.get('x-forwarded-proto') || 'https';
+
+  // If testing locally, keep localhost. On live server, force your exact domain.
+  const baseUrl = host && host.includes('localhost')
+    ? `http://${host}`
+    : `https://hindibhajanmanjari.com`;
 
   if (expectedSignature === razorpay_signature) {
-    // 2. Update your Supabase database here (mark order as paid) if needed
+    // Database update logic can go here if needed
     
-    // 3. Redirect dynamically based on the environment
     return NextResponse.redirect(
       `${baseUrl}/donate?success=true&payment_id=${razorpay_payment_id}`, 
       303

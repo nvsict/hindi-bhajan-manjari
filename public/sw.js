@@ -40,6 +40,7 @@ self.addEventListener('fetch', (event) => {
   // Let the browser handle APIs natively. NEVER return offline HTML for APIs!
   if (
     url.pathname.startsWith('/api/') || 
+    url.pathname === '/pay.html' ||
     url.hostname.includes('razorpay.com') ||
     url.hostname.includes('supabase.co') ||
     url.hostname.includes('clarity.ms')
