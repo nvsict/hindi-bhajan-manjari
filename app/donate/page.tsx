@@ -114,7 +114,7 @@ export default function DonatePage() {
   const channelRef = useRef<BroadcastChannel | null>(null);
   const rzpRef = useRef<any>(null);
   const isRecovering = useRef(false);
-  const isSuccessHandled = useRef(false); // 🌟 THE NEW LOCK
+  const isSuccessHandled = useRef(false); 
 
   const effectiveAmount = amount > 0 ? amount : 0;
 
@@ -123,7 +123,7 @@ export default function DonatePage() {
     setTimeout(() => setErrorMsg(null), 5000);
   };
 
-  // ─── Verification Logic ───
+  // ─── Verification Logic (Kept for fallback/background syncing) ───
   const verifyOrder = useCallback(async (orderId: string): Promise<VerifyResult> => {
     try {
       const res = await fetch(`/api/razorpay/verify?order_id=${orderId}`);
@@ -150,12 +150,10 @@ export default function DonatePage() {
   }, []);
 
   const handleSuccessBypass = useCallback((result: VerifyResult) => {
-    // 🌟 FIX 1: The "Traffic Cop" to stop double execution
     if (isSuccessHandled.current) return;
     isSuccessHandled.current = true;
 
     if (rzpRef.current) {
-      // 🌟 FIX 2: 500ms delay to prevent tearing the iframe while the browser is rendering
       setTimeout(() => {
         try { 
           rzpRef.current.close(); 
@@ -164,7 +162,6 @@ export default function DonatePage() {
       }, 500);
     }
     
-    // Strip Razorpay's native CSS scroll locks
     document.body.style.overflow = '';
     document.body.style.position = '';
     document.documentElement.style.overflow = '';
@@ -191,7 +188,6 @@ export default function DonatePage() {
 
     isRecovering.current = true;
     
-    // 🌟 FIX 3: Do not show full-screen spinner if Razorpay is already open
     const isRazorpayOpen = !!rzpRef.current;
     if (isForeground && !isRazorpayOpen) {
       setIsVerifyingReturn(true);
@@ -218,7 +214,35 @@ export default function DonatePage() {
     }
   }, [verifyOrder, verifyWithRetry, handleSuccessBypass]);
 
+  // ─── INITIALIZATION & REDIRECT HANDLING ───
   useEffect(() => {
+    // 1. Intercept URL parameters from the callback URL redirect
+    if (typeof window !== 'undefined' && window.location.search) {
+      const params = new URLSearchParams(window.location.search);
+      const isSuccess = params.get('success');
+      const isError = params.get('error');
+
+      if (isSuccess === 'true') {
+        // Attempt to get the amount from local storage before it's wiped
+        const raw = localStorage.getItem(PENDING_KEY);
+        if (raw) {
+          try {
+            const pending = JSON.parse(raw);
+            if (pending.amount) setAmount(pending.amount);
+          } catch (e) {}
+          localStorage.removeItem(PENDING_KEY);
+        }
+        setPaymentDate(new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'short', year: 'numeric' }));
+        setPaymentStep('CERTIFICATE');
+      } else if (isError) {
+        showError("पेमेंट की पुष्टि नहीं हो पाई या रद्द कर दिया गया।");
+      }
+
+      // Clean the URL so params don't stick around on refresh
+      window.history.replaceState({}, '', '/donate');
+    }
+
+    // 2. Load Stats
     fetch('/api/supporters/stats')
       .then(res => res.json())
       .then(({ totalRaised, supporterCount }) => {
@@ -226,9 +250,6 @@ export default function DonatePage() {
         setSupporterCount(supporterCount ?? 0);
       }).catch(err => console.error(err));
 
-    if (window.location.search) {
-      window.history.replaceState({}, '', '/donate');
-    }
     recoverFromLocalStorage(false); 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -279,6 +300,7 @@ export default function DonatePage() {
     setAmount(v && !isNaN(n) && n > 0 ? n : 0);
   };
 
+  // ─── THE NEW CALLBACK URL PAYMENT LOGIC ───
   const handlePayClick = async () => {
     if (!window.Razorpay) {
       showError("पेमेंट गेटवे लोड नहीं हो पा रहा है। कृपया अपना इंटरनेट कनेक्शन चेक करें।");
@@ -286,9 +308,9 @@ export default function DonatePage() {
     }
 
     setIsSubmitting(true);
-    isSuccessHandled.current = false; // Reset lock for new payment attempt
+    isSuccessHandled.current = false; 
     
-    if (lenis) lenis.stop(); // Stop scroll math before UI loads
+    if (lenis) lenis.stop(); 
 
     try {
       const orderResponse = await fetch('/api/razorpay/order', {
@@ -312,30 +334,18 @@ export default function DonatePage() {
         image: "https://www.hindibhajanmanjari.com/logo.png",
         order_id: orderData.id,
         theme: { color: "#ea580c" },
-        handler: async function (response: any) {
-          try {
-            await new Promise(r => setTimeout(r, 1500));
-            const result = await withTimeout(verifyOrder(response.razorpay_order_id), 15000, { paid: false });
-
-            if (result.paid) {
-              handleSuccessBypass(result);
-            } else {
-              showError("पेमेंट की पुष्टि नहीं हो पाई। यदि आपका पैसा कट गया है, तो वह सुरक्षित है।");
-            }
-          } catch (err) {
-            showError("वेरिफिकेशन में समस्या आई।");
-          }
-        },
+        // 🌟 THE MAGIC REDIRECT FIX 
+        callback_url: `${window.location.origin}/api/razorpay/success-redirect`,
+        redirect: true,
         modal: {
           ondismiss: function () {
             setIsSubmitting(false);
             
-            // Unmount Razorpay safely
             if (rzpRef.current) {
               try { rzpRef.current = null; } catch(e) {}
             }
             
-            if (lenis) lenis.start(); // Give scrolling back
+            if (lenis) lenis.start(); 
 
             setCancelToast(true);
             setTimeout(() => setCancelToast(false), 4000);
@@ -445,7 +455,7 @@ export default function DonatePage() {
 
   return (
     <>
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
       <style>{`
         .mandala-bg { background-image: radial-gradient(circle at 50% 50%, rgba(234,88,12,0.04) 0%, transparent 70%), repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg, transparent 22deg, rgba(234,88,12,0.02) 22deg, rgba(234,88,12,0.02) 24deg); }
       `}</style>
