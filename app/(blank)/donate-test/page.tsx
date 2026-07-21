@@ -42,7 +42,7 @@ export default function DonateTestPage() {
         onClick={pay} 
         style={{ padding: '20px', fontSize: '20px', background: 'blue', color: 'white' }}
       >
-        Pay ₹101
+        Pay ₹1
       </button>
     </div>
   );
