@@ -3,14 +3,17 @@ import { createClient } from '@supabase/supabase-js';
 import { Hind } from 'next/font/google';
 import SuccessFlow from './SuccessFlow';
 
-// 🌟 Initialize the Hind font with Devanagari support
+// 🌟 1. FORCE DYNAMIC RENDERING: This tells Next.js NEVER to cache this page. 
+// It will always read the live URL parameters.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const hind = Hind({
   weight: ['400', '500', '600', '700'],
   subsets: ['devanagari', 'latin'],
   display: 'swap',
 });
 
-// Initialize Supabase Admin client safely on the server
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -19,11 +22,15 @@ const supabase = createClient(
 export default async function DonatePage({
   searchParams,
 }: {
-  searchParams: { success?: string; error?: string; payment_id?: string };
+  // Use Promise to support both Next.js 14 and Next.js 15 correctly
+  searchParams: Promise<{ success?: string; error?: string; payment_id?: string }> | { success?: string; error?: string; payment_id?: string };
 }) {
-  const isSuccess = searchParams.success === 'true';
-  const hasError = !!searchParams.error;
-  const paymentId = searchParams.payment_id;
+  
+  // 🌟 2. AWAIT THE PARAMS: Safely unwrap the params for Next.js 15+
+  const params = await searchParams;
+  const isSuccess = params?.success === 'true';
+  const hasError = !!params?.error;
+  const paymentId = params?.payment_id;
 
   let donatedAmount = 0;
 
@@ -119,7 +126,6 @@ export default async function DonatePage({
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-10">आपका सहयोग कहाँ उपयोग होता है?</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Card 1 */}
           <div className="bg-white p-8 rounded-3xl shadow-sm border border-orange-100 hover:shadow-md transition-shadow text-center">
             <div className="w-14 h-14 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-5">
               <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.485a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414"></path></svg>
@@ -130,7 +136,6 @@ export default async function DonatePage({
             </p>
           </div>
 
-          {/* Card 2 */}
           <div className="bg-white p-8 rounded-3xl shadow-sm border border-orange-100 hover:shadow-md transition-shadow text-center">
             <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-5">
               <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
@@ -141,7 +146,6 @@ export default async function DonatePage({
             </p>
           </div>
 
-          {/* Card 3 */}
           <div className="bg-white p-8 rounded-3xl shadow-sm border border-orange-100 hover:shadow-md transition-shadow text-center">
             <div className="w-14 h-14 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mx-auto mb-5">
               <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
@@ -153,7 +157,6 @@ export default async function DonatePage({
           </div>
         </div>
       </div>
-
     </div>
   );
 }
