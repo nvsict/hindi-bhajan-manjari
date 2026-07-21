@@ -2,16 +2,22 @@
 
 import { useEffect } from 'react';
 import Clarity from '@microsoft/clarity';
+import { usePathname } from 'next/navigation';
 
 export default function ClarityAnalytics() {
+  const pathname = usePathname();
+
   useEffect(() => {
-    // 🛑 हम इसे सिर्फ Production (Live) वेबसाइट पर चलाएंगे, Localhost पर नहीं!
+    // 🛑 Do NOT run Clarity on the donate page to save memory during payment
+    if (pathname === '/donate' || pathname === '/donate-test') {
+      return;
+    }
+
     if (process.env.NODE_ENV === 'production') {
       const projectId = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
       
       if (projectId) {
         try {
-          // Clarity को चालू करें
           Clarity.init(projectId);
           console.log("Clarity Initialized! 🚀");
         } catch (error) {
@@ -21,8 +27,7 @@ export default function ClarityAnalytics() {
         console.warn("Clarity Project ID is missing in .env");
       }
     }
-  }, []);
+  }, [pathname]);
 
-  // यह UI में कोई जगह नहीं लेगा
   return null; 
 }
