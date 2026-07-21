@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>सहयोग करें - हिंदी भजन मंजरी</title>
   
-  <!-- Google Fonts -->
+  <!-- 🌟 Google Fonts: Exclusively loading Hind for a clean, modern Devanagari UI -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@600;800;900&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- Razorpay SDK -->
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
-  <!-- 🌟 Pure Vanilla CSS -->
+  <!-- Pure Vanilla CSS optimized for Hind -->
   <style>
     :root {
       --primary: #ea580c; 
@@ -28,7 +28,8 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     
     body { 
-      font-family: 'Tiro Devanagari Hindi', serif; 
+      /* 🌟 Globally applied Hind font */
+      font-family: 'Hind', sans-serif; 
       background-color: var(--bg-color);
       background-image: radial-gradient(circle at top, #ffedd5 0%, #fffaf5 100%);
       color: var(--text-main);
@@ -39,8 +40,6 @@
       justify-content: center;
       padding: 2rem 1rem;
     }
-
-    .font-serif-dev { font-family: 'Noto Serif Devanagari', serif; }
 
     .card {
       background: var(--card-bg);
@@ -65,21 +64,20 @@
       position: relative;
     }
 
-    /* Escape Hatch (Back Button) */
     .back-link {
       display: inline-flex;
       align-items: center;
       gap: 0.25rem;
-      font-size: 0.8rem;
-      font-weight: 700;
+      font-size: 0.85rem;
+      font-weight: 600;
       color: #9ca3af;
       text-decoration: none;
-      font-family: sans-serif;
       position: absolute;
       top: 1.5rem;
       left: 1.5rem;
       transition: color 0.2s;
     }
+    
     .back-link:hover { color: var(--primary); }
     .back-link svg { width: 14px; height: 14px; }
 
@@ -89,47 +87,49 @@
       margin: 1.5rem auto 1rem auto;
       color: var(--primary);
       font-size: 2.5rem;
-      font-weight: 900;
+      font-weight: 700; /* Capped at 700 for true Hind rendering */
       display: flex;
       align-items: center;
       justify-content: center;
       background-color: #fff7ed;
       border-radius: 50%;
       border: 1px solid #ffedd5;
+      line-height: 1;
+      padding-bottom: 4px; /* Slight optical adjustment for Devanagari baseline */
     }
 
     .subtitle {
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.05em;
       color: #c2410c;
       margin-bottom: 0.25rem;
-      font-family: sans-serif;
     }
 
     .title {
       font-size: 1.75rem;
-      font-weight: 900;
+      font-weight: 700;
       margin-bottom: 0.5rem;
       color: #111827;
+      line-height: 1.3;
     }
 
     .description {
-      font-size: 0.9rem;
+      font-size: 0.95rem;
+      font-weight: 500;
       color: var(--text-muted);
       margin-bottom: 2rem;
     }
 
     .section-label {
       display: block;
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       font-weight: 700;
       color: #6b7280;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       margin-bottom: 1rem;
-      font-family: sans-serif;
     }
 
     .grid-amounts {
@@ -149,7 +149,7 @@
       color: var(--text-main);
       cursor: pointer;
       transition: all 0.2s;
-      font-family: sans-serif;
+      font-family: inherit; /* Inherits Hind */
     }
 
     .amt-btn:hover {
@@ -177,7 +177,6 @@
       transform: translateY(-50%);
       color: #9ca3af;
       font-weight: 700;
-      font-family: sans-serif;
     }
 
     .custom-input {
@@ -187,12 +186,12 @@
       border: 1px solid var(--border-color);
       border-radius: 12px;
       font-weight: 700;
-      font-size: 1rem;
+      font-size: 1.1rem;
       color: var(--text-main);
       outline: none;
       text-align: center;
       transition: all 0.2s;
-      font-family: sans-serif;
+      font-family: inherit;
     }
 
     .custom-input:focus {
@@ -209,7 +208,7 @@
       border: none;
       border-radius: 16px;
       font-size: 1.25rem;
-      font-weight: 900;
+      font-weight: 700;
       cursor: pointer;
       transition: all 0.2s;
       display: flex;
@@ -217,14 +216,13 @@
       justify-content: center;
       gap: 0.5rem;
       box-shadow: 0 10px 15px -3px rgba(234, 88, 12, 0.3);
-      font-family: 'Noto Serif Devanagari', serif;
+      font-family: inherit;
     }
 
     .pay-btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
     .pay-btn:active { transform: translateY(1px); }
     .pay-btn:disabled { background: #fca5a5; cursor: not-allowed; transform: none; box-shadow: none;}
 
-    /* CSS Spinner */
     .spinner {
       display: none;
       width: 20px;
@@ -242,21 +240,20 @@
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       color: #9ca3af;
-      font-weight: 700;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      font-family: sans-serif;
     }
 
     .footer {
       margin-top: 1.5rem;
-      font-size: 0.75rem;
+      font-size: 0.85rem;
       color: #9ca3af;
-      font-family: sans-serif;
       text-align: center;
       line-height: 1.6;
+      font-weight: 500;
     }
 
     .footer a {
@@ -273,10 +270,9 @@
       background: #fef2f2;
       border: 1px solid #fecaca;
       color: #b91c1c;
-      font-size: 0.8rem;
-      font-weight: 700;
+      font-size: 0.85rem;
+      font-weight: 600;
       border-radius: 12px;
-      font-family: sans-serif;
     }
     .error-box.show { display: block; }
 
@@ -295,16 +291,15 @@
 
     <div class="card-content">
       
-      <!-- 🌟 The Escape Hatch -->
       <a href="/" class="back-link">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
         मुख्य पृष्ठ
       </a>
 
-      <div class="om-logo font-serif-dev">ॐ</div>
+      <div class="om-logo">ॐ</div>
 
       <p class="subtitle">हिंदी भजन मंजरी</p>
-      <h1 class="title font-serif-dev">धर्म कार्य में अमूल्य सहयोग दें</h1>
+      <h1 class="title">धर्म कार्य में अमूल्य सहयोग दें</h1>
       <p class="description">इस मंच को विज्ञापन-मुक्त और सुचारु रखने के लिए आपकी दक्षिणा महत्वपूर्ण है।</p>
 
       <div style="margin-bottom: 1.5rem;">
@@ -335,7 +330,7 @@
       <button type="button" id="pay-btn" onclick="initiatePayment()" class="pay-btn">
         <div id="btn-spinner" class="spinner"></div>
         <span id="btn-text">ॐ श्रद्धा भेंट करें</span>
-        <span id="btn-amount-label" style="font-family: sans-serif;">(₹101)</span>
+        <span id="btn-amount-label">(₹101)</span>
       </button>
 
       <div class="security-note">
@@ -368,9 +363,8 @@
     function handleCustomInput(val) {
       const parsed = parseInt(val);
       
-      // 🌟 Validation: Prevent negative numbers and enforce max limit
       if (parsed && parsed > 0) {
-        selectedAmount = parsed > 100000 ? 100000 : parsed; // Cap at 1 Lakh
+        selectedAmount = parsed > 100000 ? 100000 : parsed; 
         if (parsed > 100000) document.getElementById('custom-amt').value = 100000;
         
         document.querySelectorAll('.amt-btn').forEach(b => b.classList.remove('active'));
@@ -462,4 +456,4 @@
     }
   </script>
 </body>
-</html> 
+</html>
