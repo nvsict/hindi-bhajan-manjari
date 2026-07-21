@@ -22,8 +22,8 @@ const supabase = createClient(
 export default async function DonatePage({
   searchParams,
 }: {
-  // Use Promise to support both Next.js 14 and Next.js 15 correctly
-  searchParams: Promise<{ success?: string; error?: string; payment_id?: string }> | { success?: string; error?: string; payment_id?: string };
+  // 🌟 Updated to include the 'amount' parameter from the URL
+  searchParams: Promise<{ success?: string; error?: string; payment_id?: string; amount?: string }> | { success?: string; error?: string; payment_id?: string; amount?: string };
 }) {
   
   // 🌟 2. AWAIT THE PARAMS: Safely unwrap the params for Next.js 15+
@@ -31,6 +31,9 @@ export default async function DonatePage({
   const isSuccess = params?.success === 'true';
   const hasError = !!params?.error;
   const paymentId = params?.payment_id;
+  
+  // 🌟 3. Extract the amount directly from the URL to prevent the "101" race condition
+  const urlAmount = params?.amount ? parseInt(params.amount, 10) : 0;
 
   let donatedAmount = 0;
 
@@ -39,20 +42,21 @@ export default async function DonatePage({
   // ==========================================
   if (isSuccess && paymentId) {
     try {
+      // 🌟 FIXED: Changed 'donations' to 'supporters' to match your database schema
       const { data, error } = await supabase
-        .from('donations')
+        .from('supporters')
         .select('amount')
         .eq('razorpay_payment_id', paymentId)
         .single();
         
       if (data && data.amount) {
-        donatedAmount = data.amount;
+        donatedAmount = data.amount; // Use the amount from Database if found
       } else {
-        donatedAmount = 101; 
+        donatedAmount = urlAmount; // 🌟 Fallback to URL amount, NOT 101
       }
     } catch (err) {
       console.error("Error fetching donation amount:", err);
-      donatedAmount = 101;
+      donatedAmount = urlAmount; // 🌟 Fallback to URL amount on error
     }
 
     return (
