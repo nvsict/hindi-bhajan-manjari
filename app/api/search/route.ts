@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/utils/supabase'; // Adjust this path to wherever your supabase client is!
 
-// 🌟 THE FIX: Define the exact shape of our combined search results
 interface SearchResult {
   title_hindi: string;
   title_hinglish: string;
@@ -10,23 +9,21 @@ interface SearchResult {
 }
 
 export async function GET(request: Request) {
-  // 1. Grab the search query from the URL (e.g., /api/search?q=krishna)
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('q');
 
   try {
-    // 2. SCENARIO 1: If there is NO query, return the default "Trending" Bhajans
+    // 1. SCENARIO 1: If there is NO query, return Trending Bhajans (Using our Materialized View for 0ms load!)
     if (!query || query.trim().length === 0) {
       const { data, error } = await supabase
-        .from('bhajans')
+        .from('mv_bhajan_details') // 🌟 Changed to Materialized View
         .select('title_hinglish, title_hindi, slug')
-        .order('view_count', { ascending: false }) // Or order by 'created_at'
+        .order('view_count', { ascending: false })
         .limit(5);
 
       if (error) throw error;
       
-      // Inject the 'type' so the new frontend Omni-Search component can read it
-      const formattedData: SearchResult[] = data.map(item => ({ 
+      const formattedData: SearchResult[] = (data || []).map(item => ({ 
         title_hindi: item.title_hindi,
         title_hinglish: item.title_hinglish,
         slug: item.slug,
@@ -36,16 +33,21 @@ export async function GET(request: Request) {
       return NextResponse.json(formattedData);
     }
 
-    // 3. SCENARIO 2: OMNI-SEARCH (If there IS a query)
+    // 2. SCENARIO 2: OMNI-SEARCH (Using Full Text Search 'fts_search' instead of slow .ilike())
+    const sanitizedQuery = query.trim().replace(/[^\w\sà-ūÀ-Ū]/gi, ''); // Clean special chars for FTS
+
     const [bhajansResponse, articlesResponse] = await Promise.all([
-      // A. Search Bhajans using Trigram matches
+      // A. Search Bhajans using FTS (Super fast!)
       supabase
         .from('bhajans')
         .select('title_hinglish, title_hindi, slug')
-        .or(`title_hinglish.ilike.%${query}%,title_hindi.ilike.%${query}%`)
+        .textSearch('fts_search', sanitizedQuery, {
+          type: 'plain',
+          config: 'simple'
+        })
         .limit(5),
 
-      // B. Search Articles (Gyan) - Only fetching published ones
+      // B. Search Articles (Gyan) - Published ones
       supabase
         .from('articles')
         .select('title_hindi, title_hinglish, slug')
@@ -57,23 +59,31 @@ export async function GET(request: Request) {
     if (bhajansResponse.error) throw bhajansResponse.error;
     if (articlesResponse.error) throw articlesResponse.error;
     
-    // 4. Combine and categorize the results
-    // 🌟 THE FIX: Tell TypeScript this array will strictly hold SearchResult objects
+    // 3. Combine and categorize the results
     const results: SearchResult[] = [];
 
     if (bhajansResponse.data) {
-      bhajansResponse.data.forEach(item => {
-        results.push({ ...item, type: 'bhajan' });
+      bhajansResponse.data.forEach((item: any) => {
+        results.push({ 
+          title_hindi: item.title_hindi,
+          title_hinglish: item.title_hinglish,
+          slug: item.slug,
+          type: 'bhajan' 
+        });
       });
     }
 
     if (articlesResponse.data) {
-      articlesResponse.data.forEach(item => {
-        results.push({ ...item, type: 'article' });
+      articlesResponse.data.forEach((item: any) => {
+        results.push({ 
+          title_hindi: item.title_hindi,
+          title_hinglish: item.title_hinglish,
+          slug: item.slug,
+          type: 'article' 
+        });
       });
     }
 
-    // 5. Send the unified, categorized data back to the user's browser
     return NextResponse.json(results);
 
   } catch (error: any) {
