@@ -296,9 +296,15 @@ export default function BhaktiStudio({ bhajanId, bhajanSlug, onUploadSuccess }: 
         {recordingState === "IDLE" && (
           <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col lg:flex-row items-start lg:items-center justify-between w-full gap-4">
             <div className="flex items-center gap-3 shrink-0">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 text-white flex items-center justify-center shadow-md animate-pulse shrink-0">
+              {/* 🌟 NEW FIX: Changed div to button and added onClick, hover, and active states */}
+              <button 
+                onClick={startRecording}
+                className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 text-white flex items-center justify-center shadow-md animate-pulse shrink-0 hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+                title="Start Recording"
+                aria-label="Start Recording"
+              >
                 <FaMicrophone />
-              </div>
+              </button>
               <div>
                 <h4 className="font-bold font-hindi text-gray-800 dark:text-gray-100 text-sm">अपनी आवाज़ में गाएं</h4>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">

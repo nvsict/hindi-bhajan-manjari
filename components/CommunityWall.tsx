@@ -3,13 +3,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaUserCircle, FaMusic, FaHeart, FaRegHeart } from "react-icons/fa";
+import { FaUserCircle, FaMusic, FaShareAlt, FaDownload } from "react-icons/fa";
 
 interface Cover {
   id: string;
   user_name: string;
   audio_url: string;
-  likes_count: number;
   created_at: string;
 }
 
@@ -20,13 +19,7 @@ interface Props {
 export default function CommunityWall({ bhajanId }: Props) {
   const [covers, setCovers] = useState<Cover[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [likedCovers, setLikedCovers] = useState<Set<string>>(new Set());
-
-  // 🌟 Load liked items from LocalStorage on mount
-  useEffect(() => {
-    const savedLikes = JSON.parse(localStorage.getItem("liked_bhajan_covers") || "[]");
-    setLikedCovers(new Set(savedLikes));
-  }, []);
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
   // 1. Initial Fetch
   const fetchCovers = async () => {
@@ -49,13 +42,14 @@ export default function CommunityWall({ bhajanId }: Props) {
   useEffect(() => {
     fetchCovers();
 
-    // The Bulletproof Fallback
+    // The Bulletproof Fallback for newly published covers
     const handleNewCover = () => {
       fetchCovers();
     };
     
     window.addEventListener('onCoverPublished', handleNewCover);
 
+    // Realtime Subscription
     const subscription = supabase
       .channel(`covers_${bhajanId}`)
       .on(
@@ -73,34 +67,68 @@ export default function CommunityWall({ bhajanId }: Props) {
     };
   }, [bhajanId]);
 
-  // 🌟 THE LIKE HANDLER (Optimistic UI Update)
-  const handleLike = async (id: string, currentLikes: number) => {
-    // अगर यूज़र पहले ही लाइक कर चुका है, तो कुछ न करें
-    if (likedCovers.has(id)) return;
+  // 🌟 Auto-scroll to specific cover if shared link contains the hash
+  useEffect(() => {
+    if (covers.length > 0 && window.location.hash) {
+      const hashId = window.location.hash.substring(1); // remove '#'
+      const element = document.getElementById(hashId);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Temporarily highlight the shared cover
+          element.classList.add('ring-2', 'ring-orange-500', 'shadow-lg');
+          setTimeout(() => element.classList.remove('ring-2', 'ring-orange-500', 'shadow-lg'), 3000);
+        }, 500);
+      }
+    }
+  }, [covers]);
 
-    // 1. Optimistic Update (तुरंत UI में +1 दिखाएं ताकि ऐप फास्ट लगे)
-    setCovers((prev) => 
-      prev.map((cover) => 
-        cover.id === id ? { ...cover, likes_count: (cover.likes_count || 0) + 1 } : cover
-      )
-    );
+  // 🌟 THE SHARE HANDLER
+  const handleShare = async (cover: Cover) => {
+    // Generate a unique URL for this specific audio cover
+    const shareUrl = `${window.location.origin}${window.location.pathname}#cover-${cover.id}`;
+    const shareData = {
+      title: `${cover.user_name} - Bhajan Cover`,
+      text: `Listen to this beautiful bhajan cover by ${cover.user_name}!`,
+      url: shareUrl,
+    };
 
-    // 2. Update Local Storage
-    const newLikedSet = new Set(likedCovers).add(id);
-    setLikedCovers(newLikedSet);
-    localStorage.setItem("liked_bhajan_covers", JSON.stringify(Array.from(newLikedSet)));
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error("Error sharing:", err);
+      }
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      navigator.clipboard.writeText(shareUrl);
+      alert("Link copied to clipboard!");
+    }
+  };
 
-    // 3. Update Supabase Database
+  // 🌟 THE DOWNLOAD HANDLER
+  const handleDownload = async (cover: Cover) => {
+    setIsDownloading(cover.id);
     try {
-      const { error } = await supabase
-        .from('bhajan_covers')
-        .update({ likes_count: (currentLikes || 0) + 1 })
-        .eq('id', id);
-
-      if (error) throw error;
+      // Fetch the file as a blob to force download instead of playing in a new tab
+      const response = await fetch(cover.audio_url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      // Provide a clean file name
+      link.download = `${cover.user_name.replace(/\s+/g, '_')}_bhajan_cover.mp3`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
-      console.error("Error updating like:", err);
-      // (Optional) अगर एरर आए तो लाइक वापस कम कर सकते हैं
+      console.error("Error downloading file:", err);
+      // Fallback: just open the URL
+      window.open(cover.audio_url, '_blank');
+    } finally {
+      setIsDownloading(null);
     }
   };
 
@@ -133,19 +161,18 @@ export default function CommunityWall({ bhajanId }: Props) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <AnimatePresence>
           {covers.map((cover) => {
-            const isLiked = likedCovers.has(cover.id);
-
             return (
               <motion.div
                 key={cover.id}
+                id={`cover-${cover.id}`} // 👈 ID added for direct hash linking
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.4 }}
-                className="bg-white dark:bg-[#1a120b] border border-orange-100 dark:border-white/5 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-3"
+                className="bg-white dark:bg-[#1a120b] border border-orange-100 dark:border-white/5 rounded-2xl p-4 shadow-sm transition-all duration-500 flex flex-col gap-3"
               >
                 
-                {/* User Info & Date */}
+                {/* User Info & Actions */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-gray-800 dark:text-gray-200">
                     <FaUserCircle className="text-2xl text-gray-300 dark:text-gray-600" />
@@ -157,32 +184,35 @@ export default function CommunityWall({ bhajanId }: Props) {
                     </div>
                   </div>
                   
-                  {/* 🌟 THE LIKE BUTTON */}
-                  <button 
-                    onClick={() => handleLike(cover.id, cover.likes_count)}
-                    disabled={isLiked}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-300 ${
-                      isLiked 
-                        ? 'bg-red-50 dark:bg-red-900/20 text-red-500 cursor-default' 
-                        : 'bg-gray-50 dark:bg-white/5 text-gray-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-400 active:scale-95 cursor-pointer'
-                    }`}
-                  >
-                    {isLiked ? (
-                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
-                        <FaHeart className="text-sm drop-shadow-sm" />
-                      </motion.div>
-                    ) : (
-                      <FaRegHeart className="text-sm" />
-                    )}
-                    <span className="text-xs font-bold font-mono mt-0.5">{cover.likes_count || 0}</span>
-                  </button>
+                  {/* 🌟 ACTION BUTTONS (Share & Download) */}
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => handleDownload(cover)}
+                      disabled={isDownloading === cover.id}
+                      title="Download Audio"
+                      className="p-2 bg-gray-50 dark:bg-white/5 text-gray-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:text-orange-500 rounded-full transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      {isDownloading === cover.id ? (
+                        <div className="w-3.5 h-3.5 border-2 border-gray-300 border-t-orange-500 rounded-full animate-spin"></div>
+                      ) : (
+                        <FaDownload className="text-sm" />
+                      )}
+                    </button>
+                    <button 
+                      onClick={() => handleShare(cover)}
+                      title="Share Audio"
+                      className="p-2 bg-gray-50 dark:bg-white/5 text-gray-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-500 rounded-full transition-all active:scale-95"
+                    >
+                      <FaShareAlt className="text-sm" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Native Audio Player */}
                 <div className="w-full bg-orange-50/50 dark:bg-white/5 rounded-full px-2 py-1 mt-1 border border-orange-100 dark:border-white/5">
                   <audio 
                     controls 
-                    controlsList="nodownload noplaybackrate" 
+                    controlsList="noplaybackrate" // 👈 Removed "nodownload" so native download option also appears
                     className="w-full h-10 outline-none" 
                     src={cover.audio_url} 
                   >
