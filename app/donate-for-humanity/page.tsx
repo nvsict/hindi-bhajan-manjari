@@ -12,14 +12,21 @@ const hind = Hind({
 
 export default function DonateForHumanityPage() {
   const formRef = useRef<HTMLFormElement>(null);
+  const hasScriptLoaded = useRef(false); // 🌟 Strict Mode Double-Render Fix
 
-  // 🌟 Razorpay Payment Button Script Integration
+  // 🌟 Razorpay Payment Button Script Integration (Safe Load)
   useEffect(() => {
-    if (formRef.current && formRef.current.children.length === 0) {
+    // अगर स्क्रिप्ट पहले ही लोड हो चुकी है, तो दोबारा रन न करें
+    if (hasScriptLoaded.current) return;
+
+    if (formRef.current) {
+      hasScriptLoaded.current = true; // Lock set कर दिया गया
+      
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/payment-button.js';
       script.setAttribute('data-payment_button_id', 'pl_TGNoG15x6BTHdF');
       script.async = true;
+      
       formRef.current.appendChild(script);
     }
   }, []);
