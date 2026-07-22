@@ -64,9 +64,9 @@ const nextConfig: NextConfig = {
             value: 'camera=(), microphone=(self), geolocation=(), browsing-topics=()'
           },
           {
-            // 🌟 CSP FIX: Added Tailwind JS CDN to script-src and Cloudflare CSS CDN to style-src
+            // 🌟 CSP FIX: Added browser.sentry-cdn.com to script-src and razorpay.com to frame-src
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.instagram.com https://*.googletagmanager.com https://static.cloudflareinsights.com https://*.clarity.ms https://*.google.com https://checkout.razorpay.com https://cdn.razorpay.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://news.google.com https://cdnjs.cloudflare.com; img-src * blob: data:; media-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src * https://lumberjack.razorpay.com; frame-src 'self' https://www.youtube.com https://www.instagram.com https://*.google.com https://*.razorpay.com https://cdn.razorpay.com; worker-src 'self' blob:;"
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.instagram.com https://*.googletagmanager.com https://static.cloudflareinsights.com https://*.clarity.ms https://*.google.com https://checkout.razorpay.com https://cdn.razorpay.com https://cdn.tailwindcss.com https://browser.sentry-cdn.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://news.google.com https://cdnjs.cloudflare.com; img-src * blob: data:; media-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src * https://lumberjack.razorpay.com; frame-src 'self' https://www.youtube.com https://www.instagram.com https://*.google.com https://*.razorpay.com https://cdn.razorpay.com https://razorpay.com; worker-src 'self' blob:;"
           }
         ],
       },
