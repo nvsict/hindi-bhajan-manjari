@@ -6,7 +6,16 @@ import Script from 'next/script';
 import Link from 'next/link';
 import Breadcrumbs from '../../../components/Breadcrumbs';
 import AuthorBox from '../../../components/AuthorBox';
-import { FaClock, FaCalendarAlt, FaBookOpen, FaGlobe } from 'react-icons/fa';
+import { 
+  FaClock, 
+  FaCalendarAlt, 
+  FaBookOpen, 
+  FaGlobe,
+  FaShareAlt,
+  FaWhatsapp,
+  FaFacebook,
+  FaTwitter
+} from 'react-icons/fa';
 
 import ArticleViewCounter from '@/components/ArticleViewCounter';
 
@@ -25,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { data: article } = await supabase
     .from('articles')
     // 🌟 ADDED ENGLISH COLUMNS FOR SEO HREFLANG
-    .select('title_hindi, title_hinglish, meta_description, author_name, featured_image_url, slug_english, is_published_english')
+    .select('title_hindi, title_hinglish, meta_description, author_name, featured_image_url, slug_english, is_published_english, published_at, updated_at')
     .eq('slug', slug)
     .eq('is_published', true)
     .single();
@@ -67,6 +76,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: article.title_hindi,
       description: article.meta_description,
       type: 'article',
+      publishedTime: article.published_at,
+      modifiedTime: article.updated_at || article.published_at,
+      authors: article.author_name ? [article.author_name] : undefined,
       url: pageUrl,
       siteName: 'Hindi Bhajan Manjari',
       images: [
@@ -169,6 +181,16 @@ export default async function ArticlePage({ params }: Props) {
   // We safely split the raw HTML by paragraph closing tags (</p>)
   const htmlChunks = article.content_html ? article.content_html.split(/<\/p>/i) : [];
 
+  // ==========================================
+  // 🌟 SHARE URLS CONFIGURATION
+  // ==========================================
+  const encodedUrl = encodeURIComponent(pageUrl);
+  const encodedTitle = encodeURIComponent(`पढ़ें: ${article.title_hindi} | Hindi Bhajan Manjari\n`);
+
+  const whatsappShareUrl = `https://wa.me/?text=${encodedTitle}${encodedUrl}`;
+  const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+  const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`;
+
   return (
     <div className="min-h-screen bg-orange-50/30 pb-20">
       
@@ -197,7 +219,6 @@ export default async function ArticlePage({ params }: Props) {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         
         <Breadcrumbs items={[ { label: 'Gyan', href: '/gyan' }, { label: article.title_hinglish } ]} />
-
 
         <main className="bg-white rounded-[2.5rem] shadow-sm border border-orange-100 overflow-hidden">
           
@@ -285,6 +306,43 @@ export default async function ArticlePage({ params }: Props) {
                 );
               })}
             </article>
+
+            {/* --- 🌟 SHARE BUTTONS SECTION --- */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-10 mt-10 border-t border-orange-100/60">
+              <div className="flex items-center gap-2 text-gray-800 font-bold font-hindi">
+                <FaShareAlt className="text-orange-500 text-xl" />
+                <span className="text-lg">इस ज्ञान को साझा करें:</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <a 
+                  href={whatsappShareUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  aria-label="Share on WhatsApp" 
+                  className="w-12 h-12 flex items-center justify-center rounded-full bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-all duration-300 shadow-sm active:scale-95"
+                >
+                  <FaWhatsapp className="text-2xl" />
+                </a>
+                <a 
+                  href={facebookShareUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  aria-label="Share on Facebook" 
+                  className="w-12 h-12 flex items-center justify-center rounded-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-sm active:scale-95"
+                >
+                  <FaFacebook className="text-2xl" />
+                </a>
+                <a 
+                  href={twitterShareUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  aria-label="Share on Twitter" 
+                  className="w-12 h-12 flex items-center justify-center rounded-full bg-sky-50 text-sky-500 hover:bg-sky-500 hover:text-white transition-all duration-300 shadow-sm active:scale-95"
+                >
+                  <FaTwitter className="text-2xl" />
+                </a>
+              </div>
+            </div>
           </div>
 
           {/* --- THE AUTHOR BOX --- */}

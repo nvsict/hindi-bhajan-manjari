@@ -4,18 +4,51 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Fragment } from 'react';
 import Breadcrumbs from '../../components/Breadcrumbs';
-import { FaBookOpen, FaClock, FaCalendarAlt, FaChevronRight, FaGlobe } from 'react-icons/fa';
+import { 
+  FaBookOpen, 
+  FaClock, 
+  FaCalendarAlt, 
+  FaChevronRight, 
+  FaGlobe,
+  FaWhatsapp,
+  FaFacebook,
+  FaTwitter
+} from 'react-icons/fa';
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
 
 // ==========================================
-// 🌟 1. HIGH-CTR SEO METADATA
+// 🌟 1. HIGH-CTR SEO & OPEN GRAPH METADATA
 // ==========================================
 export const metadata: Metadata = {
   title: 'सनातन ज्ञान (Sanatan Gyan) - Articles & Deep Meanings | Hindi Bhajan Manjari',
   description: 'सनातन धर्म के रहस्यों, भजनों के वास्तविक अर्थ (Bhavarth), और पूजा पद्धति के नियमों को गहराई से समझें। (Understand the deep meanings of Sanatan Dharma and Bhajans).',
+  keywords: ['Sanatan Gyan', 'Hindu Dharma', 'Bhajan Bhavarth', 'Hinduism Articles', 'सनातन ज्ञान', 'भजन अर्थ', 'Hindi Bhajan Manjari'],
   alternates: {
-    canonical: `${process.env.NEXT_PUBLIC_SITE_URL}/gyan`,
-  }
+    canonical: `${SITE_URL}/gyan`,
+  },
+  openGraph: {
+    title: 'सनातन ज्ञान (Sanatan Gyan) - Articles & Deep Meanings',
+    description: 'सनातन धर्म के रहस्यों, भजनों के वास्तविक अर्थ (Bhavarth), और पूजा पद्धति के नियमों को गहराई से समझें।',
+    url: `${SITE_URL}/gyan`,
+    siteName: 'Hindi Bhajan Manjari',
+    images: [
+      {
+        url: `${SITE_URL}/default-og-gyan.jpg`, // Replace with your actual default OG image path
+        width: 1200,
+        height: 630,
+        alt: 'Sanatan Gyan - Hindi Bhajan Manjari',
+      },
+    ],
+    locale: 'hi_IN',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'सनातन ज्ञान (Sanatan Gyan) - Articles & Deep Meanings',
+    description: 'सनातन धर्म के रहस्यों, भजनों के वास्तविक अर्थ (Bhavarth), और पूजा पद्धति के नियमों को गहराई से समझें।',
+    images: [`${SITE_URL}/default-og-gyan.jpg`], // Replace with your actual default OG image path
+  },
 };
 
 // ==========================================
@@ -53,17 +86,16 @@ export default async function GyanIndexPage() {
   // ==========================================
   // 🌟 4. GOOGLE BLOG/COLLECTION SCHEMA
   // ==========================================
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
   const blogSchema = {
     "@context": "https://schema.org",
     "@type": "Blog",
     "name": "Sanatan Gyan - Hindi Bhajan Manjari",
     "description": "Deep spiritual articles and meanings of Hindu Bhajans.",
-    "url": `${siteUrl}/gyan`,
+    "url": `${SITE_URL}/gyan`,
     "blogPost": articles ? articles.map(article => ({
       "@type": "BlogPosting",
       "headline": article.title_hindi,
-      "url": `${siteUrl}/gyan/${article.slug}`,
+      "url": `${SITE_URL}/gyan/${article.slug}`,
       "datePublished": article.published_at,
       "image": article.featured_image_url || undefined,
       "author": {
@@ -105,84 +137,105 @@ export default async function GyanIndexPage() {
           </div>
         ) : (
           <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {articles.map((article, index) => {
+            {articles.map((article) => {
               const publishDate = new Date(article.published_at).toLocaleDateString('hi-IN', {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric'
               });
 
+              // Encode URLs and Titles for Sharing
+              const articleUrl = `${SITE_URL}/gyan/${article.slug}`;
+              const encodedUrl = encodeURIComponent(articleUrl);
+              const encodedTitle = encodeURIComponent(`पढ़ें: ${article.title_hindi} | Hindi Bhajan Manjari\n`);
+
+              const whatsappShareUrl = `https://wa.me/?text=${encodedTitle}${encodedUrl}`;
+              const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+              const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`;
+
               return (
                 <Fragment key={article.slug}>
                   <article className="h-full flex flex-col group overflow-hidden bg-white rounded-3xl border border-orange-100/60 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-orange-200 transition-all duration-300">
-                    <Link 
-                      href={`/gyan/${article.slug}`} 
-                      className="flex flex-col h-full focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded-3xl"
-                      aria-label={`Read article: ${article.title_hinglish}`}
-                    >
-                      
-                      {/* Featured Image Header */}
-                      {article.featured_image_url && (
-                        <div className="relative w-full h-52 bg-gray-100 border-b border-orange-100/50 overflow-hidden shrink-0">
-                          <Image
-                            src={article.featured_image_url}
-                            alt={`Cover image for ${article.title_hinglish}`}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-700"
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          />
-                          
-                          {/* "English Available" Badge over image */}
-                          {article.is_published_english && article.slug_english && (
-                            <div className="absolute top-4 right-4 bg-white/95 backdrop-blur text-blue-600 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5">
-                              <FaGlobe aria-hidden="true" /> EN Available
-                            </div>
-                          )}
-                        </div>
-                      )}
+                    
+                    {/* Featured Image Header (Clickable) */}
+                    {article.featured_image_url && (
+                      <Link href={`/gyan/${article.slug}`} className="relative w-full h-52 bg-gray-100 border-b border-orange-100/50 overflow-hidden shrink-0 block" aria-label={`Read article: ${article.title_hinglish}`}>
+                        <Image
+                          src={article.featured_image_url}
+                          alt={`Cover image for ${article.title_hinglish}`}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-700"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        />
+                        {/* "English Available" Badge over image */}
+                        {article.is_published_english && article.slug_english && (
+                          <div className="absolute top-4 right-4 bg-white/95 backdrop-blur text-blue-600 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5">
+                            <FaGlobe aria-hidden="true" /> EN Available
+                          </div>
+                        )}
+                      </Link>
+                    )}
 
-                      <div className="p-7 md:p-8 flex-1 flex flex-col">
-                        {/* Meta Info */}
-                        <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-orange-500 uppercase tracking-widest mb-4">
-                          <span className="flex items-center gap-1.5 bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100/50 group-hover:bg-orange-100 transition-colors">
-                            <FaClock className="mb-0.5" aria-hidden="true" /> {article.read_time_minutes} Min
+                    <div className="p-7 md:p-8 flex-1 flex flex-col">
+                      {/* Meta Info */}
+                      <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-orange-500 uppercase tracking-widest mb-4">
+                        <span className="flex items-center gap-1.5 bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100/50 group-hover:bg-orange-100 transition-colors">
+                          <FaClock className="mb-0.5" aria-hidden="true" /> {article.read_time_minutes} Min
+                        </span>
+                        <time dateTime={article.published_at} className="flex items-center gap-1.5 text-gray-500">
+                          <FaCalendarAlt className="mb-0.5" aria-hidden="true" /> {publishDate}
+                        </time>
+                        
+                        {/* Fallback Badge if no image is present */}
+                        {!article.featured_image_url && article.is_published_english && article.slug_english && (
+                          <span className="flex items-center gap-1.5 text-blue-500 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100/50">
+                            <FaGlobe aria-hidden="true" /> EN
                           </span>
-                          <time dateTime={article.published_at} className="flex items-center gap-1.5 text-gray-500">
-                            <FaCalendarAlt className="mb-0.5" aria-hidden="true" /> {publishDate}
-                          </time>
-                          
-                          {/* Fallback Badge if no image is present */}
-                          {!article.featured_image_url && article.is_published_english && article.slug_english && (
-                            <span className="flex items-center gap-1.5 text-blue-500 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100/50">
-                              <FaGlobe aria-hidden="true" /> EN
-                            </span>
-                          )}
-                        </div>
+                        )}
+                      </div>
 
-                        {/* Titles */}
+                      {/* Titles (Clickable) */}
+                      <Link href={`/gyan/${article.slug}`} className="block focus:outline-none">
                         <h2 className="font-hindi text-2xl font-black text-gray-900 mb-2 leading-tight group-hover:text-orange-600 transition-colors line-clamp-3">
                           {article.title_hindi}
                         </h2>
                         <h3 className="text-sm font-medium text-gray-500 mb-4 line-clamp-1">
                           {article.title_hinglish}
                         </h3>
+                      </Link>
 
-                        {/* Description */}
-                        <p className="text-gray-600 font-hindi leading-relaxed line-clamp-3 mb-6 flex-1">
-                          {article.meta_description}
-                        </p>
+                      {/* Description */}
+                      <p className="text-gray-600 font-hindi leading-relaxed line-clamp-3 mb-6 flex-1">
+                        {article.meta_description}
+                      </p>
+
+                      {/* Footer: Share Buttons & Read More */}
+                      <div className="mt-auto pt-5 border-t border-gray-50 flex items-center justify-between">
+                        
+                        {/* 🌟 Social Share Links */}
+                        <div className="flex items-center gap-4">
+                          <a href={whatsappShareUrl} target="_blank" rel="noopener noreferrer" aria-label="Share on WhatsApp" className="text-gray-400 hover:text-green-500 transition-colors active:scale-95">
+                            <FaWhatsapp size={20} />
+                          </a>
+                          <a href={facebookShareUrl} target="_blank" rel="noopener noreferrer" aria-label="Share on Facebook" className="text-gray-400 hover:text-blue-600 transition-colors active:scale-95">
+                            <FaFacebook size={20} />
+                          </a>
+                          <a href={twitterShareUrl} target="_blank" rel="noopener noreferrer" aria-label="Share on Twitter" className="text-gray-400 hover:text-sky-500 transition-colors active:scale-95">
+                            <FaTwitter size={20} />
+                          </a>
+                        </div>
 
                         {/* Read More Button */}
-                        <div className="mt-auto pt-5 border-t border-gray-50 flex items-center justify-between text-orange-600 font-bold text-sm">
-                          पूरा पढ़ें (Read Article)
+                        <Link href={`/gyan/${article.slug}`} className="flex items-center gap-2 text-orange-600 font-bold text-sm hover:text-orange-700 transition-colors">
+                          पूरा पढ़ें
                           <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center group-hover:bg-orange-600 group-hover:text-white transition-colors">
                             <FaChevronRight className="text-xs group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
                           </div>
-                        </div>
+                        </Link>
                       </div>
-                    </Link>
-                  </article>
+                    </div>
 
+                  </article>
                 </Fragment>
               );
             })}

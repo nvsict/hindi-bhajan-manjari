@@ -6,7 +6,16 @@ import Script from 'next/script';
 import Link from 'next/link';
 import Breadcrumbs from '../../../../components/Breadcrumbs';
 import AuthorBox from '../../../../components/AuthorBox';
-import { FaClock, FaCalendarAlt, FaBookOpen, FaLanguage } from 'react-icons/fa';
+import { 
+  FaClock, 
+  FaCalendarAlt, 
+  FaBookOpen, 
+  FaLanguage,
+  FaShareAlt,
+  FaWhatsapp,
+  FaFacebook,
+  FaTwitter
+} from 'react-icons/fa';
 
 import ArticleViewCounter from '@/components/ArticleViewCounter';
 
@@ -16,12 +25,16 @@ interface Props {
 
 export const revalidate = 3600;
 
+// ==========================================
+// 🌟 1. ADVANCED SEO & OPEN GRAPH METADATA
+// ==========================================
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   
   const { data: article } = await supabase
     .from('articles')
-    .select('title_english, meta_description_english, author_name, featured_image_url, slug, is_published')
+    // 🌟 Added published_at and updated_at for Open Graph article tags
+    .select('title_english, meta_description_english, author_name, featured_image_url, slug, is_published, published_at, updated_at')
     .eq('slug_english', slug)
     .eq('is_published_english', true)
     .single();
@@ -48,15 +61,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: article.meta_description_english,
     authors: article.author_name ? [{ name: article.author_name }] : undefined,
     alternates: alternates,
+    robots: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
     openGraph: {
       title: article.title_english || 'Sanatan Gyan',
       description: article.meta_description_english || '',
       type: 'article',
+      publishedTime: article.published_at,
+      modifiedTime: article.updated_at || article.published_at,
+      authors: article.author_name ? [article.author_name] : undefined,
       url: pageUrl,
       siteName: 'Hindi Bhajan Manjari',
       images: [{ url: finalImageUrl, width: 1200, height: 630 }],
     },
-    twitter: { card: 'summary_large_image', title: article.title_english || 'Sanatan Gyan', images: [finalImageUrl] },
+    twitter: { 
+      card: 'summary_large_image', 
+      title: article.title_english || 'Sanatan Gyan', 
+      description: article.meta_description_english || '',
+      images: [finalImageUrl] 
+    },
   };
 }
 
@@ -80,6 +108,9 @@ export default async function EnglishArticlePage({ params }: Props) {
   const pageUrl = `${siteUrl}/en/gyan/${slug}`;
   const finalImageUrl = article.featured_image_url || `${siteUrl}/api/og/articles?title=${encodeURIComponent(article.title_english || '')}`;
 
+  // ==========================================
+  // 🌟 2. SCHEMA GRAPH 
+  // ==========================================
   const advancedArticleSchema = {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
@@ -87,6 +118,7 @@ export default async function EnglishArticlePage({ params }: Props) {
     "description": article.meta_description_english,
     "image": [finalImageUrl],
     "datePublished": new Date(article.published_at).toISOString(),
+    "dateModified": new Date(article.updated_at || article.published_at).toISOString(),
     "inLanguage": "en",
     "author": { "@type": "Person", "name": article.author_name || "Team" },
     "publisher": { "@type": "Organization", "name": "Hindi Bhajan Manjari", "logo": { "@type": "ImageObject", "url": `${siteUrl}/favicon.ico` } },
@@ -94,6 +126,16 @@ export default async function EnglishArticlePage({ params }: Props) {
   };
 
   const htmlChunks = article.content_html_english ? article.content_html_english.split(/<\/p>/i) : [];
+
+  // ==========================================
+  // 🌟 SHARE URLS CONFIGURATION
+  // ==========================================
+  const encodedUrl = encodeURIComponent(pageUrl);
+  const encodedTitle = encodeURIComponent(`Read: ${article.title_english} | Hindi Bhajan Manjari\n`);
+
+  const whatsappShareUrl = `https://wa.me/?text=${encodedTitle}${encodedUrl}`;
+  const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+  const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`;
 
   return (
     <div className="min-h-screen bg-blue-50/20 pb-20">
@@ -104,7 +146,6 @@ export default async function EnglishArticlePage({ params }: Props) {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         <Breadcrumbs items={[ { label: 'Wisdom', href: '/en/gyan' }, { label: article.title_english || '' } ]} />
-
 
         <main className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm border border-blue-100 overflow-hidden">
           
@@ -181,8 +222,45 @@ export default async function EnglishArticlePage({ params }: Props) {
                 );
               })}
             </article>
-          </div>
 
+            {/* --- 🌟 SHARE BUTTONS SECTION --- */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-10 mt-10 border-t border-blue-100/60">
+              <div className="flex items-center gap-2 text-slate-800 font-bold">
+                <FaShareAlt className="text-blue-500 text-xl" />
+                <span className="text-lg">Share this wisdom:</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <a 
+                  href={whatsappShareUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  aria-label="Share on WhatsApp" 
+                  className="w-12 h-12 flex items-center justify-center rounded-full bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-all duration-300 shadow-sm active:scale-95"
+                >
+                  <FaWhatsapp className="text-2xl" />
+                </a>
+                <a 
+                  href={facebookShareUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  aria-label="Share on Facebook" 
+                  className="w-12 h-12 flex items-center justify-center rounded-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-sm active:scale-95"
+                >
+                  <FaFacebook className="text-2xl" />
+                </a>
+                <a 
+                  href={twitterShareUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  aria-label="Share on Twitter" 
+                  className="w-12 h-12 flex items-center justify-center rounded-full bg-sky-50 text-sky-500 hover:bg-sky-500 hover:text-white transition-all duration-300 shadow-sm active:scale-95"
+                >
+                  <FaTwitter className="text-2xl" />
+                </a>
+              </div>
+            </div>
+
+          </div>
 
           <div className="p-8 md:p-12 bg-slate-50 border-t border-slate-100">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-8 text-center">
@@ -192,7 +270,6 @@ export default async function EnglishArticlePage({ params }: Props) {
           </div>
 
         </main>
-
 
       </div>
     </div>
