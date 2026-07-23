@@ -16,8 +16,8 @@ interface Bhajan {
   slug: string;
   lyrics_hindi: string;
   video_embed_url?: string; 
-  deities: { name_hinglish: string } | null;
-  categories: { name_hinglish: string } | null;
+  deity: { name_hinglish: string } | null; // 🌟 Updated to match the new View structure (deity instead of deities)
+  categories: { name_hinglish: string }[] | null; // 🌟 Updated to match the new View structure (array)
 }
 
 interface Props {
@@ -80,11 +80,11 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
                 <div className="flex items-center gap-1.5 bg-black/20 text-white/70 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm shadow-sm mb-1 md:mb-2.5">
                   <FaMusic size={10} className="text-orange-600" />
                   <span className="text-[10px] font-bold uppercase tracking-[0.2em] truncate max-w-[120px]">
-                    {bhajan.deities?.name_hinglish || 'Bhajan'}
+                    {bhajan.deity?.name_hinglish || 'Bhajan'}
                   </span>
                 </div>
                  <span className="absolute bottom-2 md:bottom-2.5 right-3 md:right-4 text-2xl md:text-3xl font-black text-white/5 uppercase tracking-tighter leading-none font-serif truncate max-w-[80%]">
-                   {bhajan.deities?.name_hinglish || 'BHANJANI'}
+                   {bhajan.deity?.name_hinglish || 'BHANJANI'}
                  </span>
               </div>
             </div>
@@ -107,14 +107,14 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
 
             <div className="mt-auto flex items-center justify-between pt-1">
               <div className="flex flex-wrap gap-2">
-                {bhajan.deities && (
+                {bhajan.deity && (
                   <span className="bg-orange-50 dark:bg-orange-900/10 text-orange-700 dark:text-orange-400 border border-orange-100 dark:border-orange-900/30 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">
-                    {bhajan.deities.name_hinglish}
+                    {bhajan.deity.name_hinglish}
                   </span>
                 )}
-                {bhajan.categories && (
+                {bhajan.categories && bhajan.categories.length > 0 && (
                   <span className="bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 border border-gray-100 dark:border-white/10 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">
-                    {bhajan.categories.name_hinglish}
+                    {bhajan.categories[0].name_hinglish}
                   </span>
                 )}
               </div>
@@ -175,13 +175,14 @@ export default function BhajanList({
     try {
       let fetchedData = null;
 
+      // 🌟 SPEED BOOST: Now utilizing our fast `mv_bhajan_details` Materialized View
       if (categoryId) {
+        // Since category map is a separate table, we join it with the View
         const { data, error } = await supabase
           .from('bhajan_category_map')
           .select(`
-            bhajans (
-              title_hinglish, title_hindi, slug, lyrics_hindi, video_embed_url,
-              deities ( name_hinglish )
+            mv_bhajan_details (
+              title_hinglish, title_hindi, slug, lyrics_hindi, video_embed_url, deity, categories
             )
           `)
           .eq('category_id', categoryId)
@@ -189,19 +190,14 @@ export default function BhajanList({
           .range(from, to);
 
         if (error) throw error;
-        fetchedData = data?.map((item: any) => ({
-          ...item.bhajans,
-          categories: initialBhajans[0]?.categories || null 
-        }));
+        fetchedData = data?.map((item: any) => item.mv_bhajan_details);
 
       } else if (deityId) {
+        // Direct query to the View
         const { data, error } = await supabase
-          .from('bhajans')
-          .select(`
-            title_hinglish, title_hindi, slug, lyrics_hindi, video_embed_url,
-            deities ( name_hinglish ), categories ( name_hinglish )
-          `)
-          .eq('deity_id', deityId)
+          .from('mv_bhajan_details')
+          .select('title_hinglish, title_hindi, slug, lyrics_hindi, video_embed_url, deity, categories')
+          .eq('deity_id', deityId) // Note: ensure deity_id is selected in your Materialized View SQL
           .order('created_at', { ascending: false }) 
           .range(from, to);
           
@@ -209,12 +205,10 @@ export default function BhajanList({
         fetchedData = data;
 
       } else {
+        // Direct query to the View
         const { data, error } = await supabase
-          .from('bhajans')
-          .select(`
-            title_hinglish, title_hindi, slug, lyrics_hindi, video_embed_url,
-            deities ( name_hinglish ), categories ( name_hinglish )
-          `)
+          .from('mv_bhajan_details')
+          .select('title_hinglish, title_hindi, slug, lyrics_hindi, video_embed_url, deity, categories')
           .order('created_at', { ascending: false }) 
           .range(from, to);
           
@@ -223,17 +217,14 @@ export default function BhajanList({
       }
 
       if (fetchedData) {
-        if (fetchedData.length < itemsPerPage) setHasMore(false);
+        // Remove nulls if any (caused by inner joins)
+        const validData = fetchedData.filter(item => item !== null);
 
-        const flattenedData: Bhajan[] = fetchedData.map((item: any) => ({
-          ...item,
-          deities: Array.isArray(item.deities) ? item.deities[0] : item.deities,
-          categories: Array.isArray(item.categories) ? item.categories[0] : item.categories,
-        }));
+        if (validData.length < itemsPerPage) setHasMore(false);
 
         setBhajans((prev) => {
-          const uniqueNewBhajans = flattenedData.filter(
-            (newBhajan) => !prev.some((existingBhajan) => existingBhajan.slug === newBhajan.slug)
+          const uniqueNewBhajans = validData.filter(
+            (newBhajan: any) => !prev.some((existingBhajan) => existingBhajan.slug === newBhajan.slug)
           );
           return [...prev, ...uniqueNewBhajans];
         });
@@ -256,20 +247,20 @@ export default function BhajanList({
       {/* 🌟 List of Bhajans WITH IN-FEED ADS */}
       <div className="flex flex-col gap-5">
         {bhajans.map((bhajan, index) => {
-          // 🌟 SMART LOGIC: हर 4 भजनों के बाद एक Ad (index 3, 7, 11...) दिखाओ
+          // 🌟 SMART LOGIC: Show an Ad after every 4 bhajans
           const showAd = (index + 1) % 4 === 0 && index !== 0;
 
           return (
             <Fragment key={bhajan.slug}>
               
-              {/* असली भजन कार्ड */}
+              {/* Actual Bhajan Card */}
               <BhajanCard 
                 bhajan={bhajan} 
                 index={index} 
                 itemsPerPage={itemsPerPage} 
               />
               
-              {/* जादुई एफिलिएट स्लॉट (Ad) */}
+              {/* Magic Affiliate Slot (Ad) */}
               {showAd && (
                 <ScrollReveal delay={0.1} yOffset={20}>
                   <div className="w-full">

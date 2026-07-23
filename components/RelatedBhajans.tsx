@@ -10,17 +10,16 @@ interface Props {
 export default async function RelatedBhajans({ currentBhajanId, deitySlug }: Props) {
   if (!deitySlug) return null;
 
-  // Fetch 3 related bhajans sharing the exact same deity, excluding the one they are currently reading
+  // 🌟 SPEED BOOST: Fetch 3 related bhajans using the superfast Materialized View
   const { data: relatedBhajans, error } = await supabase
-    .from('bhajans')
+    .from('mv_bhajan_details') // 👈 Switched from 'bhajans' to 'mv_bhajan_details'
     .select(`
       id,
       title_hindi,
       title_hinglish,
-      slug,
-      deities!inner(slug)
+      slug
     `)
-    .eq('deities.slug', deitySlug)
+    .eq('deity->>slug', deitySlug) // 👈 Smart filtering inside the JSONB object
     .neq('id', currentBhajanId)
     .order('created_at', { ascending: false })
     .limit(3);

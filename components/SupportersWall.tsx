@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, Variants } from 'framer-motion';
 import { FaHeart, FaOm, FaCrown, FaStar, FaArrowRight } from 'react-icons/fa6';
+import { supabase } from '@/utils/supabase'; // 🌟 SPEED BOOST: Directly using Supabase client
 
 const HOMEPAGE_SHOWCASE_LIMIT = 8; // 🌟 fixed forever — homepage never grows past this
 
@@ -29,23 +30,42 @@ type Supporter = {
 
 export default function SupportersWall() {
   const [supporters, setSupporters] = useState<Supporter[]>([]);
-  const [total, setTotal] = useState(0); // 🌟 now includes anonymous — everyone who paid
+  const [total, setTotal] = useState(0); 
 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(`/api/supporters/public?limit=${HOMEPAGE_SHOWCASE_LIMIT}&offset=0`);
-        const data = await res.json();
-        setSupporters(data.supporters ?? []);
-        setTotal(data.total ?? 0);
+        // 🌟 SPEED BOOST: Parallel fetching from our new Materialized View
+        const [
+          { data: supportersData, error: suppError },
+          { count, error: countError }
+        ] = await Promise.all([
+          // 1. Fetch top 8 supporters directly
+          supabase
+            .from('mv_active_supporters')
+            .select('*')
+            .limit(HOMEPAGE_SHOWCASE_LIMIT),
+          
+          // 2. Fetch exact total count instantly (COUNT on MV is blazing fast)
+          supabase
+            .from('mv_active_supporters')
+            .select('*', { count: 'exact', head: true })
+        ]);
+
+        if (suppError) throw suppError;
+        if (countError) throw countError;
+
+        setSupporters(supportersData ?? []);
+        setTotal(count ?? 0);
       } catch (err) {
         console.error("Failed to load supporters wall", err);
       } finally {
         setLoading(false);
       }
     };
+    
     load();
   }, []);
 
@@ -85,7 +105,6 @@ export default function SupportersWall() {
             भक्त <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">आभार पटल</span>
           </h2>
 
-          {/* 🌟 total count is the thing that grows, never the grid itself */}
           {total > 0 && (
             <p className="text-orange-700 dark:text-orange-400 text-sm md:text-base font-bold font-hindi mb-2">
               अब तक {total.toLocaleString('hi-IN')} भक्तों ने सहयोग दिया 🙏
@@ -156,7 +175,6 @@ export default function SupportersWall() {
           </div>
         )}
 
-        {/* 🌟 Shows only when there are more supporters than the homepage teaser holds */}
         {total > HOMEPAGE_SHOWCASE_LIMIT && (
           <div className="text-center mb-10 md:mb-12">
             <Link

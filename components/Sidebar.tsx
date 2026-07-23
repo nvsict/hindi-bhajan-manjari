@@ -20,23 +20,34 @@ export default async function Sidebar({
   currentBhajanSlug 
 }: SidebarProps = {}) {
 
-  // 1. Build the Dynamic Queries
+  // 1. Build the Dynamic Queries using the superfast Materialized View
   let trendingQuery = supabase
-    .from('bhajans')
+    .from('mv_bhajan_details') // 👈 Switched from 'bhajans' to 'mv_bhajan_details'
     .select('title_hindi, title_hinglish, slug, view_count')
     .order('view_count', { ascending: false })
     .limit(5);
 
   let latestQuery = supabase
-    .from('bhajans')
+    .from('mv_bhajan_details') // 👈 Switched from 'bhajans' to 'mv_bhajan_details'
     .select('title_hindi, title_hinglish, slug')
     .order('created_at', { ascending: false })
     .limit(4);
 
-  // 2. Apply Context Filters
+  // 2. Apply Context Filters (Using JSONB filtering if needed)
   if (filterColumn && filterValue) {
-    trendingQuery = trendingQuery.eq(filterColumn, filterValue);
-    latestQuery = latestQuery.eq(filterColumn, filterValue);
+    if (filterColumn === 'deity_id') {
+      trendingQuery = trendingQuery.eq('deity_id', filterValue);
+      latestQuery = latestQuery.eq('deity_id', filterValue);
+    } else if (filterColumn === 'category_id' || filterColumn === 'category_slug') {
+      // For category filters, it's often safer to query the original mapping table if 
+      // array filtering in JSONB gets too complex for the API. 
+      // Assuming you pass deity_id for sidebars most often, we will stick to basic equality.
+      trendingQuery = trendingQuery.eq(filterColumn, filterValue);
+      latestQuery = latestQuery.eq(filterColumn, filterValue);
+    } else {
+      trendingQuery = trendingQuery.eq(filterColumn, filterValue);
+      latestQuery = latestQuery.eq(filterColumn, filterValue);
+    }
   }
 
   // 3. Exclude the current page
@@ -55,7 +66,7 @@ export default async function Sidebar({
     latestQuery,
     supabase
       .from('articles')
-      .select('title, excerpt, slug')
+      .select('title_hindi, meta_description, slug') // 🌟 Assuming you use title_hindi for Sanatan Gyan
       .eq('is_published', true)
       .order('published_at', { ascending: false })
       .limit(1)
@@ -70,8 +81,7 @@ export default async function Sidebar({
   const specificDeityId = filterColumn === 'deity_id' ? filterValue?.toString() : undefined;
 
   return (
-    // 🌟 FIX: Removed `lg:sticky lg:top-28 h-fit`. 
-    // Added `flex flex-col gap-6 lg:gap-8` for smooth natural scrolling and perfect spacing!
+    // 🌟 Perfect spacing for smooth natural scrolling
     <aside className="w-full lg:w-[340px] shrink-0 flex flex-col gap-6 lg:gap-8 pb-10">
       
       {/* --- SECTION 1: TOP TRENDING --- */}
@@ -160,10 +170,10 @@ export default async function Sidebar({
           </h3>
           <Link href={`/gyan/${latestArticle.slug}`} className="group block">
             <h4 className="text-xl font-black text-gray-900 dark:text-orange-50 leading-tight mb-2 group-hover:text-orange-700 dark:group-hover:text-orange-400 transition-colors">
-              {latestArticle.title}
+              {latestArticle.title_hindi || 'Spiritual Articles'}
             </h4>
             <p className="text-sm text-gray-600 dark:text-gray-400 font-medium line-clamp-3 mb-4 leading-relaxed">
-              {latestArticle.excerpt || "Dive deep into the spiritual meanings and stories behind our sacred texts..."}
+              {latestArticle.meta_description || "Dive deep into the spiritual meanings and stories behind our sacred texts..."}
             </p>
             <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-orange-600 dark:text-orange-500 group-hover:translate-x-1 transition-transform">
               Read Article <FaChevronRight size={10} />

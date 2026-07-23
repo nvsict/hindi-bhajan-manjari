@@ -8,9 +8,9 @@ interface Props {
 }
 
 export default async function RelatedContent({ deityId, currentSlug }: Props) {
-  // 1. Fetch 2 Related Bhajans (excluding the current one)
+  // 🌟 SPEED BOOST: Fetch 2 Related Bhajans using the Materialized View instead of the heavy table
   const { data: bhajans } = await supabase
-    .from('bhajans')
+    .from('mv_bhajan_details') // 👈 Switched from 'bhajans' to 'mv_bhajan_details'
     .select('title_hindi, title_hinglish, slug')
     .eq('deity_id', deityId)
     .neq('slug', currentSlug)

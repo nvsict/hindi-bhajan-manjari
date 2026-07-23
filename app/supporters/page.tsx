@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { FaOm, FaStar, FaCrown } from 'react-icons/fa6';
+import { supabase } from '@/utils/supabase'; // 🌟 SPEED BOOST: Directly using Supabase client
 
 const PAGE_SIZE = 12;
 
@@ -23,25 +24,58 @@ export default function AllSupportersPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const loadPage = useCallback(async (offset: number) => {
-    const res = await fetch(`/api/supporters/public?limit=${PAGE_SIZE}&offset=${offset}`);
-    return res.json();
+  // 🌟 SPEED BOOST: Fetching directly from our Materialized View with pagination support
+  const fetchSupporters = useCallback(async (fromRange: number) => {
+    const toRange = fromRange + PAGE_SIZE - 1;
+
+    try {
+      const [
+        { data: supportersData, error: suppError },
+        { count, error: countError }
+      ] = await Promise.all([
+        supabase
+          .from('mv_active_supporters')
+          .select('*')
+          .range(fromRange, toRange),
+        
+        supabase
+          .from('mv_active_supporters')
+          .select('*', { count: 'exact', head: true })
+      ]);
+
+      if (suppError) throw suppError;
+      if (countError) throw countError;
+
+      const fetchedList = supportersData ?? [];
+      const totalCount = count ?? 0;
+
+      return {
+        supporters: fetchedList,
+        total: totalCount,
+        hasMore: fromRange + fetchedList.length < totalCount
+      };
+    } catch (err) {
+      console.error("Failed to load all supporters", err);
+      return { supporters: [], total: 0, hasMore: false };
+    }
   }, []);
 
   useEffect(() => {
-    loadPage(0).then((data) => {
-      setSupporters(data.supporters ?? []);
-      setTotal(data.total ?? 0);
-      setHasMore(data.hasMore ?? false);
+    fetchSupporters(0).then((data) => {
+      setSupporters(data.supporters);
+      setTotal(data.total);
+      setHasMore(data.hasMore);
       setLoading(false);
     });
-  }, [loadPage]);
+  }, [fetchSupporters]);
 
   const handleLoadMore = async () => {
     setLoadingMore(true);
-    const data = await loadPage(supporters.length);
-    setSupporters(prev => [...prev, ...(data.supporters ?? [])]);
-    setHasMore(data.hasMore ?? false);
+    const nextOffset = supporters.length;
+    const data = await fetchSupporters(nextOffset);
+    
+    setSupporters(prev => [...prev, ...data.supporters]);
+    setHasMore(data.hasMore);
     setLoadingMore(false);
   };
 
