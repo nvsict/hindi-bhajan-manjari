@@ -92,28 +92,31 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     notFound();
   }
 
-  // Fetching Bhajans
+  // Fetching Bhajans using the superfast Materialized View approach for categories
   const { data: rawBhajans, count, error: fetchError } = await supabase
-    .from('bhajans')
+    .from('bhajan_category_map')
     .select(`
-      id,
-      title_hinglish, 
-      title_hindi, 
-      slug, 
-      lyrics_hindi,
-      video_embed_url,
-      created_at,
-      deities ( name_hinglish ),
-      bhajan_category_map!inner ( category_id )
+      mv_bhajan_details (
+        id,
+        title_hinglish, 
+        title_hindi, 
+        slug, 
+        lyrics_hindi,
+        video_embed_url,
+        created_at,
+        deity,
+        categories
+      )
     `, { count: 'exact' })
-    .eq('bhajan_category_map.category_id', category.id)
-    .order('created_at', { ascending: false }) 
+    .eq('category_id', category.id)
+    .order('id', { ascending: false }) 
     .range(from, to);
 
   if (fetchError) {
     console.error("🔥 SUPABASE ERROR on Category Page:", fetchError);
   }
 
+  // 🌟 Type definition perfectly matching BhajanList expectations (deity & categories array)
   interface BhajanData {
     id: string;
     title_hinglish: string;
@@ -121,20 +124,23 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     slug: string;
     lyrics_hindi: string;
     video_embed_url?: string;
-    deities: { name_hinglish: string } | null;
-    categories: { name_hinglish: string } | null;
+    deity: { name_hinglish: string } | null;
+    categories: { name_hinglish: string }[] | null;
   }
 
-  const initialBhajans = (rawBhajans?.map((b: any) => ({
-    id: b.id,
-    title_hinglish: b.title_hinglish,
-    title_hindi: b.title_hindi,
-    slug: b.slug,
-    lyrics_hindi: b.lyrics_hindi,
-    video_embed_url: b.video_embed_url, 
-    deities: Array.isArray(b.deities) ? b.deities[0] : b.deities,
-    categories: { name_hinglish: category.name_hinglish } 
-  })) as BhajanData[]) || [];
+  const initialBhajans = (rawBhajans
+    ?.map((item: any) => item.mv_bhajan_details)
+    .filter(Boolean)
+    .map((b: any) => ({
+      id: b.id,
+      title_hinglish: b.title_hinglish,
+      title_hindi: b.title_hindi,
+      slug: b.slug,
+      lyrics_hindi: b.lyrics_hindi,
+      video_embed_url: b.video_embed_url, 
+      deity: Array.isArray(b.deity) ? b.deity[0] : b.deity,
+      categories: [{ name_hinglish: category.name_hinglish }] 
+    })) as BhajanData[]) || [];
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
   const pageUrl = currentPage > 1 ? `${baseUrl}/category/${slug}?page=${currentPage}` : `${baseUrl}/category/${slug}`;
@@ -219,7 +225,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
               <div className="absolute -top-20 -right-20 w-64 h-64 bg-orange-400 rounded-full opacity-10 blur-3xl pointer-events-none"></div>
             </div>
 
-            {/* 🌟 2. BHAJAN LIST (Untouched as requested) */}
+            {/* 🌟 2. BHAJAN LIST */}
             {initialBhajans.length > 0 ? (
               <BhajanList 
                 initialBhajans={initialBhajans} 
@@ -241,13 +247,13 @@ export default async function CategoryPage({ params, searchParams }: Props) {
               </div>
             )}
 
-            {/* 🌟 3. COMMUNITY CONTRIBUTION BANNER (Great for AdSense 'Value' signals) */}
+            {/* 🌟 3. COMMUNITY CONTRIBUTION BANNER */}
             {initialBhajans.length > 0 && (
               <div className="mt-10 bg-gradient-to-r from-orange-600 to-orange-500 rounded-[2rem] p-8 md:p-10 text-white shadow-xl shadow-orange-900/10 flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
                 <div>
                   <h3 className="text-2xl font-black mb-2 tracking-tight">कोई {category.name_hindi} भजन छूट गया क्या?</h3>
                   <p className="text-orange-100 font-medium">
-                    हमारा उद्देश्य इस डिजिटल लाइब्रेरी को सबसे बड़ा और शुद्ध बनाना है। अगर आपका पसंदीदा पाठ यहाँ नहीं है, तो कृपया हमें भेजें।
+                    हमारा उद्देश्य इस डिजिटल लाइब्रेरी को सबसे बड़ा और शुद्ध बनाना है। अगर आपका पसंदीदा पाठ यहाँ नहीं है, तो कृपया हमें भेजें।
                   </p>
                 </div>
                 <Link 
