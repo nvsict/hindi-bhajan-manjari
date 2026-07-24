@@ -10,6 +10,7 @@ const BACKGROUND_IMAGES = [
   '/images/pexels-photo-9277866.avif',
   '/images/pexels-photo-9277866t.avif',
   '/images/debabrata-patra-QBdIEE_eU7g-unsplash.avif',
+  'images/ankit-dandhare-i-SZ80CcBSc-unsplash.avif',
 
 ];
 
