@@ -42,28 +42,15 @@ export default function CommunityWall({ bhajanId }: Props) {
   useEffect(() => {
     fetchCovers();
 
-    // The Bulletproof Fallback for newly published covers
+    // The Bulletproof Fallback for newly published covers (Local Event)
     const handleNewCover = () => {
       fetchCovers();
     };
     
     window.addEventListener('onCoverPublished', handleNewCover);
 
-    // Realtime Subscription
-    const subscription = supabase
-      .channel(`covers_${bhajanId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'bhajan_covers', filter: `bhajan_id=eq.${bhajanId}` },
-        (payload) => {
-          setCovers((current) => [payload.new as Cover, ...current]);
-        }
-      )
-      .subscribe();
-
     return () => {
       window.removeEventListener('onCoverPublished', handleNewCover);
-      supabase.removeChannel(subscription);
     };
   }, [bhajanId]);
 
@@ -164,7 +151,7 @@ export default function CommunityWall({ bhajanId }: Props) {
             return (
               <motion.div
                 key={cover.id}
-                id={`cover-${cover.id}`} // 👈 ID added for direct hash linking
+                id={`cover-${cover.id}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9 }}
@@ -212,7 +199,7 @@ export default function CommunityWall({ bhajanId }: Props) {
                 <div className="w-full bg-orange-50/50 dark:bg-white/5 rounded-full px-2 py-1 mt-1 border border-orange-100 dark:border-white/5">
                   <audio 
                     controls 
-                    controlsList="noplaybackrate" // 👈 Removed "nodownload" so native download option also appears
+                    controlsList="noplaybackrate"
                     className="w-full h-10 outline-none" 
                     src={cover.audio_url} 
                   >
