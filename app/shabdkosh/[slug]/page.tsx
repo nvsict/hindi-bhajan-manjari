@@ -9,8 +9,9 @@ import { GiLotusFlower } from 'react-icons/gi';
 // 🌟 IMPORT THE NEW CLIENT COMPONENT
 import WordActionButtons from '@/components/WordActionButtons';
 
-// Cache for 1 hour
-export const revalidate = 3600;
+// 🌟 FIX 1: Bypass ALL Caching so new words appear instantly
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -24,13 +25,13 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanj
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   
-  // 🚀 THE FIX: Decode the URL parameter so Hindi matches the database
+  // 🌟 FIX 2: Decode the URL parameter so Hindi matches the database perfectly
   const decodedSlug = decodeURIComponent(slug);
   
   const { data: word } = await supabase
     .from('dictionary')
     .select('*')
-    .eq('slug', decodedSlug) // Use decoded slug here
+    .eq('slug', decodedSlug) 
     .single();
 
   if (!word) return { title: 'Word Not Found' };
@@ -67,14 +68,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ShabdkoshWordPage({ params }: Props) {
   const { slug } = await params;
 
-  // 🚀 THE FIX: Decode the URL parameter so Hindi matches the database
+  // 🌟 FIX 2: Decode the URL parameter here as well
   const decodedSlug = decodeURIComponent(slug);
 
-  // Fetch the specific word
   const { data: word, error } = await supabase
     .from('dictionary')
     .select('*')
-    .eq('slug', decodedSlug) // Use decoded slug here
+    .eq('slug', decodedSlug) 
     .single();
 
   if (error || !word) {
@@ -85,12 +85,12 @@ export default async function ShabdkoshWordPage({ params }: Props) {
   const { data: relatedWords } = await supabase
     .from('dictionary')
     .select('word_hi, word_en, slug')
-    .neq('slug', decodedSlug) // Use decoded slug here too
+    .neq('slug', decodedSlug) 
     .limit(3);
 
   const breadcrumbItems = [
     { label: 'Sanatan Shabdkosh', href: '/shabdkosh' },
-    { label: word.word_en }
+    { label: word.word_en || word.word_hi }
   ];
 
   const pageUrl = `${siteUrl}/shabdkosh/${word.slug}`;
@@ -103,7 +103,7 @@ export default async function ShabdkoshWordPage({ params }: Props) {
     "@type": "DefinedTerm",
     "@id": pageUrl,
     "name": word.word_hi,
-    "alternateName": word.word_en,
+    "alternateName": word.word_en || "",
     "description": word.meaning_hi,
     "inLanguage": "hi",
     "inDefinedTermSet": {
@@ -157,15 +157,17 @@ export default async function ShabdkoshWordPage({ params }: Props) {
                   <h1 className="text-5xl md:text-7xl font-black text-gray-900 font-hindi tracking-tighter mb-2">
                     {word.word_hi}
                   </h1>
-                  <div className="flex items-center justify-center md:justify-start gap-3 text-gray-400">
-                    <span className="text-xl md:text-2xl font-bold uppercase tracking-[0.2em]">{word.word_en}</span>
-                  </div>
+                  {word.word_en && (
+                    <div className="flex items-center justify-center md:justify-start gap-3 text-gray-400">
+                      <span className="text-xl md:text-2xl font-bold uppercase tracking-[0.2em]">{word.word_en}</span>
+                    </div>
+                  )}
                 </div>
                 
-                {/* 🌟 NEW: Interactive Client Component for TTS & Share */}
+                {/* Interactive Client Component for TTS & Share */}
                 <WordActionButtons 
                   wordHi={word.word_hi} 
-                  wordEn={word.word_en} 
+                  wordEn={word.word_en || ""} 
                   meaning={word.meaning_hi} 
                 />
               </div>
@@ -208,7 +210,7 @@ export default async function ShabdkoshWordPage({ params }: Props) {
           </div>
         </main>
 
-        {/* --- 🌟 NEW: CONTEXTUAL SEARCH IN BHAJANS --- */}
+        {/* --- CONTEXTUAL SEARCH IN BHAJANS --- */}
         <div className="mt-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-[2rem] p-8 md:p-10 text-white shadow-xl shadow-orange-500/20 flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
             <h3 className="text-2xl font-black font-hindi mb-2">"{word.word_hi}" वाले भजन खोजें</h3>
@@ -237,7 +239,9 @@ export default async function ShabdkoshWordPage({ params }: Props) {
                 >
                   <div>
                     <h4 className="text-xl font-black font-hindi text-gray-900 group-hover:text-orange-600 transition-colors">{rw.word_hi}</h4>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">{rw.word_en}</p>
+                    {rw.word_en && (
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">{rw.word_en}</p>
+                    )}
                   </div>
                   <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-colors">
                     &rarr;

@@ -6,11 +6,11 @@ import { HiArrowRight } from 'react-icons/hi';
 import Link from 'next/link';
 
 interface DictionaryWord {
-  id: number;
+  id: string | number;
   word_hi: string;
-  word_en: string;
+  word_en: string | null;
   meaning_hi: string;
-  meaning_en?: string;
+  meaning_en?: string | null;
   slug?: string;
 }
 
@@ -18,7 +18,6 @@ export default function ShabdkoshClient({ initialWords }: { initialWords: Dictio
   const [searchTerm, setSearchTerm] = useState('');
   const [showScrollButton, setShowScrollButton] = useState(false);
 
-  // 🌟 1. SCROLL TO TOP LOGIC
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 400) {
@@ -27,7 +26,6 @@ export default function ShabdkoshClient({ initialWords }: { initialWords: Dictio
         setShowScrollButton(false);
       }
     };
-
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -37,22 +35,30 @@ export default function ShabdkoshClient({ initialWords }: { initialWords: Dictio
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 🌟 2. SMART FILTERING
+  // 🌟 FIX: Null-Safe Smart Filtering
   const filteredWords = useMemo(() => {
     if (!searchTerm) return initialWords;
     const lowerSearch = searchTerm.toLowerCase();
-    return initialWords.filter(word => 
-      word.word_hi.includes(lowerSearch) || 
-      word.word_en.toLowerCase().includes(lowerSearch) ||
-      word.meaning_hi.includes(lowerSearch)
-    );
+    
+    return initialWords.filter(word => {
+      const safeWordHi = word.word_hi || '';
+      const safeWordEn = word.word_en || '';
+      const safeMeaningHi = word.meaning_hi || '';
+
+      return safeWordHi.includes(lowerSearch) || 
+             safeWordEn.toLowerCase().includes(lowerSearch) ||
+             safeMeaningHi.includes(lowerSearch);
+    });
   }, [searchTerm, initialWords]);
 
-  // 🌟 3. ALPHABETICAL GROUPING (A-Z)
+  // 🌟 FIX: Null-Safe Alphabetical Grouping
   const groupedWords = useMemo(() => {
     const groups: Record<string, DictionaryWord[]> = {};
+    
     filteredWords.forEach(word => {
-      const firstLetter = word.word_en.charAt(0).toUpperCase();
+      // If word_en is null, it goes into the '#' category instead of crashing
+      const safeWordEn = word.word_en || '';
+      const firstLetter = safeWordEn.charAt(0).toUpperCase();
       const letter = /^[A-Z]$/.test(firstLetter) ? firstLetter : '#';
       
       if (!groups[letter]) groups[letter] = [];
@@ -113,6 +119,16 @@ export default function ShabdkoshClient({ initialWords }: { initialWords: Dictio
                 </button>
               );
             })}
+            
+            {/* Show '#' button if there are words without English translation */}
+            {!!groupedWords['#'] && (
+              <button
+                onClick={() => scrollToLetter('#')}
+                className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-lg text-sm font-bold bg-orange-50 text-orange-700 hover:bg-orange-500 hover:text-white cursor-pointer shadow-sm border border-orange-100 transition-all"
+              >
+                #
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -139,10 +155,12 @@ export default function ShabdkoshClient({ initialWords }: { initialWords: Dictio
                       <h2 className="text-2xl md:text-3xl font-black text-orange-600 font-hindi tracking-tight">
                         {word.word_hi}
                       </h2>
-                      <div className="flex items-center gap-2 text-gray-500 mb-1">
-                        <span className="text-sm font-bold uppercase tracking-widest">{word.word_en}</span>
-                        <FaVolumeUp className="text-gray-300 text-xs" />
-                      </div>
+                      {word.word_en && (
+                        <div className="flex items-center gap-2 text-gray-500 mb-1">
+                          <span className="text-sm font-bold uppercase tracking-widest">{word.word_en}</span>
+                          <FaVolumeUp className="text-gray-300 text-xs" />
+                        </div>
+                      )}
                     </dt>
 
                     <dd className="space-y-3">
@@ -181,7 +199,6 @@ export default function ShabdkoshClient({ initialWords }: { initialWords: Dictio
         )}
       </div>
 
-      {/* 🌟 SMART FLOATING BACK TO TOP BUTTON */}
       <button
         onClick={scrollToTop}
         className={`fixed bottom-8 right-6 md:right-10 z-[60] w-14 h-14 bg-orange-600 text-white rounded-full shadow-[0_8px_30px_rgba(234,88,12,0.4)] flex items-center justify-center transition-all duration-500 hover:bg-orange-700 hover:scale-110 active:scale-90 group ${
