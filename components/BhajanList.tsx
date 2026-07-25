@@ -16,16 +16,16 @@ interface Bhajan {
   slug: string;
   lyrics_hindi: string;
   video_embed_url?: string; 
-  deity: { name_hinglish: string } | null; // 🌟 Updated to match the new View structure (deity instead of deities)
-  categories: { name_hinglish: string }[] | null; // 🌟 Updated to match the new View structure (array)
+  deity: { name_hinglish: string } | null;
+  categories: { name_hinglish: string }[] | null; 
 }
 
 interface Props {
   initialBhajans: Bhajan[];
-  categoryId?: string | number; // Category ID (If on Category Page)
+  categoryId?: string | number; 
   categorySlug?: string;
-  deityId?: string | number;    // Deity ID (If on Deity Page)
-  deitySlug?: string;           // Deity Slug
+  deityId?: string | number;    
+  deitySlug?: string;           
   currentPage?: number;
   totalItems?: number;
   itemsPerPage?: number;
@@ -44,6 +44,13 @@ const getYouTubeId = (url?: string) => {
 const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, index: number, itemsPerPage: number }) => {
   const ytId = getYouTubeId(bhajan.video_embed_url);
   const thumbnailUrl = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
+
+  // 🌟 SMART LYRICS PREVIEW EXTRACTOR
+  const getBriefLyrics = (lyrics?: string) => {
+    if (!lyrics) return "श्री हरि स्मरण... संपूर्ण बोल अंदर पढ़ें";
+    const lines = lyrics.split('\n').map(l => l.trim()).filter(Boolean);
+    return lines.length > 0 ? lines[0] : "संपूर्ण बोल अंदर पढ़ें";
+  };
 
   return (
     <ScrollReveal delay={(index % itemsPerPage) * 0.05} yOffset={30}>
@@ -102,7 +109,7 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
             </div>
             
             <p className="text-sm text-gray-600 dark:text-gray-300 italic font-hindi line-clamp-1 border-l-2 border-orange-200 dark:border-orange-900/50 pl-3 leading-relaxed mb-4">
-              "{bhajan.lyrics_hindi?.split('\n')[0] || 'View full lyrics inside'}"...
+              "{getBriefLyrics(bhajan.lyrics_hindi)}"
             </p>
 
             <div className="mt-auto flex items-center justify-between pt-1">
@@ -175,29 +182,25 @@ export default function BhajanList({
     try {
       let fetchedData = null;
 
-      // 🌟 SPEED BOOST: Now utilizing our fast `mv_bhajan_details` Materialized View
       if (categoryId) {
-        // Since category map is a separate table, we join it with the View
+        // 🌟 FIX: JSON.stringify added here to prevent "invalid input syntax for type json" crash
         const { data, error } = await supabase
-          .from('bhajan_category_map')
+          .from('mv_bhajan_details')
           .select(`
-            mv_bhajan_details (
-              title_hinglish, title_hindi, slug, lyrics_hindi, video_embed_url, deity, categories
-            )
+            title_hinglish, title_hindi, slug, lyrics_hindi, video_embed_url, deity, categories
           `)
-          .eq('category_id', categoryId)
-          .order('id', { ascending: false }) 
+          .contains('categories', JSON.stringify([{ id: categoryId }])) 
+          .order('created_at', { ascending: false }) 
           .range(from, to);
 
         if (error) throw error;
-        fetchedData = data?.map((item: any) => item.mv_bhajan_details);
+        fetchedData = data;
 
       } else if (deityId) {
-        // Direct query to the View
         const { data, error } = await supabase
           .from('mv_bhajan_details')
           .select('title_hinglish, title_hindi, slug, lyrics_hindi, video_embed_url, deity, categories')
-          .eq('deity_id', deityId) // Note: ensure deity_id is selected in your Materialized View SQL
+          .eq('deity_id', deityId) 
           .order('created_at', { ascending: false }) 
           .range(from, to);
           
@@ -205,7 +208,6 @@ export default function BhajanList({
         fetchedData = data;
 
       } else {
-        // Direct query to the View
         const { data, error } = await supabase
           .from('mv_bhajan_details')
           .select('title_hinglish, title_hindi, slug, lyrics_hindi, video_embed_url, deity, categories')
@@ -217,7 +219,6 @@ export default function BhajanList({
       }
 
       if (fetchedData) {
-        // Remove nulls if any (caused by inner joins)
         const validData = fetchedData.filter(item => item !== null);
 
         if (validData.length < itemsPerPage) setHasMore(false);
@@ -244,23 +245,19 @@ export default function BhajanList({
   return (
     <div className="flex flex-col gap-8 w-full">
       
-      {/* 🌟 List of Bhajans WITH IN-FEED ADS */}
       <div className="flex flex-col gap-5">
         {bhajans.map((bhajan, index) => {
-          // 🌟 SMART LOGIC: Show an Ad after every 4 bhajans
           const showAd = (index + 1) % 4 === 0 && index !== 0;
 
           return (
             <Fragment key={bhajan.slug}>
               
-              {/* Actual Bhajan Card */}
               <BhajanCard 
                 bhajan={bhajan} 
                 index={index} 
                 itemsPerPage={itemsPerPage} 
               />
               
-              {/* Magic Affiliate Slot (Ad) */}
               {showAd && (
                 <ScrollReveal delay={0.1} yOffset={20}>
                   <div className="w-full">
@@ -277,7 +274,6 @@ export default function BhajanList({
         })}
       </div>
 
-      {/* SEO Pagination / Load More UI Below... */}
       {isSeoPaginated ? (
         <ScrollReveal yOffset={20}>
           <div className="flex items-center justify-between pt-8 border-t border-gray-100 dark:border-white/10 mt-4">

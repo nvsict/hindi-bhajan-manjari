@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { FaSearch, FaVolumeUp, FaBookOpen, FaArrowUp } from 'react-icons/fa';
 import { HiArrowRight } from 'react-icons/hi';
 import Link from 'next/link';

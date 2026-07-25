@@ -2,8 +2,8 @@ import { supabase } from '@/utils/supabase';
 import { Metadata } from 'next';
 import ShabdkoshClient from './ShabdkoshClient';
 
-// Cache for 1 hour
-export const revalidate = 3600;
+// 🌟 FIX: Cache set to 0 so you can see live dictionary updates instantly!
+export const revalidate = 0;
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
 
@@ -23,6 +23,10 @@ export default async function ShabdkoshPage() {
     .from('dictionary')
     .select('id, word_hi, word_en, meaning_hi, meaning_en, slug')
     .order('word_en', { ascending: true }); // Order by English alphabet for A-Z index
+
+  if (error) {
+    console.error("Error fetching dictionary words:", error);
+  }
 
   const dictionaryWords = words || [];
 

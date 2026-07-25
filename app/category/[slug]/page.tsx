@@ -92,31 +92,28 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     notFound();
   }
 
-  // Fetching Bhajans using the superfast Materialized View approach for categories
+  // 🌟 SPEED BOOST & FIX: Fetching Bhajans directly from the View using JSONB contains
   const { data: rawBhajans, count, error: fetchError } = await supabase
-    .from('bhajan_category_map')
+    .from('mv_bhajan_details')
     .select(`
-      mv_bhajan_details (
-        id,
-        title_hinglish, 
-        title_hindi, 
-        slug, 
-        lyrics_hindi,
-        video_embed_url,
-        created_at,
-        deity,
-        categories
-      )
+      id,
+      title_hinglish, 
+      title_hindi, 
+      slug, 
+      lyrics_hindi,
+      video_embed_url,
+      created_at,
+      deity,
+      categories
     `, { count: 'exact' })
-    .eq('category_id', category.id)
-    .order('id', { ascending: false }) 
+    .contains('categories', JSON.stringify([{ id: category.id }])) // 🌟 MAGIC JSON FILTER
+    .order('created_at', { ascending: false }) 
     .range(from, to);
 
   if (fetchError) {
     console.error("🔥 SUPABASE ERROR on Category Page:", fetchError);
   }
 
-  // 🌟 Type definition perfectly matching BhajanList expectations (deity & categories array)
   interface BhajanData {
     id: string;
     title_hinglish: string;
@@ -129,8 +126,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   }
 
   const initialBhajans = (rawBhajans
-    ?.map((item: any) => item.mv_bhajan_details)
-    .filter(Boolean)
+    ?.filter(Boolean)
     .map((b: any) => ({
       id: b.id,
       title_hinglish: b.title_hinglish,

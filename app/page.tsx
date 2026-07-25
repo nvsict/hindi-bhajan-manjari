@@ -126,19 +126,20 @@ async function LatestGyanSection() {
 }
 
 // ==========================================
-// LATEST BHAJANS
+// 🌟 LATEST BHAJANS (Using superfast Materialized View)
 // ==========================================
 async function LatestBhajansSection() {
+  // 🌟 SPEED BOOST: Directly using the View without any joins or slow API fetch
   const { data: rawBhajans, error } = await supabase
-    .from('bhajans')
+    .from('mv_bhajan_details')
     .select(`
       title_hinglish, 
       title_hindi, 
       slug, 
       lyrics_hindi,
       video_embed_url,
-      deities ( name_hinglish ), 
-      categories ( name_hinglish )
+      deity, 
+      categories
     `)
     .order('created_at', { ascending: false })
     .range(0, 9);
@@ -152,10 +153,10 @@ async function LatestBhajansSection() {
     );
   }
 
+  // 🌟 No need to transform arrays, our view already formats `deity` and `categories` perfectly
   const initialBhajans = (rawBhajans || []).map((bhajan: any) => ({
     ...bhajan,
-    deities: Array.isArray(bhajan.deities) ? bhajan.deities[0] : bhajan.deities,
-    categories: Array.isArray(bhajan.categories) ? bhajan.categories[0] : bhajan.categories,
+    deity: Array.isArray(bhajan.deity) ? bhajan.deity[0] : bhajan.deity,
   }));
 
   return <BhajanList initialBhajans={initialBhajans} />;
