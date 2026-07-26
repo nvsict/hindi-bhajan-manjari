@@ -108,9 +108,9 @@ export default function Footer() {
             <ul className="space-y-4 text-sm">
               <li><FooterLink href="/category/aarti">सम्पूर्ण आरती संग्रह</FooterLink></li>
               <li><FooterLink href="/category/chalisa">श्री चालीसा पाठ</FooterLink></li>
-              <li><FooterLink href="/category/mata-ke-bhajan">नवरात्रि स्पेशल</FooterLink></li>
+              <li><FooterLink href="/category/navratri-special">नवरात्रि स्पेशल</FooterLink></li>
               <li><FooterLink href="/category/stotram">दिव्य स्तोत्रम</FooterLink></li>
-              <li><FooterLink href="/deity/shri-krishna">राधा-कृष्ण रसिया</FooterLink></li>
+              <li><FooterLink href="/deity/shri-radha-krishna">राधा-कृष्ण भजन</FooterLink></li>
             </ul>
           </div>
 
