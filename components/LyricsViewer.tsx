@@ -11,7 +11,7 @@ import { supabase } from '@/utils/supabase';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import MagneticButton from '@/components/MagneticButton'; 
-
+import SaveToSangrahButton from '@/components/SaveToSangrahButton';
 import PushPrompt from './PushPrompt';
 
 interface LyricsViewerProps {
@@ -118,7 +118,6 @@ export default function LyricsViewer({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeScript, setActiveScript] = useState<string>('devanagari');
   
-  const [isFavorite, setIsFavorite] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [wakeLockActive, setWakeLockActive] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -246,7 +245,6 @@ useEffect(() => {
 
   const handleDoubleTap = () => {
     triggerHaptic();
-    if (!isFavorite) toggleFavorite(false); 
     setShowBigHeart(true);
     setTimeout(() => setShowBigHeart(false), 1000); 
   };
@@ -270,10 +268,8 @@ useEffect(() => {
     }
   };
 
-  useEffect(() => {
+ useEffect(() => {
     setFontSize(window.innerWidth < 768 ? 17 : 22);
-    const savedFavorites = JSON.parse(localStorage.getItem('bhajan_favorites') || '[]');
-    if (savedFavorites.some((fav: any) => fav.slug === slug)) setIsFavorite(true);
     
     const savedFont = localStorage.getItem('preferred_lyrics_font');
     if (savedFont) {
@@ -291,18 +287,6 @@ useEffect(() => {
     loadFontDynamically(fontClass); 
   };
 
-  const toggleFavorite = (withHaptic = true) => {
-    if (withHaptic) triggerHaptic(); 
-    let savedFavorites = JSON.parse(localStorage.getItem('bhajan_favorites') || '[]');
-    if (isFavorite) {
-      savedFavorites = savedFavorites.filter((fav: any) => fav.slug !== slug);
-      setIsFavorite(false);
-    } else {
-      savedFavorites.push({ title, slug, addedAt: new Date().toISOString() });
-      setIsFavorite(true);
-    }
-    localStorage.setItem('bhajan_favorites', JSON.stringify(savedFavorites));
-  };
 
   const requestWakeLock = async () => {
     if (!('wakeLock' in navigator)) return; 
@@ -532,14 +516,8 @@ useEffect(() => {
               {wakeLockActive ? <FaLightbulb className="text-yellow-500 text-xl" /> : <FaRegLightbulb className="text-gray-500 text-xl hover:text-yellow-500" />}
             </button>
             
-            <button 
-              onClick={() => toggleFavorite(true)} 
-              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors shrink-0"
-              aria-label={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-              title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-            >
-              {isFavorite ? <FaHeart className="text-red-500 text-xl transition-transform scale-110" /> : <FaRegHeart className="text-gray-500 text-xl hover:text-red-400" />}
-            </button>
+            {/* 🌟 NEW: Smart Save to Folder Button */}
+            <SaveToSangrahButton slug={slug} title={title} />
             
             <div className="w-[1px] h-6 bg-gray-300"></div>
             

@@ -12,7 +12,7 @@ import AuthorBox from '@/components/AuthorBox';
 import RelatedContent from '@/components/RelatedContent';
 import AffiliateSlot from '@/components/AffiliateSlot'; 
 import DivineHover from '@/components/DivineHover';
-
+import ReadingTracker from '@/components/ReadingTracker';
 import BhaktiStudio from '@/components/BhaktiStudio';
 import CommunityWall from '@/components/CommunityWall';
 
@@ -356,6 +356,9 @@ export default async function BhajanDetails({ params }: Props) {
            <div className="pt-0 px-4 md:px-8 pb-8">
               
               <BhaktiStudio bhajanId={bhajan.id} bhajanSlug={bhajan.slug} />
+
+              {/* 🌟 NEW: Background Reading Tracker (History & Auto-Scroll) */}
+              <ReadingTracker slug={bhajan.slug} />
 
               <LyricsViewer 
                 title={bhajan.title_hindi} 

@@ -6,13 +6,13 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'Bhajan Manjari',
     description: 'Read and save your favorite Bhajans for offline Puja and Satsang.',
     start_url: '/',
-    scope: '/', // ज़रूरी: बताता है कि PWA किस URL रेंज को "अपना" मानेगा
-    display: 'standalone', // This hides the browser UI (URL bar) so it looks like a native app
+    scope: '/',
+    display: 'standalone',
     background_color: '#ffffff',
-    theme_color: '#ea580c', // Your signature Saffron orange
+    theme_color: '#ea580c',
     icons: [
       {
-        src: '/logo.png', // Reusing the logo you just uploaded!
+        src: '/logo.png',
         sizes: '192x192',
         type: 'image/png',
       },
@@ -22,10 +22,25 @@ export default function manifest(): MetadataRoute.Manifest {
         type: 'image/png',
       },
     ],
-    // 🌟 असली फिक्स: GPay/PhonePe से वापस आने पर नया instance बनाने की
-    // बजाय मौजूदा खुली हुई विंडो को ही दोबारा इस्तेमाल करे
     launch_handler: {
       client_mode: 'navigate-existing',
     },
-  } as MetadataRoute.Manifest
+    // 🌟 App Shortcuts Added Here
+    shortcuts: [
+      {
+        name: "मेरा संग्रह (My Sangrah)",
+        short_name: "Sangrah",
+        description: "अपने सहेजे गए भजनों को पढ़ें",
+        url: "/saved",
+        icons: [{ src: "/logo.png", sizes: "192x192", type: "image/png" }]
+      },
+      {
+        name: "आज का भजन (Today's Bhajan)",
+        short_name: "Today",
+        description: "आज का विशेष भजन पढ़ें",
+        url: "/",
+        icons: [{ src: "/logo.png", sizes: "192x192", type: "image/png" }]
+      }
+    ]
+  } as any // Use 'as any' if TypeScript complains about the 'shortcuts' property not being strictly typed in MetadataRoute yet
 }
