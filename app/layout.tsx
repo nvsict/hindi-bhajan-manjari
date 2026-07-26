@@ -14,8 +14,8 @@ import ConditionalHeader from "../components/ConditionalHeader";
 import ConditionalFooter from "../components/ConditionalFooter";
 import SmoothScrolling from "../components/SmoothScrolling";
 import AnalyticsWrapper from '@/components/AnalyticsWrapper';
-import NextTopLoader from 'nextjs-toploader';
-import DivinePeek from "@/components/DivinePeek";
+import NextTopLoader from 'nextjs-toploader'; 
+import dynamic from 'next/dynamic';
 import ScrollToTop from '@/components/ScrollToTop';
 
 // 🌟 MICROSOFT CLARITY
@@ -30,6 +30,10 @@ import SiteAssistant from '@/components/SiteAssistant';
 
 // 🌟 NEW: CAMPAIGN MODAL (GLOBAL POPUP)
 import CampaignModal from '@/components/CampaignModal';
+
+// 🌟 FIX: Removed { ssr: false } because layout.tsx is a Server Component.
+// The component itself has "use client" so it's perfectly safe and dynamic.
+const DivinePeek = dynamic(() => import('@/components/DivinePeek'));
 
 // --- BASE FONTS ---
 const geistSans = Geist({

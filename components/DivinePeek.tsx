@@ -46,7 +46,6 @@ const MASCOTS: Mascot[] = [
       "सबका मंगल हो! 🌺"
     ]
   },
-  // 🌟 NEW: BAL HANUMAN ADDED HERE
   {
     id: "hanuman",
     name: "Bal Hanuman",
@@ -66,35 +65,50 @@ type Position = "bottom-right" | "bottom-left" | "middle-right" | "middle-left";
 const POSITIONS: Position[] = ["bottom-right", "bottom-left", "middle-right", "middle-left"];
 
 export default function DivinePeek() {
-  const pathname = usePathname(); // 🌟 URL पढ़ेगा
+  const pathname = usePathname(); 
   
   const [showMascot, setShowMascot] = useState(false);
   const [position, setPosition] = useState<Position>("bottom-right");
   const [message, setMessage] = useState<string | null>(null); 
-  const [currentMascot, setCurrentMascot] = useState<Mascot>(MASCOTS[0]); // डिफ़ॉल्ट कृष्ण जी
+  const [currentMascot, setCurrentMascot] = useState<Mascot>(MASCOTS[0]); 
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const autoHideRef = useRef<NodeJS.Timeout | null>(null);
 
   // ==========================================
-  // 🌟 2. SMART SELECTION LOGIC
+  // 🌟 PERFORMANCE: TAB VISIBILITY (Battery Saver)
+  // ==========================================
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // जब टैब बैकग्राउंड में हो, तो टाइमर्स रोक दें (पॉज़)
+        if (timerRef.current) clearTimeout(timerRef.current);
+        if (autoHideRef.current) clearTimeout(autoHideRef.current);
+        setShowMascot(false); 
+      } else {
+        // जब टैब वापस एक्टिव हो, तो थोड़ी देर बाद फिर से शुरू करें
+        triggerPeek(Math.floor(Math.random() * (4000) + 2000));
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
+
+  // ==========================================
+  // 🌟 SMART SELECTION LOGIC
   // ==========================================
   const determineMascot = useCallback(() => {
     if (!pathname) return MASCOTS[Math.floor(Math.random() * MASCOTS.length)];
-
     const urlText = pathname.toLowerCase();
     
-    // चेक करें कि क्या URL में किसी भी मैस्कॉट का 'trigger' वर्ड है
     for (const mascot of MASCOTS) {
       if (mascot.triggers.some(trigger => urlText.includes(trigger))) {
-        return mascot; // अगर मैच हो गया, तो वही मैस्कॉट लौटाएं
+        return mascot; 
       }
     }
-
-    // अगर कोई मैच नहीं हुआ (जैसे homepage या shiv bhajan), तो रैंडम चुनें
     return MASCOTS[Math.floor(Math.random() * MASCOTS.length)];
   }, [pathname]);
-
 
   const getRandomDifferentPosition = (currentPos: Position): Position => {
     const available = POSITIONS.filter(p => p !== currentPos);
@@ -106,15 +120,22 @@ export default function DivinePeek() {
     if (autoHideRef.current) clearTimeout(autoHideRef.current);
 
     timerRef.current = setTimeout(() => {
-      // 1. नया मैस्कॉट और पोज़िशन चुनें
-      setCurrentMascot(determineMascot());
+      if (document.hidden) return; // अगर बैकग्राउंड में है तो ट्रिगर मत करो
+
+      const nextMascot = determineMascot();
+
+      // 🌟 PERFORMANCE: SMART PRELOADING 
+      // इमेज को ब्राउज़र की कैश में लोड करना ताकि पॉपअप होते ही ब्लैंक ना दिखे
+      if (typeof window !== "undefined") {
+        const img = new window.Image();
+        img.src = nextMascot.src;
+      }
+
+      setCurrentMascot(nextMascot);
       setPosition(prev => forcePosition || getRandomDifferentPosition(prev));
-      
-      // 2. दिखाएं
       setShowMascot(true);
       setMessage(null); 
 
-      // 3. छुपने का टाइमर
       autoHideRef.current = setTimeout(() => {
         setShowMascot(false);
         const randomDelay = Math.floor(Math.random() * (MAX_DELAY - MIN_DELAY) + MIN_DELAY);
@@ -133,22 +154,41 @@ export default function DivinePeek() {
     };
   }, [triggerPeek]);
 
-  // 🌟 SMART CLICK INTERACTION WITH TOOLTIP
+
+  // ==========================================
+  // 🌟 SMART UX: TIME-OF-DAY CONTEXT
+  // ==========================================
+  const getTimeSpecificMessage = () => {
+    const currentHour = new Date().getHours();
+    if (currentHour >= 6 && currentHour < 9) {
+      return "सुप्रभात! चलिए आज की आरती से शुरुआत करें। 🪔";
+    }
+    if (currentHour >= 21 && currentHour < 23) {
+      return "शुभ रात्रि! सोने से पहले प्रभु का ध्यान कर लें। ✨";
+    }
+    return null; // सामान्य समय के लिए
+  };
+
   const handleTouchOrClick = () => {
     if (message) return; 
     
     if (timerRef.current) clearTimeout(timerRef.current);
     if (autoHideRef.current) clearTimeout(autoHideRef.current);
 
-    // 1. चुने हुए मैस्कॉट के मैसेजेस में से रैंडम चुनें
-    const randomMsg = currentMascot.messages[Math.floor(Math.random() * currentMascot.messages.length)];
-    setMessage(randomMsg);
+    // 🌟 टाइम के आधार पर मैसेज चुनें (50% चांस है कि टाइम वाला मैसेज आएगा, वरना रेगुलर)
+    const timeMessage = getTimeSpecificMessage();
+    let finalMessage = "";
 
-    // 2. मैसेज पढ़ने के लिए 2.5 सेकंड रुकें, फिर छुपा दें
+    if (timeMessage && Math.random() > 0.4) {
+      finalMessage = timeMessage;
+    } else {
+      finalMessage = currentMascot.messages[Math.floor(Math.random() * currentMascot.messages.length)];
+    }
+
+    setMessage(finalMessage);
+
     setTimeout(() => {
       setShowMascot(false);
-      
-      // 3. छुपने के 5 सेकंड बाद वापस किसी नई जगह से लाएं
       setTimeout(() => setMessage(null), 500); 
       triggerPeek(5000);
     }, 2500);
@@ -201,11 +241,11 @@ export default function DivinePeek() {
             </AnimatePresence>
 
             <Image
-              src={currentMascot.src} // 🌟 DYNAMIC IMAGE SOURCE
+              src={currentMascot.src} 
               alt={currentMascot.name}
               fill
               sizes="(max-width: 768px) 200px, 300px"
-              loading="lazy" // 🌟 OPTIMIZATION: Removed priority, added lazy loading so it doesn't block LCP
+              loading="lazy" 
               className={`object-contain ${!isRight ? "scale-x-[-1]" : ""}`} 
             />
           </motion.div>
