@@ -50,7 +50,7 @@ const MASCOTS: Mascot[] = [
   {
     id: "hanuman",
     name: "Bal Hanuman",
-    src: "/images/bal-hanuman.avif",
+    src: "/images/bal-hanuman.webp",
     triggers: ["hanuman", "bajrang", "maruti", "anjaneya", "pawan", "sankat", "ram", "sita", "ayodhya", "salasar", "mehandipur"],
     messages: [
       "जय श्री राम! 🚩", 
