@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/utils/db'; 
 import { FaHeart, FaArrowRight, FaPrayingHands, FaSadTear, FaFolder, FaFolderPlus, FaTimes } from 'react-icons/fa';
+import SmartRecommendations from '@/components/SmartRecommendations';
 
 import SangrahControls from '@/components/SangrahControls';
 import SangrahCard from '@/components/SangrahCard';
@@ -92,6 +93,9 @@ export default function SavedBhajansPage() {
     return result;
   }, [allSavedBhajans, activeFolder, searchQuery, sortBy]);
 
+  // 🌟 Extract slugs for Smart Recommendations
+  const savedSlugsList = useMemo(() => allSavedBhajans.map(b => b.slug), [allSavedBhajans]);
+
   // 5. 🌟 ACTIONS
   const handleRemove = async (slug: string) => {
     await db.savedBhajans.delete(slug);
@@ -162,7 +166,7 @@ export default function SavedBhajansPage() {
             </div>
             <h2 className="text-2xl md:text-3xl font-black text-gray-900 mb-3 tracking-tight font-hindi">आपका संग्रह खाली है</h2>
             <p className="text-gray-500 mb-8 max-w-md font-medium leading-relaxed">
-              भजनों को सेव करें और बिना इंटरनेट के कभी भी यहाँ पढ़ें।
+              भजनों को सेव करें और बिना इंटरनेट के कभी भी यहाँ पढ़ें।
             </p>
             <Link href="/" className="bg-gradient-to-r from-orange-600 to-orange-500 text-white px-8 py-4 rounded-full font-bold shadow-[0_4px_15px_rgba(234,88,12,0.3)] hover:-translate-y-0.5 transition-all flex items-center gap-3">
               भजन खोजें <FaArrowRight />
@@ -209,7 +213,7 @@ export default function SavedBhajansPage() {
               totalItems={processedBhajans.length}
             />
 
-            {/* Grid or List View Render */}
+            {/* Grid or List View Render (FIXED SYNTAX HERE) */}
             {processedBhajans.length > 0 ? (
               <div className={viewMode === 'grid' ? "grid sm:grid-cols-2 gap-5 md:gap-6 animate-in fade-in" : "flex flex-col gap-4 animate-in fade-in"}>
                 {processedBhajans.map((bhajan) => (
@@ -218,6 +222,7 @@ export default function SavedBhajansPage() {
                     bhajan={bhajan} 
                     onRemove={handleRemove} 
                     onTogglePin={handleTogglePin}
+                    viewMode={viewMode}
                   />
                 ))}
               </div>
@@ -229,6 +234,9 @@ export default function SavedBhajansPage() {
                 <p className="text-gray-500 mt-1">शायद आपने इस फोल्डर में अभी तक कुछ सेव नहीं किया है।</p>
               </div>
             )}
+
+            {/* 🌟 NEW: SMART RECOMMENDATIONS 🌟 */}
+            <SmartRecommendations savedSlugs={savedSlugsList} />
           </div>
         )}
       </main>
