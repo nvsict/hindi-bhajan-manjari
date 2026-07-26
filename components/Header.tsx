@@ -22,8 +22,9 @@ const hind = Hind({
   display: 'swap',
 });
 
-// ─── 🌟 DEFAULT FALLBACK NAV DATA (BILINGUAL) ────────
-const DEFAULT_NAV_ITEMS = [
+// ─── 🌟 BASE STRUCTURE (NO HARDCODED LINKS) ────────
+// यहाँ से हमने सारे फिक्स्ड लिंक्स हटा दिए हैं, ये सिर्फ लेआउट का ढांचा है।
+const BASE_NAV_STRUCTURE = [
   { name: 'Home', href: '/', title: 'Go to Homepage' },
   {
     name: 'Deities',
@@ -36,14 +37,7 @@ const DEFAULT_NAV_ITEMS = [
         href: '/deity',
         bg: 'from-orange-500 to-red-600',
       },
-      links: [
-        { name: 'श्री हनुमान', href: '/deity/hanuman', icon: '🚩', desc: 'Sankat Mochan Bhajans' },
-        { name: 'श्री राम', href: '/deity/shri-ram', icon: '🏹', desc: 'Maryada Purushottam' },
-        { name: 'श्री कृष्ण', href: '/deity/shri-krishna', icon: '🦚', desc: 'Bhakti & Leela' },
-        { name: 'शिव जी', href: '/deity/shiv-ji', icon: '🔱', desc: 'Mahadev Chants & Stotras' },
-        { name: 'माता रानी', href: '/deity/mata-rani', icon: '🦁', desc: 'Shakti & Devotion Songs' },
-        { name: 'श्री हरि', href: '/deity/shri-hari', icon: '🐚', desc: 'Vishnu Mantras & Path' },
-      ]
+      links: [] // यह डेटाबेस से आएगा
     }
   },
   {
@@ -54,16 +48,10 @@ const DEFAULT_NAV_ITEMS = [
         title: 'नित्य उपासना',
         desc: 'अपनी सुबह की शुरुआत शक्तिशाली आरती और शांतिपूर्ण चालीसा पाठ के साथ करें।',
         icon: <FaHandsPraying className="text-5xl text-amber-200 mb-5 opacity-90 drop-shadow-sm" />,
-        href: '/category/aarti',
+        href: '/category',
         bg: 'from-amber-500 to-orange-500',
       },
-      links: [
-        { name: 'माता के भजन', href: '/category/mata-ke-bhajan', icon: <FaMusic/>, desc: 'Mata Rani Devotional Songs' },
-        { name: 'आरती (Aarti)', href: '/category/aarti', icon: <GiLotusFlower/>, desc: 'Morning & Evening Prayers' },
-        { name: 'चालीसा (Chalisa)', href: '/category/chalisa', icon: <FaBookOpen/>, desc: 'Powerful 40-Verse Hymns' },
-        { name: 'स्तोत्रम् (Stotram)', href: '/category/stotram', icon: <FaOm/>, desc: 'Ancient Sanskrit Chants' },
-        { name: 'पद (Pad)', href: '/category/pad', icon: <FaPenNib/>, desc: 'Classical Poetic Verses' },
-      ]
+      links: [] // यह डेटाबेस से आएगा
     }
   },
   { name: 'Bhajans', href: '/bhajan', title: 'A-Z Hindi Bhajans Collection' }, 
@@ -118,7 +106,7 @@ const UtilityBar = memo(function UtilityBar() {
 });
 
 export default function Header() {
-  const [navItems, setNavItems] = useState<any[]>(DEFAULT_NAV_ITEMS);
+  const [navItems, setNavItems] = useState<any[]>(BASE_NAV_STRUCTURE);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [expandedMobileMenu, setExpandedMobileMenu] = useState<string | null>(null);
@@ -133,21 +121,27 @@ export default function Header() {
   const pathname = usePathname();
   const lenis = useLenis();
 
+  // ==========================================
+  // 🌟 PURE DATABASE FETCH (NO CONSTANTS)
+  // ==========================================
   useEffect(() => {
     const fetchDynamicNav = async () => {
       try {
-        const { data: topDeities } = await supabase.from('top_deities').select('name, slug, icon, description').limit(6);
-        const { data: topCategories } = await supabase.from('top_categories').select('name, slug, icon, description').limit(5);
+        // 🌟 Promise.all makes both queries run simultaneously for maximum speed
+        const [deitiesRes, categoriesRes] = await Promise.all([
+          supabase.from('top_deities').select('name, slug, icon, description').limit(6),
+          supabase.from('top_categories').select('name, slug, icon, description').limit(6)
+        ]);
 
-        if (topDeities && topCategories) {
+        if (deitiesRes.data && categoriesRes.data) {
+          // Construct the new layout dynamically
           const dynamicNav = [
-            { name: 'Home', href: '/', title: 'Go to Homepage' },
+            BASE_NAV_STRUCTURE[0], // Home
             {
-              name: 'Deities',
-              title: 'Explore Deity Specific Bhajans',
+              ...BASE_NAV_STRUCTURE[1], // Deities Layout
               megaMenu: {
-                featured: DEFAULT_NAV_ITEMS[1].megaMenu!.featured, 
-                links: topDeities.map((d: any) => ({
+                ...BASE_NAV_STRUCTURE[1].megaMenu,
+                links: deitiesRes.data.map((d: any) => ({
                   name: d.name,
                   href: `/deity/${d.slug}`,
                   icon: d.icon || '🙏', 
@@ -156,26 +150,25 @@ export default function Header() {
               }
             },
             {
-              name: 'Categories',
-              title: 'Browse Bhajan Categories',
+              ...BASE_NAV_STRUCTURE[2], // Categories Layout
               megaMenu: {
-                featured: DEFAULT_NAV_ITEMS[2].megaMenu!.featured, 
-                links: topCategories.map((c: any) => ({
+                ...BASE_NAV_STRUCTURE[2].megaMenu,
+                links: categoriesRes.data.map((c: any) => ({
                   name: c.name,
                   href: `/category/${c.slug}`,
-                  icon: c.icon || <FaMusic />, 
+                  icon: c.icon || '🪔', 
                   desc: c.description || 'Spiritual Categories'
                 }))
               }
             },
-            { name: 'Bhajans', href: '/bhajan', title: 'A-Z Hindi Bhajans Collection' }, 
-            { name: 'Gyan', href: '/gyan', title: 'Sanatan Gyan & Spiritual Articles' },
-            { name: 'Wisdom (EN)', href: '/en/gyan', title: 'Read Spiritual Articles in English' },
+            BASE_NAV_STRUCTURE[3], // Bhajans
+            BASE_NAV_STRUCTURE[4], // Gyan
+            BASE_NAV_STRUCTURE[5], // Wisdom (EN)
           ];
           setNavItems(dynamicNav);
         }
       } catch (error) {
-        console.error("Failed to fetch dynamic nav items:", error);
+        console.error("Failed to fetch dynamic nav items from views:", error);
       }
     };
     fetchDynamicNav();
@@ -187,24 +180,15 @@ export default function Header() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') setDeferredPrompt(null);
-  };
-
   // ==========================================
   // 🌟 SUPER OPTIMIZED SCROLL HANDLER 
   // ==========================================
   useLenis(({ scroll }) => {
-    // 1. Scrolled State (Only updates when value actually changes)
     setScrolled(prev => {
       const isNowScrolled = scroll > 10;
       return prev !== isNowScrolled ? isNowScrolled : prev;
     });
 
-    // 2. Hidden State (With threshold to prevent jitter)
     setIsHidden(prev => {
       let shouldHide = prev;
       
@@ -212,7 +196,6 @@ export default function Header() {
         shouldHide = false;
       } else {
         const diff = scroll - lastScrollY.current;
-        // Only trigger hide/show if scrolled more than 8px (Stops constant toggling on mobile touch)
         if (diff > 8) {
           shouldHide = true;
         } else if (diff < -8) {
@@ -241,6 +224,13 @@ export default function Header() {
     setExpandedMobileMenu(null);
     setHoveredMenu(null);
   }, [pathname]);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') setDeferredPrompt(null);
+  };
 
   const openSearch = useCallback(() => setIsSearchOpen(true), []);
   const closeSearch = useCallback(() => setIsSearchOpen(false), []);
@@ -311,7 +301,7 @@ export default function Header() {
               />
               
               {navItems.map((item) => {
-                const isItemActive = item.href ? isActive(item.href) : item.megaMenu?.links.some((d: any) => isActive(d.href));
+                const isItemActive = item.href ? isActive(item.href) : item.megaMenu?.links?.some((d: any) => isActive(d.href));
                 const isHovered = hoveredMenu === item.name;
                 const isEnglishLink = item.name.includes('(EN)');
                 

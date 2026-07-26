@@ -37,13 +37,27 @@ const MASCOTS: Mascot[] = [
   {
     id: "jagannath",
     name: "Lord Jagannath",
-    src: "/images/little-jagannath.webp", // 🌟 सुनिश्चित करें कि यह इमेज public/images/ में हो
+    src: "/images/little-jagannath.webp",
     triggers: ["jagannath", "puri", "balabhadra", "subhadra", "rath", "nilachal", "nandighosha"],
     messages: [
       "जय जगन्नाथ! 🕉️", 
       "नीलाचल निवासाय नमः! 🌊", 
       "महाप्रसाद पाओगे? 🍚", 
       "सबका मंगल हो! 🌺"
+    ]
+  },
+  // 🌟 NEW: BAL HANUMAN ADDED HERE
+  {
+    id: "hanuman",
+    name: "Bal Hanuman",
+    src: "/images/bal-hanuman.avif",
+    triggers: ["hanuman", "bajrang", "maruti", "anjaneya", "pawan", "sankat", "ram", "sita", "ayodhya", "salasar", "mehandipur"],
+    messages: [
+      "जय श्री राम! 🚩", 
+      "संकट कटे मिटे सब पीरा! 🙏", 
+      "पवनसुत हनुमान की जय! 🐒", 
+      "राम राम! ✨",
+      "राम काज कीन्हें बिनु मोहि कहाँ बिश्राम! 🌸"
     ]
   }
 ];
@@ -52,12 +66,12 @@ type Position = "bottom-right" | "bottom-left" | "middle-right" | "middle-left";
 const POSITIONS: Position[] = ["bottom-right", "bottom-left", "middle-right", "middle-left"];
 
 export default function DivinePeek() {
-  const pathname = usePathname(); // 🌟 URL पढ़ेगा
+  const pathname = usePathname(); // 🌟 URL पढ़ेगा
   
   const [showMascot, setShowMascot] = useState(false);
   const [position, setPosition] = useState<Position>("bottom-right");
   const [message, setMessage] = useState<string | null>(null); 
-  const [currentMascot, setCurrentMascot] = useState<Mascot>(MASCOTS[0]); // डिफ़ॉल्ट कृष्ण जी
+  const [currentMascot, setCurrentMascot] = useState<Mascot>(MASCOTS[0]); // डिफ़ॉल्ट कृष्ण जी
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const autoHideRef = useRef<NodeJS.Timeout | null>(null);
@@ -77,7 +91,7 @@ export default function DivinePeek() {
       }
     }
 
-    // अगर कोई मैच नहीं हुआ (जैसे homepage या shiv bhajan), तो रैंडम चुनें (50-50)
+    // अगर कोई मैच नहीं हुआ (जैसे homepage या shiv bhajan), तो रैंडम चुनें
     return MASCOTS[Math.floor(Math.random() * MASCOTS.length)];
   }, [pathname]);
 
@@ -92,7 +106,7 @@ export default function DivinePeek() {
     if (autoHideRef.current) clearTimeout(autoHideRef.current);
 
     timerRef.current = setTimeout(() => {
-      // 1. नया मैस्कॉट और पोज़िशन चुनें
+      // 1. नया मैस्कॉट और पोज़िशन चुनें
       setCurrentMascot(determineMascot());
       setPosition(prev => forcePosition || getRandomDifferentPosition(prev));
       
@@ -191,7 +205,7 @@ export default function DivinePeek() {
               alt={currentMascot.name}
               fill
               sizes="(max-width: 768px) 200px, 300px"
-              priority
+              loading="lazy" // 🌟 OPTIMIZATION: Removed priority, added lazy loading so it doesn't block LCP
               className={`object-contain ${!isRight ? "scale-x-[-1]" : ""}`} 
             />
           </motion.div>

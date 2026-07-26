@@ -58,6 +58,43 @@ export const metadata: Metadata = {
 };
 
 // ==========================================
+// 🌟 HELPER: FETCH WITH RETRY LOGIC (To fix "fetch failed" errors)
+// ==========================================
+async function fetchLatestBhajansWithRetry(retries = 3, delayMs = 1000) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const { data, error } = await supabase
+        .from('mv_bhajan_details')
+        .select(`
+          title_hinglish, 
+          title_hindi, 
+          slug, 
+          lyrics_hindi,
+          video_embed_url,
+          deity, 
+          categories
+        `)
+        .order('created_at', { ascending: false })
+        .range(0, 9);
+
+      if (error) throw error;
+      
+      return data;
+    } catch (err: any) {
+      console.warn(`[Homepage] Fetch attempt ${attempt} failed:`, err.message);
+      
+      if (attempt === retries) {
+        throw err; // अगर आखिरी कोशिश भी फेल हो जाए, तो एरर को बाहर फेंक दें
+      }
+      
+      // अगली कोशिश से पहले delayMs (1000ms) तक रुकें
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+  return null;
+}
+
+// ==========================================
 // THE PUBLISHER TRUST SIGNAL (Sanatan Gyan)
 // ==========================================
 async function LatestGyanSection() {
@@ -126,40 +163,34 @@ async function LatestGyanSection() {
 }
 
 // ==========================================
-// 🌟 LATEST BHAJANS (Using superfast Materialized View)
+// 🌟 LATEST BHAJANS (Using superfast Materialized View & Retry Logic)
 // ==========================================
 async function LatestBhajansSection() {
-  // 🌟 SPEED BOOST: Directly using the View without any joins or slow API fetch
-  const { data: rawBhajans, error } = await supabase
-    .from('mv_bhajan_details')
-    .select(`
-      title_hinglish, 
-      title_hindi, 
-      slug, 
-      lyrics_hindi,
-      video_embed_url,
-      deity, 
-      categories
-    `)
-    .order('created_at', { ascending: false })
-    .range(0, 9);
+  try {
+    // 🌟 SPEED BOOST: Directly using the View with our new Retry Logic
+    const rawBhajans = await fetchLatestBhajansWithRetry(3, 1000);
 
-  if (error) {
-    console.error("[Homepage] Failed to fetch latest bhajans:", error.message);
+    if (!rawBhajans) {
+      throw new Error("No data returned from database");
+    }
+
+    // 🌟 No need to transform arrays, our view already formats `deity` and `categories` perfectly
+    const initialBhajans = rawBhajans.map((bhajan: any) => ({
+      ...bhajan,
+      deity: Array.isArray(bhajan.deity) ? bhajan.deity[0] : bhajan.deity,
+    }));
+
+    return <BhajanList initialBhajans={initialBhajans} />;
+    
+  } catch (error: any) {
+    // यह ब्लॉक तभी रन होगा जब 3 बार Retry करने के बाद भी एरर आए
+    console.error("[Homepage] Failed to fetch latest bhajans after retries:", error.message);
     return (
       <div className="p-8 text-center bg-orange-50 dark:bg-orange-950/20 rounded-2xl border border-orange-100 dark:border-orange-900/30">
         <p className="text-orange-800 dark:text-orange-400 font-medium">संग्रह लोड हो रहा है, कृपया कुछ समय बाद पुनः प्रयास करें।</p> 
       </div>
     );
   }
-
-  // 🌟 No need to transform arrays, our view already formats `deity` and `categories` perfectly
-  const initialBhajans = (rawBhajans || []).map((bhajan: any) => ({
-    ...bhajan,
-    deity: Array.isArray(bhajan.deity) ? bhajan.deity[0] : bhajan.deity,
-  }));
-
-  return <BhajanList initialBhajans={initialBhajans} />;
 }
 
 export default function Home() {
