@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   FaWhatsapp, FaHeart, FaRegHeart,
   FaLightbulb, FaRegLightbulb, FaMusic, FaYoutube, FaLanguage,
-  FaChevronDown, FaCheck, FaFont, FaXmark, FaBookOpen, FaSpinner
+  FaChevronDown, FaCheck, FaFont, FaXmark, FaBookOpen, FaSpinner,
+  FaMagnifyingGlass // ✅ FIXED: FaSearch is now FaMagnifyingGlass
 } from 'react-icons/fa6';
 import PdfDownloadButton from './PdfDownloadButton';
 import { supabase } from '@/utils/supabase';
@@ -34,7 +35,6 @@ const SCRIPT_OPTIONS = [
   { id: 'oriya', label: 'ଓଡ଼ିଆ (Odia)' }
 ];
 
-// 🌟 FIX 1: Added `fontFamily` to apply exact CSS font styles (Nothing deleted)
 // 🌟 UPDATED: New Modern Fonts for Hindi Bhajan Manjari
 const FONT_OPTIONS = [
   { id: 'font-hindi', name: 'Hind (Standard)', className: 'font-hindi', googleFont: 'Hind', fontFamily: '"Hind", sans-serif' },
@@ -124,6 +124,10 @@ export default function LyricsViewer({
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showBigHeart, setShowBigHeart] = useState(false);
   const [isRecordingActive, setIsRecordingActive] = useState(false); 
+
+  // 🌟 Auto-fade logic for bottom toolbar
+  const [isScrollingDown, setIsScrollingDown] = useState(false);
+  const lastScrollY = useRef(0);
 
   const [displayLyrics, setDisplayLyrics] = useState<string>(lyricsHindi);
 
@@ -219,30 +223,40 @@ export default function LyricsViewer({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 🌟 ADD THIS BLOCK
-useEffect(() => {
-  const handleRecordingState = (e: any) => setIsRecordingActive(e.detail.active);
-  window.addEventListener('bhajan-recording-state', handleRecordingState);
-  return () => window.removeEventListener('bhajan-recording-state', handleRecordingState);
-}, []);
+  useEffect(() => {
+    const handleRecordingState = (e: any) => setIsRecordingActive(e.detail.active);
+    window.addEventListener('bhajan-recording-state', handleRecordingState);
+    return () => window.removeEventListener('bhajan-recording-state', handleRecordingState);
+  }, []);
 
-const isRecordingActiveRef = useRef(false); // 🌟 ADD near your other refs (videoRef, scriptDropdownRef, etc.)
+  const isRecordingActiveRef = useRef(false);
 
-useEffect(() => {
-  isRecordingActiveRef.current = isRecordingActive; // 🌟 ADD — keeps ref in sync with state
-}, [isRecordingActive]);
+  useEffect(() => {
+    isRecordingActiveRef.current = isRecordingActive; 
+  }, [isRecordingActive]);
 
-useEffect(() => {
-  const handleScroll = () => {
-    if (isRecordingActiveRef.current) return; // 🌟 ADD — bail out early while recording
-    const totalScroll = document.documentElement.scrollTop;
-    const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-    if (windowHeight <= 0) return;
-    setScrollProgress(Math.min(100, Math.max(0, (totalScroll / windowHeight) * 100)));
-  };
-  window.addEventListener('scroll', handleScroll, { passive: true });
-  return () => window.removeEventListener('scroll', handleScroll);
-}, []);
+  useEffect(() => {
+    const handleScroll = () => {
+      if (isRecordingActiveRef.current) return; 
+      const currentScrollY = window.scrollY;
+      const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      
+      // Calculate progress
+      if (windowHeight > 0) {
+        setScrollProgress(Math.min(100, Math.max(0, (currentScrollY / windowHeight) * 100)));
+      }
+
+      // 🌟 Change opacity instead of hiding toolbar
+      if (currentScrollY > lastScrollY.current + 15) {
+        setIsScrollingDown(true);
+      } else if (currentScrollY < lastScrollY.current - 15 || currentScrollY < 50) {
+        setIsScrollingDown(false);
+      }
+      lastScrollY.current = currentScrollY;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleDoubleTap = () => {
     triggerHaptic();
@@ -269,7 +283,7 @@ useEffect(() => {
     }
   };
 
- useEffect(() => {
+  useEffect(() => {
     setFontSize(window.innerWidth < 768 ? 17 : 22);
     
     const savedFont = localStorage.getItem('preferred_lyrics_font');
@@ -287,7 +301,6 @@ useEffect(() => {
     
     loadFontDynamically(fontClass); 
   };
-
 
   const requestWakeLock = async () => {
     if (!('wakeLock' in navigator)) return; 
@@ -345,78 +358,86 @@ useEffect(() => {
   const cleanHinglishTitle = slug.replace(/-/g, ' ').toUpperCase();
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full max-w-4xl mx-auto">
 
+      {/* 🌟 1. TARZ (Clickable Reference Button) */}
       {tarz && (
-        <div className="mb-6 flex justify-center relative z-20">
+        <div className="mb-4 flex justify-center relative z-20">
           <Link 
             href={`/search?q=${encodeURIComponent(tarz)}`}
             title={`Search all bhajans on the melody of: ${tarz}`}
-            className="group inline-flex items-center gap-2.5 bg-orange-100/80 hover:bg-orange-200/90 border border-orange-200 text-orange-900 px-6 py-3 rounded-full shadow-sm transition-all active:scale-95"
+            className="group flex items-center gap-2 bg-gray-50 hover:bg-orange-50 border border-gray-200 hover:border-orange-200 text-gray-700 hover:text-orange-800 px-5 py-2 rounded-full shadow-sm transition-all text-sm font-medium"
           >
-            <FaMusic className="text-orange-600 group-hover:animate-pulse text-sm" />
-            <p className="text-sm md:text-base font-medium">
-              <span className="font-bold font-hindi text-orange-800">तर्ज:</span> <span className="font-hindi group-hover:underline underline-offset-4">{tarz}</span>
-            </p>
+            <FaMagnifyingGlass className="text-gray-400 group-hover:text-orange-500" />
+            <span>तर्ज: <strong className="font-hindi tracking-wide">{tarz}</strong></span>
           </Link>
         </div>
       )}
 
-      {/* ACTION BAR */}
-      <div className="flex flex-row flex-wrap items-center justify-center gap-3 mb-8 relative z-20 w-full max-w-3xl mx-auto px-4">
-        <div className="relative flex-1 min-w-[140px]" ref={scriptDropdownRef}>
-          <MagneticButton type="button" aria-label="Select Language" onClick={() => { triggerHaptic(); setIsDropdownOpen(!isDropdownOpen); setIsFontMenuOpen(false); }} className="flex items-center justify-between w-full gap-2 bg-white hover:bg-orange-50 border border-orange-100 px-4 py-2.5 rounded-xl shadow-sm transition-all duration-200">
-            <div className="flex items-center gap-2 overflow-hidden">
-              <FaLanguage className="text-orange-500 text-lg shrink-0" />
-              <span className="text-gray-800 font-bold text-sm truncate">{SCRIPT_OPTIONS.find(opt => opt.id === activeScript)?.label}</span>
+      {/* 🌟 2. UNIFIED READING TOOLBAR */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-2 md:p-3 shadow-sm mb-6 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-between gap-2 z-20 relative">
+        
+        {/* Left Side: Dropdowns */}
+        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+          {/* Language Dropdown */}
+          <div className="relative flex-1" ref={scriptDropdownRef}>
+            <button onClick={() => { triggerHaptic(); setIsDropdownOpen(!isDropdownOpen); setIsFontMenuOpen(false); }} className="flex items-center justify-between w-full gap-2 bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-xl transition-colors text-sm border border-transparent hover:border-gray-200">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <FaLanguage className="text-gray-500 text-lg shrink-0" />
+                <span className="text-gray-800 font-bold truncate">{SCRIPT_OPTIONS.find(opt => opt.id === activeScript)?.label}</span>
+              </div>
+              <FaChevronDown className="text-gray-400 text-xs shrink-0" />
+            </button>
+            <div className={`absolute top-full left-0 mt-2 w-48 max-w-[80vw] bg-white border border-gray-100 rounded-xl shadow-lg z-40 transition-all origin-top ${isDropdownOpen ? 'opacity-100 scale-y-100 translate-y-0' : 'opacity-0 scale-y-95 -translate-y-2 pointer-events-none'}`}>
+              <div className="py-1 max-h-[50vh] overflow-y-auto">
+                {SCRIPT_OPTIONS.map((opt) => (
+                  <button key={opt.id} onClick={() => { triggerHaptic(); setActiveScript(opt.id); setIsDropdownOpen(false); }} className={`w-full flex justify-between px-4 py-2.5 text-sm font-medium ${activeScript === opt.id ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'}`}>
+                    {opt.label} {activeScript === opt.id && <FaCheck />}
+                  </button>
+                ))}
+              </div>
             </div>
-            <FaChevronDown className={`text-orange-400 text-xs shrink-0 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-          </MagneticButton>
-          <div className={`absolute top-full left-0 mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] overflow-hidden transition-all duration-200 origin-top z-40 ${isDropdownOpen ? 'opacity-100 scale-y-100 translate-y-0' : 'opacity-0 scale-y-95 -translate-y-2 pointer-events-none'}`}>
-            <div className="py-1.5 max-h-[60vh] overflow-y-auto hide-scrollbar">
-              {SCRIPT_OPTIONS.map((option) => (
-                <button key={option.id} onClick={() => { triggerHaptic(); setActiveScript(option.id); setIsDropdownOpen(false); }} className={`w-full flex items-center justify-between px-4 py-3 text-sm font-bold transition-colors ${activeScript === option.id ? 'bg-orange-50/80 text-orange-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-                  {option.label} {activeScript === option.id && <FaCheck className="text-orange-500 text-xs" />}
-                </button>
-              ))}
+          </div>
+
+          {/* Font Dropdown */}
+          <div className="relative flex-1" ref={fontDropdownRef}>
+            <button onClick={() => { triggerHaptic(); setIsFontMenuOpen(!isFontMenuOpen); setIsDropdownOpen(false); }} className="flex items-center justify-between w-full gap-2 bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-xl transition-colors text-sm border border-transparent hover:border-gray-200">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <FaFont className="text-gray-500 text-sm shrink-0" />
+                <span className="text-gray-800 font-bold truncate">{FONT_OPTIONS.find(f => f.className === selectedFont)?.name.split(' ')[0]}</span>
+              </div>
+              <FaChevronDown className="text-gray-400 text-xs shrink-0" />
+            </button>
+            <div className={`absolute top-full right-0 mt-2 w-48 max-w-[80vw] bg-white border border-gray-100 rounded-xl shadow-lg z-40 transition-all origin-top ${isFontMenuOpen ? 'opacity-100 scale-y-100 translate-y-0' : 'opacity-0 scale-y-95 -translate-y-2 pointer-events-none'}`}>
+              <div className="py-1">
+                {FONT_OPTIONS.map((font) => (
+                  <button key={font.id} onClick={() => changeFont(font.className)} className={`w-full flex justify-between px-4 py-2.5 text-sm ${selectedFont === font.className ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'}`}>
+                    <span style={{ fontFamily: font.fontFamily }}>{font.name}</span>
+                    {selectedFont === font.className && <FaCheck />}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="relative flex-1 min-w-[140px]" ref={fontDropdownRef}>
-          <MagneticButton type="button" aria-label="Select Font" onClick={() => { triggerHaptic(); setIsFontMenuOpen(!isFontMenuOpen); setIsDropdownOpen(false); }} className="flex items-center justify-between w-full gap-2 bg-white hover:bg-orange-50 border border-orange-100 px-4 py-2.5 rounded-xl shadow-sm transition-all duration-200">
-            <div className="flex items-center gap-2 overflow-hidden">
-              <FaFont className="text-orange-500 text-sm shrink-0" />
-              <span className="text-gray-800 font-bold text-sm truncate">{FONT_OPTIONS.find(f => f.className === selectedFont)?.name.split(' ')[0]}</span>
-            </div>
-            <FaChevronDown className={`text-orange-400 text-xs shrink-0 transition-transform duration-300 ${isFontMenuOpen ? 'rotate-180' : ''}`} />
-          </MagneticButton>
-          <div className={`absolute top-full left-0 mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] overflow-hidden transition-all duration-200 origin-top z-40 ${isFontMenuOpen ? 'opacity-100 scale-y-100 translate-y-0' : 'opacity-0 scale-y-95 -translate-y-2 pointer-events-none'}`}>
-            <div className="py-1.5">
-              {FONT_OPTIONS.map((font) => (
-                <button key={font.id} onClick={() => changeFont(font.className)} className={`w-full flex items-center justify-between px-4 py-3 text-sm font-bold transition-colors ${selectedFont === font.className ? 'bg-orange-50/80 text-orange-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-                  {/* 🌟 FIX 2: Applied fontFamily to dropdown preview */}
-                  <span className={font.className} style={{ fontFamily: font.fontFamily }}>{font.name}</span> {selectedFont === font.className && <FaCheck className="text-orange-500 text-xs" />}
-                </button>
-              ))}
-            </div>
+        {/* Right Side: Size & PDF */}
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 border-gray-100 pt-2 sm:pt-0">
+          <div className="flex items-center bg-gray-50 rounded-xl px-1 border border-gray-100">
+            <button onClick={() => { triggerHaptic(); setFontSize(prev => Math.max(14, prev - 2)); }} className="w-9 h-9 flex items-center justify-center text-gray-600 hover:text-black font-bold font-serif" title="Decrease size">A-</button>
+            <div className="w-px h-4 bg-gray-200"></div>
+            <button onClick={() => { triggerHaptic(); setFontSize(prev => Math.min(40, prev + 2)); }} className="w-9 h-9 flex items-center justify-center text-gray-600 hover:text-black font-bold font-serif" title="Increase size">A+</button>
           </div>
-        </div>
-
-        <div className="w-full sm:w-auto sm:flex-none">
           <PdfDownloadButton titleHindi={title} titleHinglish={cleanHinglishTitle} lyricsHindi={displayLyrics} />
         </div>
       </div>
 
-      {/* DICTIONARY HINT UI */}
-      <div className="flex justify-center mb-6 px-4 relative z-10">
-        <div className="bg-blue-50/80 border border-blue-100/80 text-blue-900 text-[13px] md:text-sm font-medium px-5 py-3.5 rounded-2xl shadow-sm flex items-start sm:items-center gap-3 max-w-2xl w-full backdrop-blur-sm relative overflow-hidden group">
-          <div className="absolute top-0 left-0 w-1 h-full bg-blue-400 rounded-l-2xl"></div>
-          <FaLightbulb className="text-blue-500 text-lg shrink-0 mt-0.5 sm:mt-0" />
-          <p className="leading-relaxed">
-            <strong className="font-black">Sanatan Dictionary:</strong> Tap on any difficult word in the lyrics to instantly know its spiritual meaning! ✨
-          </p>
-          {isFetchingMeaning && <FaSpinner className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-400 animate-spin" />}
+      {/* 🌟 3. DICTIONARY PILL */}
+      <div className="flex justify-center mb-6 relative z-10 px-4">
+        <div className="inline-flex items-center gap-2 bg-blue-50/80 text-blue-700 text-xs md:text-sm font-bold px-4 py-2 rounded-full border border-blue-100 shadow-sm backdrop-blur-sm">
+          <FaLightbulb className="text-blue-500 shrink-0" />
+          <span>Tap any word to see its meaning</span>
+          {isFetchingMeaning && <FaSpinner className="animate-spin shrink-0 text-blue-500" />}
         </div>
       </div>
 
@@ -441,7 +462,6 @@ useEffect(() => {
             exit={{ opacity: 0, filter: "blur(8px)", y: -5 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className={`relative z-10 text-center font-bold tracking-normal text-gray-900 antialiased leading-relaxed`} 
-            // 🌟 FIX 3: Dynamic font loading attached directly to the Lyrics Container
             style={{ 
               fontSize: `${fontSize}px`,
               fontFamily: FONT_OPTIONS.find(f => f.className === selectedFont)?.fontFamily || '"Hind", sans-serif'
@@ -499,68 +519,62 @@ useEffect(() => {
         {embedType === 'instagram' && embedId && <InstagramEmbed embedId={embedId} />}
       </div>
 
-      {/* FLOATING TOOLBAR */}
-      <div className="fixed bottom-[85px] md:bottom-8 left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw] transition-all duration-300">
-        <div className="relative px-3 md:px-4 py-2 bg-white/90 backdrop-blur-xl border border-gray-200 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full">
-          <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-0">
-            <div className="absolute top-0 left-0 h-[3px] bg-orange-500 transition-all duration-150 ease-out opacity-80" style={{ width: `${scrollProgress}%` }}></div>
-          </div>
+      {/* 🌟 4. NEW FLOATING TOOLBAR (Light Mode, True Responsive, Opacity on Scroll) */}
+      <div 
+        className={`fixed bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-[90] w-[95vw] sm:w-max max-w-[500px] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:opacity-100 hover:scale-100 ${isScrollingDown ? 'opacity-40 scale-95' : 'opacity-100 scale-100'}`}
+      >
+        <div className="relative px-2 sm:px-4 py-2 bg-white/95 backdrop-blur-xl border border-gray-200 shadow-[0_8px_30px_rgba(0,0,0,0.12)] rounded-full flex items-center overflow-x-auto hide-scrollbar">
           
-          <div className="relative z-10 flex items-center gap-1.5 sm:gap-3">
+          <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-0">
+            <div className="absolute top-0 left-0 h-[2px] bg-orange-500 transition-all duration-150 ease-out opacity-80" style={{ width: `${scrollProgress}%` }}></div>
+          </div>
+
+          {/* Edge fades so the pill signals it's horizontally scrollable when buttons overflow on small screens */}
+          <div className="pointer-events-none absolute left-0 top-0 h-full w-5 bg-gradient-to-r from-white/95 to-transparent rounded-l-full z-20"></div>
+          <div className="pointer-events-none absolute right-0 top-0 h-full w-5 bg-gradient-to-l from-white/95 to-transparent rounded-r-full z-20"></div>
+          
+          <div className="relative z-10 flex items-center gap-1 sm:gap-2 mx-auto">
+            
             <PushPrompt />
+            
             <button 
               onClick={toggleWakeLock} 
-              className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors shrink-0 ${wakeLockActive ? 'bg-yellow-100' : 'hover:bg-yellow-50'}`}
+              className={`flex items-center justify-center gap-1.5 px-3 h-10 rounded-full transition-colors shrink-0 text-sm font-bold ${wakeLockActive ? 'bg-yellow-100 text-yellow-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
               aria-label={wakeLockActive ? "Disable Keep Screen On" : "Enable Keep Screen On"}
               title={wakeLockActive ? "Disable Keep Screen On" : "Enable Keep Screen On"}
             >
-              {wakeLockActive ? <FaLightbulb className="text-yellow-500 text-xl" /> : <FaRegLightbulb className="text-gray-500 text-xl hover:text-yellow-500" />}
+              {wakeLockActive ? <FaLightbulb className="text-yellow-600 text-lg" /> : <FaRegLightbulb className="text-lg" />}
+              <span className="hidden sm:inline">Screen</span>
             </button>
             
-            {/* 🌟 NEW: Smart Save to Folder Button */}
-            <SaveToSangrahButton slug={slug} title={title} />
+            <div className="w-[1px] h-5 bg-gray-200 shrink-0"></div>
             
-            <div className="w-[1px] h-6 bg-gray-300"></div>
-            
-            <div className="flex items-center gap-1 shrink-0">
-              <button 
-                onClick={() => { triggerHaptic(); setFontSize(prev => Math.max(14, prev - 2)); }} 
-                className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors rounded-full font-serif font-bold text-lg"
-                aria-label="Decrease font size"
-                title="Decrease font size"
-              >
-                A-
-              </button>
-              <button 
-                onClick={() => { triggerHaptic(); setFontSize(prev => Math.min(40, prev + 2)); }} 
-                className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors rounded-full font-serif font-bold text-lg"
-                aria-label="Increase font size"
-                title="Increase font size"
-              >
-                A+
-              </button>
+            <div className="text-gray-600 hover:text-gray-900 shrink-0">
+              <SaveToSangrahButton slug={slug} title={title} />
             </div>
             
-            <div className="w-[1px] h-6 bg-gray-300 hidden sm:block"></div>
+            <div className="w-[1px] h-5 bg-gray-200 shrink-0"></div>
             
             {videoEmbedUrl && (
               <button 
                 onClick={scrollToVideo} 
-                className="flex items-center justify-center w-10 h-10 sm:w-auto sm:px-4 bg-orange-600 text-white rounded-full hover:bg-orange-700 font-bold shadow-md hover:-translate-y-0.5 transition-all shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                className="flex items-center justify-center gap-1.5 px-3 h-10 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors shrink-0 text-sm font-bold outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                 aria-label="Watch Video"
                 title="Watch Video"
               >
-                <FaYoutube size={18} /> <span className="hidden sm:inline ml-2">Video</span>
+                <FaYoutube className="text-red-500 text-lg" />
+                <span className="hidden sm:inline">Video</span>
               </button>
             )}
             
             <button 
               onClick={handleWhatsAppShare} 
-              className="flex items-center justify-center w-10 h-10 sm:w-auto sm:px-4 bg-[#25D366] text-white rounded-full hover:bg-[#20b858] font-bold shadow-md hover:-translate-y-0.5 transition-all shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-green-400"
+              className="flex items-center justify-center gap-1.5 px-3 h-10 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors shrink-0 text-sm font-bold outline-none focus-visible:ring-2 focus-visible:ring-green-400"
               aria-label="Share on WhatsApp"
               title="Share on WhatsApp"
             >
-              <FaWhatsapp size={20} /> <span className="hidden sm:inline ml-2">Share</span>
+              <FaWhatsapp className="text-[#25D366] text-lg" />
+              <span className="hidden sm:inline">Share</span>
             </button>
           </div>
         </div>

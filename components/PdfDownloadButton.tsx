@@ -100,7 +100,7 @@ export default function PdfDownloadButton({ titleHindi, titleHinglish, lyricsHin
       <button
         onClick={handleDownload}
         disabled={isGenerating}
-        className="flex items-center gap-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 px-4 py-2 rounded-lg font-bold text-sm transition-all duration-300 shadow-sm active:scale-95 disabled:opacity-50"
+        className="flex items-center gap-2 bg-gray-50 text-gray-700 hover:bg-gray-100 border border-transparent hover:border-gray-200 px-3 py-2 rounded-xl font-bold text-sm transition-all duration-300 shadow-sm active:scale-95 disabled:opacity-50"
       >
         {isGenerating ? <FaSpinner className="animate-spin" /> : <FaFilePdf />}
         {isGenerating ? "Generating..." : "Download PDF"}
