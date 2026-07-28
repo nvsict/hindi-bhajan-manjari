@@ -35,12 +35,13 @@ const SCRIPT_OPTIONS = [
 ];
 
 // 🌟 FIX 1: Added `fontFamily` to apply exact CSS font styles (Nothing deleted)
+// 🌟 UPDATED: New Modern Fonts for Hindi Bhajan Manjari
 const FONT_OPTIONS = [
   { id: 'font-hindi', name: 'Hind (Standard)', className: 'font-hindi', googleFont: 'Hind', fontFamily: '"Hind", sans-serif' },
-  { id: 'font-martel', name: 'Martel (Granth)', className: 'font-martel', googleFont: 'Martel', fontFamily: '"Martel", serif' },
-  { id: 'font-tiro', name: 'Tiro Devanagari (Classic)', className: 'font-tiro', googleFont: 'Tiro+Devanagari+Hindi', fontFamily: '"Tiro Devanagari Hindi", serif' },
-  { id: 'font-karma', name: 'Karma (Soft)', className: 'font-karma', googleFont: 'Karma', fontFamily: '"Karma", serif' },
-  { id: 'font-eczar', name: 'Eczar (Elegant)', className: 'font-eczar', googleFont: 'Eczar', fontFamily: '"Eczar", serif' },
+  { id: 'font-baloo', name: 'Baloo 2 (Round)', className: 'font-baloo', googleFont: 'Baloo+2', fontFamily: '"Baloo 2", cursive' },
+  { id: 'font-mukta', name: 'Mukta (Clean)', className: 'font-mukta', googleFont: 'Mukta', fontFamily: '"Mukta", sans-serif' },
+  { id: 'font-poppins', name: 'Poppins (Modern)', className: 'font-poppins', googleFont: 'Poppins', fontFamily: '"Poppins", sans-serif' },
+  { id: 'font-google-sans', name: 'Google Sans', className: 'font-google-sans', googleFont: 'Noto+Sans+Devanagari', fontFamily: '"Google Sans", "Noto Sans Devanagari", sans-serif' },
 ];
 
 // 🌟 ZERO-ERROR THUMBNAIL COMPONENT
