@@ -17,6 +17,9 @@ export default function CampaignModal() {
 
   // 🌟 1. Fetch All Active Campaigns (With Cache Busting Logic)
   useEffect(() => {
+    // 🌟 OPTIMIZATION: Admin pages पर API कॉल भी मत करो
+    if (pathname?.startsWith('/admin')) return;
+
     const fetchCampaigns = async () => {
       // Supabase से सिर्फ Active कैम्पैन्स मंगाएं
       const { data, error } = await supabase
@@ -37,6 +40,9 @@ export default function CampaignModal() {
 
   // 🌟 2. Smart Engine: Page Switch & Timers
   useEffect(() => {
+    // 🌟 ADDED: Admin pages या Donate पेज पर टाइमर मत चलाओ
+    if (pathname === '/donate' || pathname?.startsWith('/admin')) return;
+
     if (activeCampaigns.length === 0) return;
     if (isOpen) return; 
     if (pathname === lastPathnameShown) return; 
@@ -113,7 +119,8 @@ export default function CampaignModal() {
 
   if (!isOpen || !currentCampaign) return null;
 
-  if (pathname === '/donate') {
+  // 🌟 ADDED: Exclude Modal strictly on /donate and ANY route starting with /admin
+  if (pathname === '/donate' || pathname?.startsWith('/admin')) {
     return null;
   }
 

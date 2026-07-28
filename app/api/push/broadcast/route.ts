@@ -72,8 +72,6 @@ export async function POST(req: Request) {
   }
 }
 
-// ... existing POST function ...
-
 export async function GET() {
   try {
     const { count, error } = await supabase
