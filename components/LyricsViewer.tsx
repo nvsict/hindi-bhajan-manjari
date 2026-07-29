@@ -5,7 +5,7 @@ import {
   FaWhatsapp, FaHeart, FaRegHeart,
   FaLightbulb, FaRegLightbulb, FaMusic, FaYoutube, FaLanguage,
   FaChevronDown, FaCheck, FaFont, FaXmark, FaBookOpen, FaSpinner,
-  FaMagnifyingGlass // ✅ FIXED: FaSearch is now FaMagnifyingGlass
+  FaMagnifyingGlass 
 } from 'react-icons/fa6';
 import PdfDownloadButton from './PdfDownloadButton';
 import { supabase } from '@/utils/supabase';
@@ -35,7 +35,6 @@ const SCRIPT_OPTIONS = [
   { id: 'oriya', label: 'ଓଡ଼ିଆ (Odia)' }
 ];
 
-// 🌟 UPDATED: New Modern Fonts for Hindi Bhajan Manjari
 const FONT_OPTIONS = [
   { id: 'font-hindi', name: 'Hind (Standard)', className: 'font-hindi', googleFont: 'Hind', fontFamily: '"Hind", sans-serif' },
   { id: 'font-baloo', name: 'Baloo 2 (Round)', className: 'font-baloo', googleFont: 'Baloo+2', fontFamily: '"Baloo 2", cursive' },
@@ -44,7 +43,6 @@ const FONT_OPTIONS = [
   { id: 'font-google-sans', name: 'Google Sans', className: 'font-google-sans', googleFont: 'Noto+Sans+Devanagari', fontFamily: '"Google Sans", "Noto Sans Devanagari", sans-serif' },
 ];
 
-// 🌟 ZERO-ERROR THUMBNAIL COMPONENT
 const YouTubeThumbnail = ({ embedId, title }: { embedId: string, title: string }) => {
   const [imgSrc, setImgSrc] = useState(`https://img.youtube.com/vi/${embedId}/hqdefault.jpg`);
   const [hasError, setHasError] = useState(false);
@@ -125,7 +123,6 @@ export default function LyricsViewer({
   const [showBigHeart, setShowBigHeart] = useState(false);
   const [isRecordingActive, setIsRecordingActive] = useState(false); 
 
-  // 🌟 Auto-fade logic for bottom toolbar
   const [isScrollingDown, setIsScrollingDown] = useState(false);
   const lastScrollY = useRef(0);
 
@@ -241,12 +238,10 @@ export default function LyricsViewer({
       const currentScrollY = window.scrollY;
       const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
       
-      // Calculate progress
       if (windowHeight > 0) {
         setScrollProgress(Math.min(100, Math.max(0, (currentScrollY / windowHeight) * 100)));
       }
 
-      // 🌟 Change opacity instead of hiding toolbar
       if (currentScrollY > lastScrollY.current + 15) {
         setIsScrollingDown(true);
       } else if (currentScrollY < lastScrollY.current - 15 || currentScrollY < 50) {
@@ -374,10 +369,9 @@ export default function LyricsViewer({
         </div>
       )}
 
-      {/* 🌟 2. UNIFIED READING TOOLBAR */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-2 md:p-3 shadow-sm mb-6 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-between gap-2 z-20 relative">
+      {/* 🌟 2. UNIFIED READING TOOLBAR (Now without A-/A+ for cleaner look) */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-2 md:p-3 shadow-sm mb-6 flex flex-wrap items-center justify-between gap-2 z-20 relative">
         
-        {/* Left Side: Dropdowns */}
         <div className="flex items-center gap-2 flex-1 min-w-[200px]">
           {/* Language Dropdown */}
           <div className="relative flex-1" ref={scriptDropdownRef}>
@@ -388,7 +382,7 @@ export default function LyricsViewer({
               </div>
               <FaChevronDown className="text-gray-400 text-xs shrink-0" />
             </button>
-            <div className={`absolute top-full left-0 mt-2 w-48 max-w-[80vw] bg-white border border-gray-100 rounded-xl shadow-lg z-40 transition-all origin-top ${isDropdownOpen ? 'opacity-100 scale-y-100 translate-y-0' : 'opacity-0 scale-y-95 -translate-y-2 pointer-events-none'}`}>
+            <div className={`absolute top-full left-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-lg z-40 transition-all origin-top ${isDropdownOpen ? 'opacity-100 scale-y-100 translate-y-0' : 'opacity-0 scale-y-95 -translate-y-2 pointer-events-none'}`}>
               <div className="py-1 max-h-[50vh] overflow-y-auto">
                 {SCRIPT_OPTIONS.map((opt) => (
                   <button key={opt.id} onClick={() => { triggerHaptic(); setActiveScript(opt.id); setIsDropdownOpen(false); }} className={`w-full flex justify-between px-4 py-2.5 text-sm font-medium ${activeScript === opt.id ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'}`}>
@@ -408,7 +402,7 @@ export default function LyricsViewer({
               </div>
               <FaChevronDown className="text-gray-400 text-xs shrink-0" />
             </button>
-            <div className={`absolute top-full right-0 mt-2 w-48 max-w-[80vw] bg-white border border-gray-100 rounded-xl shadow-lg z-40 transition-all origin-top ${isFontMenuOpen ? 'opacity-100 scale-y-100 translate-y-0' : 'opacity-0 scale-y-95 -translate-y-2 pointer-events-none'}`}>
+            <div className={`absolute top-full left-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-lg z-40 transition-all origin-top ${isFontMenuOpen ? 'opacity-100 scale-y-100 translate-y-0' : 'opacity-0 scale-y-95 -translate-y-2 pointer-events-none'}`}>
               <div className="py-1">
                 {FONT_OPTIONS.map((font) => (
                   <button key={font.id} onClick={() => changeFont(font.className)} className={`w-full flex justify-between px-4 py-2.5 text-sm ${selectedFont === font.className ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'}`}>
@@ -421,13 +415,8 @@ export default function LyricsViewer({
           </div>
         </div>
 
-        {/* Right Side: Size & PDF */}
+        {/* Right Side: PDF ONLY (A-/A+ removed from here) */}
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 border-gray-100 pt-2 sm:pt-0">
-          <div className="flex items-center bg-gray-50 rounded-xl px-1 border border-gray-100">
-            <button onClick={() => { triggerHaptic(); setFontSize(prev => Math.max(14, prev - 2)); }} className="w-9 h-9 flex items-center justify-center text-gray-600 hover:text-black font-bold font-serif" title="Decrease size">A-</button>
-            <div className="w-px h-4 bg-gray-200"></div>
-            <button onClick={() => { triggerHaptic(); setFontSize(prev => Math.min(40, prev + 2)); }} className="w-9 h-9 flex items-center justify-center text-gray-600 hover:text-black font-bold font-serif" title="Increase size">A+</button>
-          </div>
           <PdfDownloadButton titleHindi={title} titleHinglish={cleanHinglishTitle} lyricsHindi={displayLyrics} />
         </div>
       </div>
@@ -519,64 +508,67 @@ export default function LyricsViewer({
         {embedType === 'instagram' && embedId && <InstagramEmbed embedId={embedId} />}
       </div>
 
-      {/* 🌟 4. NEW FLOATING TOOLBAR (Light Mode, True Responsive, Opacity on Scroll) */}
+      {/* 🌟 4. ASYMMETRICAL ADAPTIVE FLOATING TOOLBAR */}
+      {/* Container adopts a unique Teardrop/Pill Shape: full circle left, tighter curve right */}
       <div 
-        className={`fixed bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-[90] w-[95vw] sm:w-max max-w-[500px] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:opacity-100 hover:scale-100 ${isScrollingDown ? 'opacity-40 scale-95' : 'opacity-100 scale-100'}`}
+        className={`fixed bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:opacity-100 hover:scale-100 ${isScrollingDown ? 'opacity-40 scale-95' : 'opacity-100 scale-100'}`}
       >
-        <div className="relative px-2 sm:px-4 py-2 bg-white/95 backdrop-blur-xl border border-gray-200 shadow-[0_8px_30px_rgba(0,0,0,0.12)] rounded-full flex items-center overflow-x-auto hide-scrollbar">
+        <div className="relative p-1.5 md:p-2 bg-white/95 backdrop-blur-xl border border-gray-200 shadow-[0_8px_30px_rgba(0,0,0,0.12)] rounded-l-[2.5rem] rounded-r-2xl flex items-center gap-1 sm:gap-1.5">
           
-          <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-0">
+          <div className="absolute inset-0 rounded-l-[2.5rem] rounded-r-2xl overflow-hidden pointer-events-none z-0">
             <div className="absolute top-0 left-0 h-[2px] bg-orange-500 transition-all duration-150 ease-out opacity-80" style={{ width: `${scrollProgress}%` }}></div>
           </div>
-
-          {/* Edge fades so the pill signals it's horizontally scrollable when buttons overflow on small screens */}
-          <div className="pointer-events-none absolute left-0 top-0 h-full w-5 bg-gradient-to-r from-white/95 to-transparent rounded-l-full z-20"></div>
-          <div className="pointer-events-none absolute right-0 top-0 h-full w-5 bg-gradient-to-l from-white/95 to-transparent rounded-r-full z-20"></div>
           
-          <div className="relative z-10 flex items-center gap-1 sm:gap-2 mx-auto">
-            
-            <PushPrompt />
-            
-            <button 
-              onClick={toggleWakeLock} 
-              className={`flex items-center justify-center gap-1.5 px-3 h-10 rounded-full transition-colors shrink-0 text-sm font-bold ${wakeLockActive ? 'bg-yellow-100 text-yellow-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
-              aria-label={wakeLockActive ? "Disable Keep Screen On" : "Enable Keep Screen On"}
-              title={wakeLockActive ? "Disable Keep Screen On" : "Enable Keep Screen On"}
-            >
-              {wakeLockActive ? <FaLightbulb className="text-yellow-600 text-lg" /> : <FaRegLightbulb className="text-lg" />}
-              <span className="hidden sm:inline">Screen</span>
-            </button>
-            
-            <div className="w-[1px] h-5 bg-gray-200 shrink-0"></div>
-            
-            <div className="text-gray-600 hover:text-gray-900 shrink-0">
-              <SaveToSangrahButton slug={slug} title={title} />
-            </div>
-            
-            <div className="w-[1px] h-5 bg-gray-200 shrink-0"></div>
-            
-            {videoEmbedUrl && (
-              <button 
-                onClick={scrollToVideo} 
-                className="flex items-center justify-center gap-1.5 px-3 h-10 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors shrink-0 text-sm font-bold outline-none focus-visible:ring-2 focus-visible:ring-red-400"
-                aria-label="Watch Video"
-                title="Watch Video"
-              >
-                <FaYoutube className="text-red-500 text-lg" />
-                <span className="hidden sm:inline">Video</span>
-              </button>
-            )}
-            
-            <button 
-              onClick={handleWhatsAppShare} 
-              className="flex items-center justify-center gap-1.5 px-3 h-10 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors shrink-0 text-sm font-bold outline-none focus-visible:ring-2 focus-visible:ring-green-400"
-              aria-label="Share on WhatsApp"
-              title="Share on WhatsApp"
-            >
-              <FaWhatsapp className="text-[#25D366] text-lg" />
-              <span className="hidden sm:inline">Share</span>
-            </button>
+          {/* 🌟 Big Bulb Button (Primary Prominent Action) */}
+          <button 
+            onClick={toggleWakeLock} 
+            className={`relative z-10 flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full transition-colors shrink-0 shadow-sm border ${wakeLockActive ? 'bg-yellow-100 border-yellow-200 text-yellow-600' : 'bg-gray-50 border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
+            aria-label={wakeLockActive ? "Disable Keep Screen On" : "Enable Keep Screen On"}
+            title={wakeLockActive ? "Disable Keep Screen On" : "Enable Keep Screen On"}
+          >
+            {wakeLockActive ? <FaLightbulb className="text-2xl sm:text-3xl" /> : <FaRegLightbulb className="text-2xl sm:text-3xl" />}
+          </button>
+          
+          <div className="relative z-10 w-[1px] h-6 bg-gray-200 shrink-0 mx-0.5"></div>
+          
+          {/* 🌟 A- / A+ Controls (Integrated inside the floating bar) */}
+          <div className="relative z-10 flex items-center bg-gray-50 border border-gray-100 rounded-xl px-1 h-9 sm:h-10 shrink-0">
+            <button onClick={() => { triggerHaptic(); setFontSize(prev => Math.max(14, prev - 2)); }} className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-gray-600 hover:text-black font-bold font-serif text-sm">A-</button>
+            <div className="w-px h-4 bg-gray-200"></div>
+            <button onClick={() => { triggerHaptic(); setFontSize(prev => Math.min(40, prev + 2)); }} className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-gray-600 hover:text-black font-bold font-serif text-sm">A+</button>
           </div>
+
+          <div className="relative z-10 w-[1px] h-6 bg-gray-200 shrink-0 mx-0.5"></div>
+          
+          {/* 🌟 Secondary Small Icons */}
+          <div className="relative z-10 shrink-0 text-gray-600 hover:text-gray-900">
+            <SaveToSangrahButton slug={slug} title={title} />
+          </div>
+          
+          {videoEmbedUrl && (
+            <button 
+              onClick={scrollToVideo} 
+              className="relative z-10 flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+              aria-label="Watch Video"
+              title="Watch Video"
+            >
+              <FaYoutube className="text-lg sm:text-xl text-red-500" />
+            </button>
+          )}
+          
+          <button 
+            onClick={handleWhatsAppShare} 
+            className="relative z-10 flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-green-400"
+            aria-label="Share on WhatsApp"
+            title="Share on WhatsApp"
+          >
+            <FaWhatsapp className="text-lg sm:text-xl text-[#25D366]" />
+          </button>
+
+          <div className="relative z-10 shrink-0 ml-0.5">
+            <PushPrompt />
+          </div>
+
         </div>
       </div>
 
