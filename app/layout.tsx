@@ -17,6 +17,7 @@ import AnalyticsWrapper from '@/components/AnalyticsWrapper';
 import NextTopLoader from 'nextjs-toploader'; 
 import dynamic from 'next/dynamic';
 import ScrollToTop from '@/components/ScrollToTop';
+import ScrollRecovery from '@/components/ScrollRecovery';
 
 // 🌟 MICROSOFT CLARITY
 import ClarityAnalytics from '@/components/ClarityAnalytics';
@@ -127,7 +128,7 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${hindFont.variable} antialiased bg-orange-50/30 dark:bg-[#0c0804] flex flex-col min-h-screen selection:bg-orange-500 selection:text-white transition-colors duration-300`}
       >
         <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false}>
-          
+          <ScrollRecovery />
           <ClarityAnalytics />
 
           <ScrollToTop />

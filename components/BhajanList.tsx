@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, memo, Fragment } from 'react';
+import { useState, useEffect, memo, Fragment, useRef } from 'react';
 import { supabase } from '../utils/supabase';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { 
   FaArrowRight, FaArrowLeft, FaExclamationTriangle, 
   FaPlay, FaMusic, FaCompass, FaHeart, FaRegHeart 
@@ -42,7 +43,7 @@ const getYouTubeId = (url?: string) => {
 };
 
 // ==========================================
-// 🌟 OPTIMIZED BHAJAN CARD WITH DIRECT SAVE
+// 🌟 OPTIMIZED BHAJAN CARD WITH RESPONSIVE SAVE
 // ==========================================
 const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, index: number, itemsPerPage: number }) => {
   const ytId = getYouTubeId(bhajan.video_embed_url);
@@ -102,14 +103,14 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
   return (
     <ScrollReveal delay={(index % itemsPerPage) * 0.05} yOffset={30}>
       <Link href={`/bhajan/${bhajan.slug}`} className="block">
-        <div className="group bg-white dark:bg-[#0c0804] p-4 md:p-5 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-orange-200 dark:hover:border-orange-900/50 transition-all duration-300 flex flex-col sm:flex-row sm:items-center gap-5 md:gap-6 relative overflow-hidden hover:-translate-y-1">
+        <div className="group bg-white dark:bg-[#0c0804] p-4 md:p-5 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-orange-200 dark:hover:border-orange-900/50 transition-all duration-300 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 md:gap-6 relative overflow-hidden hover:-translate-y-1">
           
-          {/* 🌟 TOP RIGHT DIRECT SAVE BUTTON (Without triggering page navigation) */}
+          {/* 🌟 DESKTOP / TABLET ONLY TOP-RIGHT SAVE BUTTON (sm:flex hidden on mobile) */}
           <button
             onClick={handleDirectSave}
             title={isSaved ? "संग्रह से हटाएं" : "संग्रह में जोड़ें"}
             aria-label="Save Bhajan to Sangrah"
-            className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-white/90 dark:bg-black/80 hover:bg-white dark:hover:bg-black text-gray-600 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 border border-gray-100 dark:border-white/10 shadow-sm backdrop-blur-md flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
+            className="hidden sm:flex absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-white/90 dark:bg-black/80 hover:bg-white dark:hover:bg-black text-gray-600 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 border border-gray-100 dark:border-white/10 shadow-sm backdrop-blur-md items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
           >
             {isSaved ? (
               <FaHeart className="text-red-500 text-lg animate-bounce" />
@@ -159,14 +160,30 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
           )}
 
           {/* CONTENT AREA */}
-          <div className="flex flex-col flex-1 min-w-0 justify-center py-1 pr-10 sm:pr-8">
-            <div className="flex flex-col-reverse md:flex-col gap-1 mb-2.5">
-              <h3 className="text-xl md:text-[22px] font-black font-hindi text-gray-900 dark:text-orange-50 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors leading-tight line-clamp-2">
-                {bhajan.title_hindi}
-              </h3>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 line-clamp-1">
-                {bhajan.title_hinglish}
-              </p>
+          <div className="flex flex-col flex-1 min-w-0 justify-center py-1 sm:pr-10">
+            <div className="flex items-start justify-between gap-2 mb-2.5">
+              <div className="flex flex-col-reverse md:flex-col gap-1 flex-1 min-w-0">
+                <h3 className="text-xl md:text-[22px] font-black font-hindi text-gray-900 dark:text-orange-50 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors leading-tight line-clamp-2">
+                  {bhajan.title_hindi}
+                </h3>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 line-clamp-1">
+                  {bhajan.title_hinglish}
+                </p>
+              </div>
+
+              {/* 🌟 MOBILE ONLY SAVE BUTTON (Next to title, NOT over image!) */}
+              <button
+                onClick={handleDirectSave}
+                title={isSaved ? "संग्रह से हटाएं" : "संग्रह में जोड़ें"}
+                aria-label="Save Bhajan to Sangrah"
+                className="sm:hidden flex shrink-0 w-9 h-9 rounded-full bg-orange-50/80 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:text-red-500 border border-orange-100/50 dark:border-white/10 items-center justify-center active:scale-95 -mt-1"
+              >
+                {isSaved ? (
+                  <FaHeart className="text-red-500 text-base animate-bounce" />
+                ) : (
+                  <FaRegHeart className="text-base" />
+                )}
+              </button>
             </div>
             
             <p className="text-sm text-gray-600 dark:text-gray-300 italic font-hindi line-clamp-1 border-l-2 border-orange-200 dark:border-orange-900/50 pl-3 leading-relaxed mb-4">
@@ -202,7 +219,7 @@ BhajanCard.displayName = "BhajanCard";
 
 
 // ==========================================
-// MAIN BHAJAN LIST COMPONENT
+// MAIN BHAJAN LIST COMPONENT (WITH SESSION CACHE)
 // ==========================================
 export default function BhajanList({ 
   initialBhajans, 
@@ -214,19 +231,53 @@ export default function BhajanList({
   totalItems,
   itemsPerPage = 10
 }: Props) {
+  const pathname = usePathname();
   const [bhajans, setBhajans] = useState<Bhajan[]>(initialBhajans);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   
   const [loadMorePage, setLoadMorePage] = useState(1);
   const [networkError, setNetworkError] = useState<string | null>(null);
+  const isInitialized = useRef(false);
 
+  // 🌟 1. SMART SESSION CACHE RESTORE (BACK-NAVIGATION FIX)
   useEffect(() => {
+    const cacheKey = `bhajan_cache_${pathname}`;
+    const savedCache = sessionStorage.getItem(cacheKey);
+
+    if (savedCache && !isInitialized.current) {
+      try {
+        const { cachedBhajans, cachedPage, cachedHasMore } = JSON.parse(savedCache);
+        if (cachedBhajans && cachedBhajans.length >= initialBhajans.length) {
+          setBhajans(cachedBhajans);
+          setLoadMorePage(cachedPage);
+          setHasMore(cachedHasMore);
+          isInitialized.current = true;
+          return;
+        }
+      } catch (e) {
+        console.error("Cache read error:", e);
+      }
+    }
+
     setBhajans(initialBhajans);
     setLoadMorePage(1); 
     setHasMore(true);
     setNetworkError(null);
-  }, [initialBhajans, categoryId, deityId]); 
+    isInitialized.current = true;
+  }, [initialBhajans, categoryId, deityId, pathname]);
+
+  // 🌟 2. SAVE STATE TO SESSION STORAGE ON UPDATE
+  useEffect(() => {
+    if (isInitialized.current && bhajans.length > 0) {
+      const cacheKey = `bhajan_cache_${pathname}`;
+      sessionStorage.setItem(cacheKey, JSON.stringify({
+        cachedBhajans: bhajans,
+        cachedPage: loadMorePage,
+        cachedHasMore: hasMore
+      }));
+    }
+  }, [bhajans, loadMorePage, hasMore, pathname]);
 
   const isSeoPaginated = !!((categorySlug || deitySlug) && currentPage && totalItems);
   const totalPages = isSeoPaginated ? Math.ceil(totalItems! / itemsPerPage) : 0;
@@ -281,7 +332,11 @@ export default function BhajanList({
       if (fetchedData) {
         const validData = fetchedData.filter(item => item !== null);
 
-        if (validData.length < itemsPerPage) setHasMore(false);
+        let moreAvailable = true;
+        if (validData.length < itemsPerPage) {
+          setHasMore(false);
+          moreAvailable = false;
+        }
 
         setBhajans((prev) => {
           const uniqueNewBhajans = validData.filter(
