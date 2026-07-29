@@ -25,14 +25,17 @@ interface LyricsViewerProps {
 }
 
 const SCRIPT_OPTIONS = [
-  { id: 'devanagari', label: 'हिंदी (Hindi)' },
+  { id: 'devanagari', label: 'हिंदी / मराठी (Devanagari)' },
   { id: 'hinglish', label: 'English' },
+  { id: 'gurmukhi', label: 'ਪੰਜਾਬੀ (Punjabi)' },       // 🌟 NEW
   { id: 'gujarati', label: 'ગુજરાતી (Gujarati)' },
   { id: 'bengali', label: 'বাংলা (Bengali)' },
-  { id: 'kannada', label: 'ಕನ್ನಡ (Kannada)' },
+  { id: 'assamese', label: 'অসমীয়া (Assamese)' },     // 🌟 NEW
+  { id: 'oriya', label: 'ଓଡ଼ିଆ (Odia)' },
+  { id: 'tamil', label: 'தமிழ் (Tamil)' },           // 🌟 NEW
   { id: 'telugu', label: 'తెలుగు (Telugu)' },
-  { id: 'malayalam', label: 'മലയാളം (Malayalam)' },
-  { id: 'oriya', label: 'ଓଡ଼ିଆ (Odia)' }
+  { id: 'kannada', label: 'ಕನ್ನಡ (Kannada)' },
+  { id: 'malayalam', label: 'മലയാളം (Malayalam)' }
 ];
 
 const FONT_OPTIONS = [
