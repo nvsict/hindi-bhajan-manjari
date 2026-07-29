@@ -3,7 +3,10 @@
 import { useState, useEffect, memo, Fragment } from 'react';
 import { supabase } from '../utils/supabase';
 import Link from 'next/link';
-import { FaArrowRight, FaArrowLeft, FaExclamationTriangle, FaPlay, FaMusic, FaCompass } from 'react-icons/fa';
+import { 
+  FaArrowRight, FaArrowLeft, FaExclamationTriangle, 
+  FaPlay, FaMusic, FaCompass, FaHeart, FaRegHeart 
+} from 'react-icons/fa';
 import ScrollReveal from './ScrollReveal'; 
 import Image from 'next/image';
 
@@ -24,7 +27,7 @@ interface Props {
   initialBhajans: Bhajan[];
   categoryId?: string | number; 
   categorySlug?: string;
-  deityId?: string | number;    
+  deityId?: string | number;     
   deitySlug?: string;           
   currentPage?: number;
   totalItems?: number;
@@ -39,24 +42,82 @@ const getYouTubeId = (url?: string) => {
 };
 
 // ==========================================
-// 🌟 OPTIMIZED BHAJAN CARD
+// 🌟 OPTIMIZED BHAJAN CARD WITH DIRECT SAVE
 // ==========================================
 const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, index: number, itemsPerPage: number }) => {
   const ytId = getYouTubeId(bhajan.video_embed_url);
   const thumbnailUrl = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
 
+  // 🌟 Direct Save State & Logic
+  const [isSaved, setIsSaved] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('my_saved_bhajans') || '[]');
+      setIsSaved(saved.some((item: any) => item.slug === bhajan.slug));
+    } catch (e) {
+      console.error('Error reading localStorage', e);
+    }
+  }, [bhajan.slug]);
+
+  const handleDirectSave = (e: React.MouseEvent) => {
+    e.preventDefault();  // 🌟 रोक देता है Link को खुलने से
+    e.stopPropagation(); // 🌟 रोक देता है Parent Click Event को
+
+    try {
+      let saved = JSON.parse(localStorage.getItem('my_saved_bhajans') || '[]');
+      const exists = saved.some((item: any) => item.slug === bhajan.slug);
+
+      if (exists) {
+        saved = saved.filter((item: any) => item.slug !== bhajan.slug);
+        setIsSaved(false);
+      } else {
+        saved.push({
+          slug: bhajan.slug,
+          title: bhajan.title_hindi,
+          title_hinglish: bhajan.title_hinglish,
+          savedAt: Date.now()
+        });
+        setIsSaved(true);
+      }
+
+      localStorage.setItem('my_saved_bhajans', JSON.stringify(saved));
+      window.dispatchEvent(new Event('storage')); // ताकि हेडर/नेवबार का काउंट भी अपडेट हो जाए
+
+      if (typeof window !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(30);
+      }
+    } catch (err) {
+      console.error('Failed to save bhajan', err);
+    }
+  };
+
   // 🌟 SMART LYRICS PREVIEW EXTRACTOR
   const getBriefLyrics = (lyrics?: string) => {
-    if (!lyrics) return "श्री हरि स्मरण... संपूर्ण बोल अंदर पढ़ें";
+    if (!lyrics) return "श्री हरि स्मरण... संपूर्ण बोल अंदर पढ़ें";
     const lines = lyrics.split('\n').map(l => l.trim()).filter(Boolean);
-    return lines.length > 0 ? lines[0] : "संपूर्ण बोल अंदर पढ़ें";
+    return lines.length > 0 ? lines[0] : "संपूर्ण बोल अंदर पढ़ें";
   };
 
   return (
     <ScrollReveal delay={(index % itemsPerPage) * 0.05} yOffset={30}>
-      <Link href={`/bhajan/${bhajan.slug}`}>
+      <Link href={`/bhajan/${bhajan.slug}`} className="block">
         <div className="group bg-white dark:bg-[#0c0804] p-4 md:p-5 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-orange-200 dark:hover:border-orange-900/50 transition-all duration-300 flex flex-col sm:flex-row sm:items-center gap-5 md:gap-6 relative overflow-hidden hover:-translate-y-1">
           
+          {/* 🌟 TOP RIGHT DIRECT SAVE BUTTON (Without triggering page navigation) */}
+          <button
+            onClick={handleDirectSave}
+            title={isSaved ? "संग्रह से हटाएं" : "संग्रह में जोड़ें"}
+            aria-label="Save Bhajan to Sangrah"
+            className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-white/90 dark:bg-black/80 hover:bg-white dark:hover:bg-black text-gray-600 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 border border-gray-100 dark:border-white/10 shadow-sm backdrop-blur-md flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
+          >
+            {isSaved ? (
+              <FaHeart className="text-red-500 text-lg animate-bounce" />
+            ) : (
+              <FaRegHeart className="text-lg" />
+            )}
+          </button>
+
           {/* YOUTUBE THUMBNAIL */}
           {thumbnailUrl ? (
             <div className="relative w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl overflow-hidden bg-gray-900 group-hover:shadow-md transition-all border border-gray-100/50 dark:border-white/5">
@@ -90,15 +151,15 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
                     {bhajan.deity?.name_hinglish || 'Bhajan'}
                   </span>
                 </div>
-                 <span className="absolute bottom-2 md:bottom-2.5 right-3 md:right-4 text-2xl md:text-3xl font-black text-white/5 uppercase tracking-tighter leading-none font-serif truncate max-w-[80%]">
-                   {bhajan.deity?.name_hinglish || 'BHANJANI'}
-                 </span>
+                <span className="absolute bottom-2 md:bottom-2.5 right-3 md:right-4 text-2xl md:text-3xl font-black text-white/5 uppercase tracking-tighter leading-none font-serif truncate max-w-[80%]">
+                  {bhajan.deity?.name_hinglish || 'BHANJANI'}
+                </span>
               </div>
             </div>
           )}
 
           {/* CONTENT AREA */}
-          <div className="flex flex-col flex-1 min-w-0 justify-center py-1">
+          <div className="flex flex-col flex-1 min-w-0 justify-center py-1 pr-10 sm:pr-8">
             <div className="flex flex-col-reverse md:flex-col gap-1 mb-2.5">
               <h3 className="text-xl md:text-[22px] font-black font-hindi text-gray-900 dark:text-orange-50 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors leading-tight line-clamp-2">
                 {bhajan.title_hindi}
@@ -147,8 +208,8 @@ export default function BhajanList({
   initialBhajans, 
   categoryId,
   categorySlug,
-  deityId,       
-  deitySlug,     
+  deityId,      
+  deitySlug,    
   currentPage,
   totalItems,
   itemsPerPage = 10
@@ -183,7 +244,6 @@ export default function BhajanList({
       let fetchedData = null;
 
       if (categoryId) {
-        // 🌟 FIX: JSON.stringify added here to prevent "invalid input syntax for type json" crash
         const { data, error } = await supabase
           .from('mv_bhajan_details')
           .select(`
