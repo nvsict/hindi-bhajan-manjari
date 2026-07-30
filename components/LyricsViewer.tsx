@@ -25,7 +25,7 @@ interface LyricsViewerProps {
 }
 
 const SCRIPT_OPTIONS = [
-  { id: 'devanagari', label: 'हिंदी / मराठी (Devanagari)' },
+  { id: 'devanagari', label: 'हिंदी (Devanagari)' },
   { id: 'hinglish', label: 'English' },
   { id: 'gurmukhi', label: 'ਪੰਜਾਬੀ (Punjabi)' },       // 🌟 NEW
   { id: 'gujarati', label: 'ગુજરાતી (Gujarati)' },
