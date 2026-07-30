@@ -3,12 +3,16 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaUserCircle, FaMusic, FaShareAlt, FaDownload } from "react-icons/fa";
+import { 
+  FaUserCircle, FaMusic, FaShareAlt, 
+  FaDownload, FaHeart, FaRegHeart 
+} from "react-icons/fa";
 
 interface Cover {
   id: string;
   user_name: string;
   audio_url: string;
+  likes_count?: number; // 🌟 ADDED: Like count support
   created_at: string;
 }
 
@@ -20,6 +24,10 @@ export default function CommunityWall({ bhajanId }: Props) {
   const [covers, setCovers] = useState<Cover[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
+  
+  // 🌟 ADDED: State to track which cover IDs are liked in this browser
+  const [likedCoverIds, setLikedCoverIds] = useState<string[]>([]);
+  const [processingLikeId, setProcessingLikeId] = useState<string | null>(null);
 
   // 1. Initial Fetch
   const fetchCovers = async () => {
@@ -41,6 +49,14 @@ export default function CommunityWall({ bhajanId }: Props) {
 
   useEffect(() => {
     fetchCovers();
+
+    // 🌟 Load liked covers from localStorage on mount
+    try {
+      const savedLikes = JSON.parse(localStorage.getItem('liked_bhajan_covers') || '[]');
+      setLikedCoverIds(savedLikes);
+    } catch (err) {
+      console.error("Error reading localStorage:", err);
+    }
 
     // The Bulletproof Fallback for newly published covers (Local Event)
     const handleNewCover = () => {
@@ -70,9 +86,79 @@ export default function CommunityWall({ bhajanId }: Props) {
     }
   }, [covers]);
 
+  // 🌟 THE LIKE TOGGLE HANDLER (Optimistic UI + Safe Supabase RPC)
+  const handleLikeToggle = async (cover: Cover) => {
+    if (processingLikeId === cover.id) return; // Prevent double-click spam
+    setProcessingLikeId(cover.id);
+
+    const isAlreadyLiked = likedCoverIds.includes(cover.id);
+    const nextLikedState = !isAlreadyLiked;
+
+    // 🌟 A: Immediate Optimistic UI Update
+    const updatedLikedIds = nextLikedState
+      ? [...likedCoverIds, cover.id]
+      : likedCoverIds.filter((id) => id !== cover.id);
+
+    setLikedCoverIds(updatedLikedIds);
+
+    setCovers((prevCovers) =>
+      prevCovers.map((item) => {
+        if (item.id === cover.id) {
+          const currentLikes = item.likes_count || 0;
+          return {
+            ...item,
+            likes_count: nextLikedState
+              ? currentLikes + 1
+              : Math.max(0, currentLikes - 1),
+          };
+        }
+        return item;
+      })
+    );
+
+    // 🌟 B: Save to browser LocalStorage
+    try {
+      localStorage.setItem('liked_bhajan_covers', JSON.stringify(updatedLikedIds));
+      if (typeof window !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(30);
+      }
+    } catch (err) {
+      console.error("LocalStorage save error:", err);
+    }
+
+    // 🌟 C: Background call to safe Supabase RPC function
+    try {
+      const { error } = await supabase.rpc("toggle_cover_like", {
+        cover_id: cover.id,
+        increment: nextLikedState,
+      });
+
+      if (error) throw error;
+    } catch (err) {
+      console.error("Supabase like toggle error:", err);
+      // Revert UI if database call fails
+      setLikedCoverIds(likedCoverIds);
+      setCovers((prevCovers) =>
+        prevCovers.map((item) => {
+          if (item.id === cover.id) {
+            const currentLikes = item.likes_count || 0;
+            return {
+              ...item,
+              likes_count: !nextLikedState
+                ? currentLikes + 1
+                : Math.max(0, currentLikes - 1),
+            };
+          }
+          return item;
+        })
+      );
+    } finally {
+      setProcessingLikeId(null);
+    }
+  };
+
   // 🌟 THE SHARE HANDLER
   const handleShare = async (cover: Cover) => {
-    // Generate a unique URL for this specific audio cover
     const shareUrl = `${window.location.origin}${window.location.pathname}#cover-${cover.id}`;
     const shareData = {
       title: `${cover.user_name} - Bhajan Cover`,
@@ -87,7 +173,6 @@ export default function CommunityWall({ bhajanId }: Props) {
         console.error("Error sharing:", err);
       }
     } else {
-      // Fallback for browsers that don't support Web Share API
       navigator.clipboard.writeText(shareUrl);
       alert("Link copied to clipboard!");
     }
@@ -97,14 +182,12 @@ export default function CommunityWall({ bhajanId }: Props) {
   const handleDownload = async (cover: Cover) => {
     setIsDownloading(cover.id);
     try {
-      // Fetch the file as a blob to force download instead of playing in a new tab
       const response = await fetch(cover.audio_url);
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       
       const link = document.createElement('a');
       link.href = blobUrl;
-      // Provide a clean file name
       link.download = `${cover.user_name.replace(/\s+/g, '_')}_bhajan_cover.mp3`;
       document.body.appendChild(link);
       link.click();
@@ -112,7 +195,6 @@ export default function CommunityWall({ bhajanId }: Props) {
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error("Error downloading file:", err);
-      // Fallback: just open the URL
       window.open(cover.audio_url, '_blank');
     } finally {
       setIsDownloading(null);
@@ -148,6 +230,9 @@ export default function CommunityWall({ bhajanId }: Props) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <AnimatePresence>
           {covers.map((cover) => {
+            const isLiked = likedCoverIds.includes(cover.id);
+            const likesCount = cover.likes_count || 0;
+
             return (
               <motion.div
                 key={cover.id}
@@ -171,8 +256,30 @@ export default function CommunityWall({ bhajanId }: Props) {
                     </div>
                   </div>
                   
-                  {/* 🌟 ACTION BUTTONS (Share & Download) */}
-                  <div className="flex items-center gap-2">
+                  {/* 🌟 ACTION BUTTONS (Like, Download & Share) */}
+                  <div className="flex items-center gap-1.5">
+                    
+                    {/* 🌟 LIKE BUTTON */}
+                    <button
+                      onClick={() => handleLikeToggle(cover)}
+                      disabled={processingLikeId === cover.id}
+                      title={isLiked ? "Unlike Cover" : "Like Cover"}
+                      aria-label="Like this audio cover"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-orange-50/80 dark:bg-white/5 hover:bg-orange-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-all active:scale-95 select-none"
+                    >
+                      {isLiked ? (
+                        <FaHeart className="text-red-500 text-sm animate-bounce" />
+                      ) : (
+                        <FaRegHeart className="text-sm text-gray-400 hover:text-red-500 transition-colors" />
+                      )}
+                      {likesCount > 0 && (
+                        <span className="text-xs font-bold font-mono tracking-tight text-gray-700 dark:text-gray-300">
+                          {likesCount}
+                        </span>
+                      )}
+                    </button>
+
+                    {/* 🌟 DOWNLOAD BUTTON */}
                     <button 
                       onClick={() => handleDownload(cover)}
                       disabled={isDownloading === cover.id}
@@ -185,6 +292,8 @@ export default function CommunityWall({ bhajanId }: Props) {
                         <FaDownload className="text-sm" />
                       )}
                     </button>
+
+                    {/* 🌟 SHARE BUTTON */}
                     <button 
                       onClick={() => handleShare(cover)}
                       title="Share Audio"
