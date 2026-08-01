@@ -1,9 +1,23 @@
-import { NextResponse } from 'next/server'; // 🌟 next/val को next/server से बदल दिया गया है
+import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// 🌟 FIX 1: सेफ एनवायरनमेंट चेक और Fallback (500 क्रैश से बचाने के लिए)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error("❌ [API /supporters/update] Missing Supabase URL or Key in environment variables.");
+}
+
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  supabaseUrl || '',
+  supabaseKey || '',
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    }
+  }
 );
 
 export async function POST(req: Request) {
@@ -12,29 +26,44 @@ export async function POST(req: Request) {
     const { paymentId, name, message, photo_url, is_anonymous } = body;
 
     if (!paymentId) {
-      return NextResponse.json({ error: "Payment ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Payment ID is required" }, 
+        { status: 400 }
+      );
     }
 
-    // 🌟 Update the existing row in 'supporters' table
+    // 🌟 FIX 2: डेटा क्लीनिंग ताकि undefined वैल्यूज से Supabase एरर न दे
+    const updatePayload: Record<string, any> = {
+      status: 'completed',
+    };
+
+    if (name !== undefined) updatePayload.name = name;
+    if (message !== undefined) updatePayload.message = message;
+    if (photo_url !== undefined) updatePayload.photo_url = photo_url;
+    if (is_anonymous !== undefined) updatePayload.is_anonymous = Boolean(is_anonymous);
+
+    // 🌟 FIX 3: Supabase Update Query
     const { data, error } = await supabase
       .from('supporters')
-      .update({
-        name: name,
-        message: message,
-        photo_url: photo_url,
-        is_anonymous: is_anonymous,
-        status: 'completed' 
-      })
-      .eq('razorpay_payment_id', paymentId);
+      .update(updatePayload)
+      .eq('razorpay_payment_id', paymentId)
+      .select();
 
     if (error) {
-      console.error("Supabase update error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("❌ [API /supporters/update] Supabase error:", error.message, error.details);
+      return NextResponse.json(
+        { error: error.message || "Failed to update database" }, 
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true, data });
 
-  } catch (error) {
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (error: any) {
+    console.error("❌ [API /supporters/update] Internal Server Error:", error.message || error);
+    return NextResponse.json(
+      { error: error.message || "Internal Server Error" }, 
+      { status: 500 }
+    );
   }
 }
