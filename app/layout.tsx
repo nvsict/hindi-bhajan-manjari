@@ -26,9 +26,6 @@ import ClarityAnalytics from '@/components/ClarityAnalytics';
 import PwaRegistration from '@/components/PwaRegistration';
 import { ThemeProvider } from '@/components/ThemeProvider';
 
-// 🌟 SMART SITE ASSISTANT
-import SiteAssistant from '@/components/SiteAssistant';
-
 // 🌟 NEW: CAMPAIGN MODAL (GLOBAL POPUP)
 import CampaignModal from '@/components/CampaignModal';
 
@@ -160,9 +157,8 @@ export default async function RootLayout({
           {/* 🌟 PWA Registration */}
           <PwaRegistration />
 
-          {/* 🌟 GLOBAL MODAL & ASSISTANT */}
+          {/* 🌟 GLOBAL MODAL */}
           <CampaignModal />
-          <SiteAssistant />
           <DivinePeek />
         </ThemeProvider>
       </body>

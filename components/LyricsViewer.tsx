@@ -420,7 +420,11 @@ export default function LyricsViewer({
 
         {/* Right Side: PDF ONLY (A-/A+ removed from here) */}
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 border-gray-100 pt-2 sm:pt-0">
-          <PdfDownloadButton titleHindi={title} titleHinglish={cleanHinglishTitle} lyricsHindi={displayLyrics} />
+          <PdfDownloadButton 
+            slug={slug} 
+            titleHindi={title} 
+            currentScript={activeScript as any} 
+          />
         </div>
       </div>
 
