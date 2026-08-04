@@ -16,23 +16,37 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
+          port: ${{ secrets.VPS_PORT }}
           script: |
             set -e
 
-            cd /root/hindi-bhajan-manjari
+            echo "=============================="
+            echo "Deploying Hindi Bhajan Manjari"
+            echo "=============================="
 
+            cd ~/hindi-bhajan-manjari
+
+            echo "Fetching latest code..."
             git fetch origin
-            git checkout main
-            git reset --hard origin/main
 
+            echo "Cleaning local repository..."
+            git reset --hard origin/main
+            git clean -fd
+
+            echo "Installing dependencies..."
             npm ci
 
+            echo "Removing old Next.js build..."
             rm -rf .next
 
+            echo "Building application..."
             npm run build
 
+            echo "Restarting PM2..."
             pm2 reload bhajan-manjari --update-env
+
+            echo "Saving PM2..."
             pm2 save
 
+            echo "Deployment completed!"
             pm2 status
