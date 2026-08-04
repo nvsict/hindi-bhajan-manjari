@@ -248,11 +248,6 @@ export default function Home() {
           {/* 2. Visual Hook: Who to pray to? */}
           <DeityBrowse /> 
 
-          {/* 🌟 यहाँ मैंने 'SupportersWall' को इन्सर्ट किया है */}
-          <div className="mt-12 md:mt-16">
-            <SupportersWall />
-          </div>
-
           {/* ==========================================
               🌟 2.5 PREMIUM HOMEPAGE CAROUSEL
               ========================================== */}
@@ -281,9 +276,13 @@ export default function Home() {
             <PopularCategories />
           </div>
 
-
           <div className="mt-8 md:mt-12">
             <TrendingArtists />
+          </div>
+
+          {/* 🌟 यहाँ 'SupportersWall' को Popular Artists और सनातन ज्ञान के बीच में रखा गया है */}
+          <div className="mt-16">
+            <SupportersWall />
           </div>
 
           {/* 5. Deep Reading Anchor */}
