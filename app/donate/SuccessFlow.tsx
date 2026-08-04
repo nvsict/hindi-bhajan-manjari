@@ -11,34 +11,86 @@ interface SuccessFlowProps {
 export default function SuccessFlow({ paymentId, amount }: SuccessFlowProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [donorType, setDonorType] = useState<'secret' | 'public' | null>(null);
-  
-  // State keys matches your Supabase table schema exactly
-  const [formData, setFormData] = useState({ name: '', message: '', photo_url: '' });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 🌟 Handle Image Selection and Convert to Base64
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    message: '',
+    photo_url: '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // 🌟 Client-Side Image Compression (Shrinks Base64 to ~40KB-80KB to prevent 500 Server Errors)
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 400;
+          const MAX_HEIGHT = 400;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          // Convert to compressed JPEG base64 (75% quality)
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+          resolve(compressedBase64);
+        };
+        img.onerror = (error) => reject(error);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  // 🌟 Handle Image Selection with Automatic Compression
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Limit file size to 2MB to prevent database bloat
-    if (file.size > 2 * 1024 * 1024) {
-      alert("कृपया 2MB से छोटी फोटो चुनें।");
+    if (!file.type.startsWith('image/')) {
+      alert('कृपया केवल इमेज फ़ाइल अपलोड करें।');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      // Set the base64 string as the photo_url
-      setFormData({ ...formData, photo_url: reader.result as string });
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressedBase64 = await compressImage(file);
+      setFormData((prev) => ({ ...prev, photo_url: compressedBase64 }));
+    } catch (err) {
+      console.error('Image compression error:', err);
+      alert('फोटो प्रोसेस करने में समस्या आई, कृपया दूसरी फोटो चुनें।');
+    }
   };
 
-  const handleTypeSelection = (type: 'secret' | 'public') => {
+  const handleTypeSelection = async (type: 'secret' | 'public') => {
     setDonorType(type);
+    setErrorMessage(null);
+
     if (type === 'secret') {
-      submitToDatabase({ ...formData, name: 'गुप्त दानकर्ता', is_anonymous: true });
+      await submitToDatabase({
+        ...formData,
+        name: 'गुप्त दानकर्ता',
+        is_anonymous: true,
+      });
     } else {
       setStep(2);
     }
@@ -46,25 +98,47 @@ export default function SuccessFlow({ paymentId, amount }: SuccessFlowProps) {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
     await submitToDatabase({ ...formData, is_anonymous: false });
   };
 
+  // 🌟 Multi-Key Resilient API Submission
   const submitToDatabase = async (data: any) => {
     setIsSubmitting(true);
+    setErrorMessage(null);
+
+    // Provide multiple key variations so any backend schema matches successfully
+    const payload = {
+      paymentId: paymentId,
+      payment_id: paymentId,
+      razorpay_payment_id: paymentId,
+      amount: amount || 0,
+      name: data.name || (data.is_anonymous ? 'गुप्त दानकर्ता' : 'सहयोगी'),
+      message: data.message || '',
+      photo_url: data.photo_url || '',
+      is_anonymous: data.is_anonymous || false,
+    };
+
     try {
       const response = await fetch('/api/supporters/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId, ...data }),
+        body: JSON.stringify(payload),
       });
-      
-      if (!response.ok) throw new Error("Failed to update database");
-      
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Server responded with status ${response.status}: ${errorText}`
+        );
+      }
+
       setStep(3);
-    } catch (error) {
-      console.error("Failed to update donor info:", error);
-      alert("विवरण सेव करने में समस्या आई, लेकिन आपका पेमेंट सफल रहा।");
-      setStep(3);
+    } catch (error: any) {
+      console.error('Failed to update donor info:', error);
+      setErrorMessage(
+        'विवरण सेव करने में समस्या आई, लेकिन आपका पेमेंट सुरक्षित रूप से प्राप्त हो चुका है।'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -73,51 +147,126 @@ export default function SuccessFlow({ paymentId, amount }: SuccessFlowProps) {
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center p-4">
       <div className="max-w-xl w-full bg-white rounded-3xl shadow-xl border border-orange-100 overflow-hidden">
-        
         {/* Top Decorative Bar */}
         <div className="h-2 w-full bg-gradient-to-r from-orange-400 via-red-500 to-orange-400"></div>
 
-        <div className="p-8">
-          
+        <div className="p-6 sm:p-8">
+          {/* 🌟 Inline Graceful Error Banner */}
+          {errorMessage && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+              <p className="text-xs sm:text-sm font-semibold text-amber-800">
+                {errorMessage}
+              </p>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() =>
+                    submitToDatabase({
+                      ...formData,
+                      is_anonymous: donorType === 'secret',
+                    })
+                  }
+                  disabled={isSubmitting}
+                  className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-lg transition-all"
+                >
+                  पुनः प्रयास करें
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep(3)}
+                  className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold rounded-lg transition-all"
+                >
+                  प्रमाण पत्र देखें →
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* ==========================================
               STEP 1: CHOOSE DONOR TYPE 
               ========================================== */}
           {step === 1 && (
             <div className="text-center animate-in fade-in zoom-in duration-500">
               <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                <svg
+                  className="w-8 h-8"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="3"
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">सहयोग सफल रहा!</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                सहयोग सफल रहा!
+              </h1>
               <p className="text-gray-600 mb-6 font-medium">
-                ₹{amount || 0} का आपका दान सफलतापूर्वक प्राप्त हुआ। क्या आप अपना नाम हमारे 'सहयोगी पृष्ठ' पर दिखाना चाहेंगे?
+                ₹{amount || 0} का आपका दान सफलतापूर्वक प्राप्त हुआ। क्या आप
+                अपना नाम हमारे &apos;सहयोगी पृष्ठ&apos; पर दिखाना चाहेंगे?
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
-                <button 
+                <button
                   onClick={() => handleTypeSelection('public')}
                   className="p-6 border-2 border-orange-200 rounded-2xl hover:border-orange-500 hover:bg-orange-50 transition-all group text-left"
                 >
                   <div className="text-orange-600 mb-2">
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    <svg
+                      className="w-8 h-8"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                      />
+                    </svg>
                   </div>
-                  <h3 className="font-bold text-gray-900 text-lg">सार्वजनिक सहयोगी</h3>
-                  <p className="text-xs text-gray-500 mt-1">अपना नाम, चित्र और संदेश वेबसाइट पर प्रदर्शित करें।</p>
+                  <h3 className="font-bold text-gray-900 text-lg">
+                    सार्वजनिक सहयोगी
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    अपना नाम, चित्र और संदेश वेबसाइट पर प्रदर्शित करें।
+                  </p>
                 </button>
 
-                <button 
+                <button
                   onClick={() => handleTypeSelection('secret')}
+                  disabled={isSubmitting}
                   className="p-6 border-2 border-gray-200 rounded-2xl hover:border-gray-400 hover:bg-gray-50 transition-all group text-left relative overflow-hidden"
                 >
                   {isSubmitting && donorType === 'secret' && (
-                     <div className="absolute inset-0 bg-white/80 flex items-center justify-center"><div className="w-6 h-6 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div></div>
+                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                      <div className="w-6 h-6 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
                   )}
                   <div className="text-gray-500 mb-2">
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
+                    <svg
+                      className="w-8 h-8"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                      />
+                    </svg>
                   </div>
                   <h3 className="font-bold text-gray-900 text-lg">गुप्त दान</h3>
-                  <p className="text-xs text-gray-500 mt-1">पहचान गुप्त रखें। केवल प्रमाण पत्र प्राप्त करें।</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    पहचान गुप्त रखें। केवल प्रमाण पत्र प्राप्त करें।
+                  </p>
                 </button>
               </div>
             </div>
@@ -128,82 +277,115 @@ export default function SuccessFlow({ paymentId, amount }: SuccessFlowProps) {
               ========================================== */}
           {step === 2 && (
             <div className="animate-in slide-in-from-right-8 duration-500">
-              <h2 className="text-2xl font-bold text-gray-900 mb-1">सहयोगी विवरण</h2>
-              <p className="text-sm text-gray-500 mb-6">यह जानकारी हमारे 'सहयोगी पृष्ठ' पर प्रदर्शित की जाएगी।</p>
-              
+              <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                सहयोगी विवरण
+              </h2>
+              <p className="text-sm text-gray-500 mb-6">
+                यह जानकारी हमारे &apos;सहयोगी पृष्ठ&apos; पर प्रदर्शित की
+                जाएगी।
+              </p>
+
               <form onSubmit={handleFormSubmit} className="space-y-5">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">पूरा नाम</label>
-                  <input 
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                    पूरा नाम
+                  </label>
+                  <input
                     required
-                    type="text" 
+                    type="text"
                     placeholder="उदा. मोहित शर्मा"
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-gray-900"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">संदेश (वैकल्पिक)</label>
-                  <textarea 
-                    placeholder="सनातन धर्म के लिए कोई संदेश..."
-                    rows={3}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all resize-none"
-                    value={formData.message}
-                    onChange={(e) => setFormData({...formData, message: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                   />
                 </div>
 
-                {/* 🌟 Custom Image Upload UI */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">प्रोफाइल चित्र (वैकल्पिक)</label>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                    संदेश (वैकल्पिक)
+                  </label>
+                  <textarea
+                    placeholder="सनातन धर्म के लिए कोई संदेश..."
+                    rows={3}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all resize-none text-gray-900"
+                    value={formData.message}
+                    onChange={(e) =>
+                      setFormData({ ...formData, message: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* 🌟 Compressed Image Upload UI */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
+                    प्रोफाइल चित्र (वैकल्पिक)
+                  </label>
                   <div className="flex items-center gap-4">
-                    {/* Preview Circle */}
-                    <div className="relative w-16 h-16 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden">
+                    <div className="relative w-16 h-16 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden shrink-0">
                       {formData.photo_url ? (
-                        <img src={formData.photo_url} alt="Preview" className="w-full h-full object-cover" />
+                        <img
+                          src={formData.photo_url}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
-                        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        <svg
+                          className="w-6 h-6 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
                         </svg>
                       )}
                     </div>
-                    
-                    {/* Upload Action */}
+
                     <div>
-                      <input 
-                        type="file" 
-                        id="photo-upload" 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={handleImageUpload} 
+                      <input
+                        type="file"
+                        id="photo-upload"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageUpload}
                       />
-                      <label 
-                        htmlFor="photo-upload" 
+                      <label
+                        htmlFor="photo-upload"
                         className="cursor-pointer text-sm font-bold text-orange-600 bg-orange-50 px-4 py-2 rounded-lg hover:bg-orange-100 transition-all inline-block"
                       >
                         फोटो चुनें
                       </label>
-                      <p className="text-xs text-gray-500 mt-1">अधिकतम साइज़: 2MB</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        स्वतः छोटा एवं ऑप्टिमाइज़ किया जाएगा
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 <div className="pt-4 flex gap-3">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="px-6 py-3 border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-50"
+                    className="px-6 py-3 border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-all"
                   >
                     पीछे
                   </button>
-                  <button 
+                  <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl py-3 flex justify-center items-center"
+                    className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl py-3 flex justify-center items-center transition-all"
                   >
-                    {isSubmitting ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'विवरण सुरक्षित करें'}
+                    {isSubmitting ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      'विवरण सुरक्षित करें'
+                    )}
                   </button>
                 </div>
               </form>
@@ -215,52 +397,84 @@ export default function SuccessFlow({ paymentId, amount }: SuccessFlowProps) {
               ========================================== */}
           {step === 3 && (
             <div className="text-center animate-in zoom-in duration-700">
-              <h2 className="text-xl font-bold text-gray-500 uppercase tracking-widest mb-6">आपका सम्मान पत्र</h2>
-              
-              <div className="relative p-1 bg-gradient-to-br from-orange-300 via-orange-100 to-orange-300 rounded-lg shadow-xl mb-8">
-                <div className="bg-white border-2 border-dashed border-orange-200 p-8 rounded-md relative overflow-hidden">
-                  
-                  <div className="absolute inset-0 flex items-center justify-center opacity-5 text-9xl pointer-events-none">ॐ</div>
+              <h2 className="text-xl font-bold text-gray-500 uppercase tracking-widest mb-6">
+                आपका सम्मान पत्र
+              </h2>
 
-                  <p className="text-orange-600 font-bold tracking-widest text-xs uppercase mb-4">प्रमाण पत्र</p>
-                  <h3 className="text-3xl font-bold text-gray-900 mb-6">
-                    {donorType === 'secret' ? 'गुप्त दानकर्ता' : formData.name}
+              <div className="relative p-1 bg-gradient-to-br from-orange-300 via-orange-100 to-orange-300 rounded-lg shadow-xl mb-8">
+                <div className="bg-white border-2 border-dashed border-orange-200 p-6 sm:p-8 rounded-md relative overflow-hidden">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-5 text-9xl pointer-events-none">
+                    ॐ
+                  </div>
+
+                  <p className="text-orange-600 font-bold tracking-widest text-xs uppercase mb-4">
+                    प्रमाण पत्र
+                  </p>
+                  <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">
+                    {donorType === 'secret'
+                      ? 'गुप्त दानकर्ता'
+                      : formData.name || 'सनातन सहयोगी'}
                   </h3>
-                  
+
                   <p className="text-gray-600 text-sm leading-relaxed mb-6 font-medium">
-                    सनातन धर्म और हिंदी भजन मंजरी के उद्देश्यों की पूर्ति हेतु 
-                    <span className="font-bold text-orange-600 mx-1">₹{amount || 0}</span> 
-                    का अमूल्य योगदान देने के लिए हम आपके अत्यंत आभारी हैं। ईश्वर आप पर कृपा बनाए रखें।
+                    सनातन धर्म और हिंदी भजन मंजरी के उद्देश्यों की पूर्ति हेतु
+                    <span className="font-bold text-orange-600 mx-1">
+                      ₹{amount || 0}
+                    </span>
+                    का अमूल्य योगदान देने के लिए हम आपके अत्यंत आभारी हैं। ईश्वर
+                    आप पर कृपा बनाए रखें।
                   </p>
 
                   <div className="flex justify-between items-end border-t border-gray-100 pt-4 mt-4">
                     <div className="text-left">
-                      <p className="text-xs text-gray-400 font-bold uppercase">Transaction ID</p>
-                      <p className="text-xs text-gray-800 font-mono">{paymentId.slice(0, 12)}...</p>
+                      <p className="text-xs text-gray-400 font-bold uppercase">
+                        Transaction ID
+                      </p>
+                      <p className="text-xs text-gray-800 font-mono">
+                        {paymentId.slice(0, 12)}...
+                      </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-gray-400 font-bold uppercase">Date</p>
-                      <p className="text-xs text-gray-800 font-mono">{new Date().toLocaleDateString('en-IN')}</p>
+                      <p className="text-xs text-gray-400 font-bold uppercase">
+                        Date
+                      </p>
+                      <p className="text-xs text-gray-800 font-mono">
+                        {new Date().toLocaleDateString('en-IN')}
+                      </p>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="flex gap-4">
-                <button 
+                <button
                   onClick={() => window.print()}
                   className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-all flex items-center justify-center gap-2"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
                   डाउनलोड
                 </button>
-                <Link href="/" className="flex-1 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition-all flex items-center justify-center">
+                <Link
+                  href="/"
+                  className="flex-1 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition-all flex items-center justify-center"
+                >
                   मुख्य पृष्ठ
                 </Link>
               </div>
             </div>
           )}
-
         </div>
       </div>
     </div>
