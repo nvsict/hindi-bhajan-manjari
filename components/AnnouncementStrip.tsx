@@ -1,22 +1,26 @@
 "use client";
 
 import Link from 'next/link';
-import { FaHeart, FaHandsPraying, FaStar } from 'react-icons/fa6';
+// 🌟 FaHeart को हटाकर FaBook आइकॉन जोड़ दिया गया है
+import { FaHandsPraying, FaStar, FaBook } from 'react-icons/fa6';
 
 export default function AnnouncementStrip() {
   const ANNOUNCEMENTS = [
+    // 🌟 1. नया ई-पुस्तिका (Publication) मैसेज
     {
-      text: "Support Hindi Bhajan Manjari in spreading Sanatan Dharma",
-      ctaText: "Donate Now",
-      href: "/donate",
-      icon: <FaHeart className="text-orange-100" size={10} />
+      text: "अपनी मनपसंद भजनों की कस्टमाइज़्ड ई-पुस्तिका (PDF) तैयार करें",
+      ctaText: "बुक बनाएँ",
+      href: "/publication-test",
+      icon: <FaBook className="text-orange-100" size={10} />
     },
+    // 2. डोनेशन (Donation) मैसेज
     {
       text: "सनातन धर्म के प्रचार-प्रसार में अपना अमूल्य योगदान दें",
       ctaText: "सहयोग करें",
       href: "/donate",
       icon: <FaHandsPraying className="text-orange-100" size={10} />
     },
+    // 3. शब्दकोश (Dictionary) मैसेज
     {
       text: "Explore our new Sanatan Shabdkosh (Spiritual Dictionary)",
       ctaText: "Explore",
@@ -47,10 +51,8 @@ export default function AnnouncementStrip() {
       {/* 🌟 MAIN WRAPPER */}
       <div className="animate-marquee-strip">
         {[...Array(2)].map((_, i) => (
-          /* 🌟 FIX: Added shrink-0 here so the main blocks never compress */
           <div key={i} className="flex items-center shrink-0" aria-hidden={i === 1 ? "true" : "false"}>
             {ANNOUNCEMENTS.map((item, idx) => (
-              /* 🌟 FIX: Added whitespace-nowrap and shrink-0 to prevent mobile wrapping */
               <div key={idx} className="flex items-center shrink-0 whitespace-nowrap mx-4 md:mx-6">
                 
                 <span className="text-[11px] md:text-[13px] font-bold tracking-wide text-orange-900 dark:text-orange-100/90 font-hindi">

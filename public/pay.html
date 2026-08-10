@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>सहयोग करें - हिंदी भजन मंजरी</title>
+  <title>भुगतान करें - हिंदी भजन मंजरी</title>
   
-  <!-- 🌟 Google Fonts: Exclusively loading Hind for a clean, modern Devanagari UI -->
+  <!-- 🌟 Google Fonts: Hind -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -28,7 +28,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     
     body { 
-      /* 🌟 Globally applied Hind font */
       font-family: 'Hind', sans-serif; 
       background-color: var(--bg-color);
       background-image: radial-gradient(circle at top, #ffedd5 0%, #fffaf5 100%);
@@ -77,7 +76,6 @@
       left: 1.5rem;
       transition: color 0.2s;
     }
-    
     .back-link:hover { color: var(--primary); }
     .back-link svg { width: 14px; height: 14px; }
 
@@ -87,7 +85,7 @@
       margin: 1.5rem auto 1rem auto;
       color: var(--primary);
       font-size: 2.5rem;
-      font-weight: 700; /* Capped at 700 for true Hind rendering */
+      font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -95,7 +93,7 @@
       border-radius: 50%;
       border: 1px solid #ffedd5;
       line-height: 1;
-      padding-bottom: 4px; /* Slight optical adjustment for Devanagari baseline */
+      padding-bottom: 4px;
     }
 
     .subtitle {
@@ -122,6 +120,9 @@
       margin-bottom: 2rem;
     }
 
+    /* 🌟 Donation Only UI Elements */
+    .donation-ui { display: block; }
+    
     .section-label {
       display: block;
       font-size: 0.8rem;
@@ -149,14 +150,10 @@
       color: var(--text-main);
       cursor: pointer;
       transition: all 0.2s;
-      font-family: inherit; /* Inherits Hind */
+      font-family: inherit;
     }
 
-    .amt-btn:hover {
-      border-color: #fb923c;
-      background: #fff7ed;
-    }
-
+    .amt-btn:hover { border-color: #fb923c; background: #fff7ed; }
     .amt-btn.active {
       border-color: var(--primary);
       background: var(--primary);
@@ -169,111 +166,60 @@
       max-width: 250px;
       margin: 0 auto 2rem auto;
     }
-
     .custom-input-wrapper span {
-      position: absolute;
-      left: 1rem;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #9ca3af;
-      font-weight: 700;
+      position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #9ca3af; font-weight: 700;
     }
-
     .custom-input {
-      width: 100%;
-      padding: 0.75rem 1rem 0.75rem 2.5rem;
-      background: #f9fafb;
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      font-weight: 700;
-      font-size: 1.1rem;
-      color: var(--text-main);
-      outline: none;
-      text-align: center;
-      transition: all 0.2s;
-      font-family: inherit;
+      width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; background: #f9fafb;
+      border: 1px solid var(--border-color); border-radius: 12px; font-weight: 700;
+      font-size: 1.1rem; color: var(--text-main); outline: none; text-align: center;
+      transition: all 0.2s; font-family: inherit;
     }
+    .custom-input:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1); }
 
-    .custom-input:focus {
-      border-color: var(--primary);
-      background: white;
-      box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
-    }
-
-    .pay-btn {
-      width: 100%;
-      padding: 1rem;
-      background: var(--primary);
-      color: white;
-      border: none;
+    /* 🌟 Book Builder Fixed UI Elements */
+    .book-builder-ui { display: none; margin-bottom: 2rem; }
+    .fixed-price-box {
+      background: #fff7ed;
+      border: 1px dashed #fdba74;
       border-radius: 16px;
-      font-size: 1.25rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      box-shadow: 0 10px 15px -3px rgba(234, 88, 12, 0.3);
+      padding: 1.5rem;
+      display: inline-block;
+      width: 100%;
+      max-width: 280px;
+    }
+    .fixed-price-label { font-size: 0.85rem; color: #9a3412; font-weight: 700; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .fixed-price-amt { font-size: 2.5rem; font-weight: 800; color: #ea580c; line-height: 1; }
+
+    /* Common Button */
+    .pay-btn {
+      width: 100%; padding: 1rem; background: var(--primary); color: white;
+      border: none; border-radius: 16px; font-size: 1.25rem; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; display: flex; align-items: center;
+      justify-content: center; gap: 0.5rem; box-shadow: 0 10px 15px -3px rgba(234, 88, 12, 0.3);
       font-family: inherit;
     }
-
     .pay-btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
     .pay-btn:active { transform: translateY(1px); }
     .pay-btn:disabled { background: #fca5a5; cursor: not-allowed; transform: none; box-shadow: none;}
 
     .spinner {
-      display: none;
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(255,255,255,0.3);
-      border-radius: 50%;
-      border-top-color: white;
-      animation: spin 1s ease-in-out infinite;
+      display: none; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%; border-top-color: white; animation: spin 1s ease-in-out infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .security-note {
-      margin-top: 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      font-size: 0.75rem;
-      color: #9ca3af;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      margin-top: 1.5rem; display: flex; align-items: center; justify-content: center;
+      gap: 0.5rem; font-size: 0.75rem; color: #9ca3af; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.05em;
     }
 
-    .footer {
-      margin-top: 1.5rem;
-      font-size: 0.85rem;
-      color: #9ca3af;
-      text-align: center;
-      line-height: 1.6;
-      font-weight: 500;
-    }
-
-    .footer a {
-      color: #9ca3af;
-      text-decoration: underline;
-      transition: color 0.2s;
-    }
+    .footer { margin-top: 1.5rem; font-size: 0.85rem; color: #9ca3af; text-align: center; line-height: 1.6; font-weight: 500; }
+    .footer a { color: #9ca3af; text-decoration: underline; transition: color 0.2s; }
     .footer a:hover { color: var(--primary); }
 
-    .error-box {
-      display: none;
-      margin-top: 1rem;
-      padding: 0.75rem;
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      color: #b91c1c;
-      font-size: 0.85rem;
-      font-weight: 600;
-      border-radius: 12px;
-    }
+    .error-box { display: none; margin-top: 1rem; padding: 0.75rem; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 0.85rem; font-weight: 600; border-radius: 12px; }
     .error-box.show { display: block; }
 
     @media (max-width: 480px) {
@@ -291,42 +237,49 @@
 
     <div class="card-content">
       
-      <a href="/" class="back-link">
+      <a href="javascript:history.back()" class="back-link" id="back-btn">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-        मुख्य पृष्ठ
+        वापस जाएँ
       </a>
 
       <div class="om-logo">ॐ</div>
 
       <p class="subtitle">हिंदी भजन मंजरी</p>
-      <h1 class="title">धर्म कार्य में अमूल्य सहयोग दें</h1>
-      <p class="description">इस मंच को विज्ञापन-मुक्त और सुचारु रखने के लिए आपकी दक्षिणा महत्वपूर्ण है।</p>
+      <h1 class="title" id="page-title">धर्म कार्य में अमूल्य सहयोग दें</h1>
+      <p class="description" id="page-desc">इस मंच को विज्ञापन-मुक्त और सुचारु रखने के लिए आपकी दक्षिणा महत्वपूर्ण है।</p>
 
-      <div style="margin-bottom: 1.5rem;">
-        <span class="section-label">सहयोग राशि चुनें</span>
-        <div class="grid-amounts">
-          <button type="button" onclick="selectAmount(21, this)" class="amt-btn">₹21</button>
-          <button type="button" onclick="selectAmount(51, this)" class="amt-btn">₹51</button>
-          <button type="button" onclick="selectAmount(101, this)" class="amt-btn active">₹101</button>
-          <button type="button" onclick="selectAmount(251, this)" class="amt-btn">₹251</button>
-          <button type="button" onclick="selectAmount(501, this)" class="amt-btn">₹501</button>
-          <button type="button" onclick="selectAmount(1100, this)" class="amt-btn">₹1100</button>
+      <!-- 🌟 DONATION UI (Default) -->
+      <div id="donation-ui" class="donation-ui">
+        <div style="margin-bottom: 1.5rem;">
+          <span class="section-label">सहयोग राशि चुनें</span>
+          <div class="grid-amounts">
+            <button type="button" onclick="selectAmount(21, this)" class="amt-btn">₹21</button>
+            <button type="button" onclick="selectAmount(51, this)" class="amt-btn">₹51</button>
+            <button type="button" onclick="selectAmount(101, this)" class="amt-btn active">₹101</button>
+            <button type="button" onclick="selectAmount(251, this)" class="amt-btn">₹251</button>
+            <button type="button" onclick="selectAmount(501, this)" class="amt-btn">₹501</button>
+            <button type="button" onclick="selectAmount(1100, this)" class="amt-btn">₹1100</button>
+          </div>
+        </div>
+
+        <div class="custom-input-wrapper">
+          <span>₹</span>
+          <input 
+            type="number" id="custom-amt" placeholder="अन्य राशि दर्ज करें" 
+            oninput="handleCustomInput(this.value)" class="custom-input" min="1" max="100000"
+          />
         </div>
       </div>
 
-      <div class="custom-input-wrapper">
-        <span>₹</span>
-        <input 
-          type="number" 
-          id="custom-amt" 
-          placeholder="अन्य राशि दर्ज करें" 
-          oninput="handleCustomInput(this.value)"
-          class="custom-input"
-          min="1"
-          max="100000"
-        />
+      <!-- 🌟 BOOK BUILDER FIXED PRICE UI (Hidden by Default) -->
+      <div id="book-builder-ui" class="book-builder-ui">
+        <div class="fixed-price-box">
+          <div class="fixed-price-label">ई-पुस्तिका शगुन राशि</div>
+          <div class="fixed-price-amt" id="fixed-amt-display">₹--</div>
+        </div>
       </div>
 
+      <!-- COMMON PAY BUTTON -->
       <button type="button" id="pay-btn" onclick="initiatePayment()" class="pay-btn">
         <div id="btn-spinner" class="spinner"></div>
         <span id="btn-text">ॐ श्रद्धा भेंट करें</span>
@@ -334,9 +287,7 @@
       </button>
 
       <div class="security-note">
-        <span>🔒 100% Secure</span>
-        <span>•</span>
-        <span>Razorpay Encrypted</span>
+        <span>🔒 100% Secure</span><span>•</span><span>Razorpay Encrypted</span>
       </div>
 
       <div id="error-box" class="error-box"></div>
@@ -349,12 +300,46 @@
   </div>
 
   <script>
-    let selectedAmount = 101;
+    // 🌟 URL Parameters Parse
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode'); // 'book_builder' or null
+    const prefilledAmount = urlParams.get('amount');
+    const prefilledOrderId = urlParams.get('order_id');
+    const returnPath = urlParams.get('return_path') || '/donate';
+
+    let selectedAmount = 101; // Default for donation
+    let activeOrderId = null;
+
+    // 🌟 INITIALIZE UI BASED ON MODE
+    document.addEventListener("DOMContentLoaded", () => {
+      // Set back button destination
+      document.getElementById('back-btn').href = returnPath;
+
+      if (mode === 'book_builder' && prefilledAmount && prefilledOrderId) {
+        // BOOK BUILDER MODE SETUP
+        selectedAmount = parseInt(prefilledAmount);
+        activeOrderId = prefilledOrderId;
+
+        document.getElementById('page-title').innerText = "ई-पुस्तिका संकलन शगुन";
+        document.getElementById('page-desc').innerText = "मंच को विज्ञापन-मुक्त रखने में आपका यह सहयोग अमूल्य है।";
+        
+        document.getElementById('donation-ui').style.display = 'none';
+        document.getElementById('book-builder-ui').style.display = 'block';
+        
+        document.getElementById('fixed-amt-display').innerText = `₹${selectedAmount}`;
+        document.getElementById('btn-amount-label').innerText = `(₹${selectedAmount})`;
+        document.getElementById('btn-text').innerText = "सुरक्षित भुगतान करें";
+      } else {
+        // NORMAL DONATION SETUP
+        document.getElementById('donation-ui').style.display = 'block';
+        document.getElementById('book-builder-ui').style.display = 'none';
+        updateButtonLabel();
+      }
+    });
 
     function selectAmount(amt, btn) {
       selectedAmount = amt;
       document.getElementById('custom-amt').value = '';
-      
       document.querySelectorAll('.amt-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       updateButtonLabel();
@@ -362,11 +347,9 @@
 
     function handleCustomInput(val) {
       const parsed = parseInt(val);
-      
       if (parsed && parsed > 0) {
         selectedAmount = parsed > 100000 ? 100000 : parsed; 
         if (parsed > 100000) document.getElementById('custom-amt').value = 100000;
-        
         document.querySelectorAll('.amt-btn').forEach(b => b.classList.remove('active'));
       } else {
         selectedAmount = 0;
@@ -399,7 +382,7 @@
         amtLabel.style.display = 'none';
       } else {
         spinner.style.display = 'none';
-        text.innerText = "ॐ श्रद्धा भेंट करें";
+        text.innerText = mode === 'book_builder' ? "सुरक्षित भुगतान करें" : "ॐ श्रद्धा भेंट करें";
         amtLabel.style.display = 'inline';
       }
     }
@@ -413,14 +396,26 @@
       toggleLoading(true);
 
       try {
-        const res = await fetch('/api/razorpay/order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ amount: selectedAmount })
-        });
-        
-        const orderData = await res.json();
-        if (!orderData.id) throw new Error("Order creation failed");
+        let orderData = {};
+
+        // 🌟 If Book Builder, we already have an Order ID from URL. We don't create a new one.
+        if (mode === 'book_builder' && activeOrderId) {
+          orderData = { 
+            id: activeOrderId, 
+            amount: selectedAmount * 100, 
+            currency: 'INR' 
+          };
+        } 
+        // 🌟 Normal Donation: Create fresh Order ID
+        else {
+          const res = await fetch('/api/razorpay/order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: selectedAmount })
+          });
+          orderData = await res.json();
+          if (!orderData.id) throw new Error("Order creation failed");
+        }
 
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         
@@ -429,7 +424,7 @@
           amount: orderData.amount,
           currency: orderData.currency,
           name: "Hindi Bhajan Manjari",
-          description: "सनातन धर्म के लिए सहयोग राशि",
+          description: mode === 'book_builder' ? "ई-पुस्तिका संकलन शगुन" : "सनातन धर्म के लिए सहयोग राशि",
           order_id: orderData.id,
           theme: { color: "#ea580c" },
           modal: {
@@ -437,12 +432,16 @@
           }
         };
 
+        // 🌟 REDIRECT URL HANDLING
+        // Live site redirects fully to UPI Apps cleanly.
+        // Success-redirect API will push user back to 'returnPath' after checking DB.
         if (!isLocalhost) {
-          options.callback_url = `${window.location.origin}/api/razorpay/success-redirect`;
+          options.callback_url = `${window.location.origin}/api/razorpay/success-redirect?return_path=${encodeURIComponent(returnPath)}`;
           options.redirect = true;
         } else {
+          // Localhost fallback logic
           options.handler = function(response) {
-            window.location.href = `/donate?success=true&payment_id=${response.razorpay_payment_id}`;
+            window.location.href = `${returnPath}?success=true&payment_id=${response.razorpay_payment_id}`;
           };
         }
 

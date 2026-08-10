@@ -12,21 +12,29 @@ import {
   FaFilePdf, FaBook, FaCog, FaCheckCircle, FaCircle,
   FaSearch, FaSpinner, FaDownload, FaCheck, FaRedo, 
   FaExclamationTriangle, FaLayerGroup, FaArrowRight, 
-  FaArrowLeft, FaRupeeSign, FaShieldAlt, FaOm, FaWhatsapp, FaInfoCircle
+  FaRupeeSign, FaShieldAlt, FaOm, FaWhatsapp, FaInfoCircle, FaListUl
 } from 'react-icons/fa';
 
 type WizardStep = 1 | 2 | 3;
-type FlowStatus = 'idle' | 'payment_pending' | 'building' | 'rendering' | 'ready' | 'error';
+type FlowStatus = 'idle' | 'payment_pending' | 'building' | 'rendering' | 'ready' | 'error' | 'verifying';
+type TabType = 'all' | 'selected';
 
-const loadRazorpayScript = () => {
-  return new Promise((resolve) => {
-    if ((window as any).Razorpay) return resolve(true);
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
+// --- FONTS CONFIGURATION FOR LIVE PREVIEW ---
+const getScriptFontConfig = (script: ScriptLanguage) => {
+  const fontConfigs: Record<ScriptLanguage, { name: string; url: string }> = {
+    devanagari: { name: 'Noto Sans Devanagari', url: 'https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@500;600;700;800&family=Rozha+One&display=swap' },
+    gujarati: { name: 'Noto Sans Gujarati', url: 'https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@500;600;700;800&family=Rozha+One&display=swap' },
+    bengali: { name: 'Noto Sans Bengali', url: 'https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@500;600;700;800&family=Rozha+One&display=swap' },
+    telugu: { name: 'Noto Sans Telugu', url: 'https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@500;600;700;800&family=Rozha+One&display=swap' },
+    gurmukhi: { name: 'Noto Sans Gurmukhi', url: 'https://fonts.googleapis.com/css2?family=Noto+Sans+Gurmukhi:wght@500;600;700;800&family=Rozha+One&display=swap' },
+    hinglish: { name: 'Noto Sans', url: 'https://fonts.googleapis.com/css2?family=Noto+Sans:wght@500;600;700;800&family=Rozha+One&display=swap' },
+    kannada: { name: 'Noto Sans Kannada', url: 'https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@500;600;700;800&display=swap' },
+    tamil: { name: 'Noto Sans Tamil', url: 'https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@500;600;700;800&display=swap' },
+    oriya: { name: 'Noto Sans Oriya', url: 'https://fonts.googleapis.com/css2?family=Noto+Sans+Oriya:wght@500;600;700;800&display=swap' },
+    assamese: { name: 'Noto Sans Bengali', url: 'https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@500;600;700;800&display=swap' },
+    malayalam: { name: 'Noto Sans Malayalam', url: 'https://fonts.googleapis.com/css2?family=Noto+Sans+Malayalam:wght@500;600;700;800&display=swap' },
+  };
+  return fontConfigs[script] || fontConfigs.devanagari;
 };
 
 export default function PublicationTestStudio() {
@@ -34,6 +42,7 @@ export default function PublicationTestStudio() {
 
   // --- WIZARD & SESSION STATE ---
   const [step, setStep] = useState<WizardStep>(1);
+  const [activeTab, setActiveTab] = useState<TabType>('all'); 
   const [savedOrderId, setSavedOrderId] = useState<string | null>(null);
   const [isPaid, setIsPaid] = useState<boolean>(false);
 
@@ -61,30 +70,52 @@ export default function PublicationTestStudio() {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const lastDownloadUrl = useRef<string | null>(null);
 
-  // 1. 🌟 LOCAL STORAGE RECOVERY
+  // 1. 🌟 LOCAL STORAGE RECOVERY & URL REDIRECT HANDLER
   useEffect(() => {
     setIsClient(true);
+    let recoveredState: any = null;
+
+    // A. पुराना डेटा वापस लाएं
     const saved = localStorage.getItem('bhajanPustikaState');
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
-        if (parsed.selectedSlugs) setSelectedSlugs(parsed.selectedSlugs);
-        if (parsed.bookTitle) setBookTitle(parsed.bookTitle);
-        if (parsed.orderId) setSavedOrderId(parsed.orderId);
-        if (parsed.isPaid) setIsPaid(parsed.isPaid);
-        if (parsed.step) setStep(parsed.step);
+        recoveredState = JSON.parse(saved);
+        if (recoveredState.selectedSlugs) setSelectedSlugs(recoveredState.selectedSlugs);
+        if (recoveredState.bookTitle) setBookTitle(recoveredState.bookTitle);
+        if (recoveredState.script) setScript(recoveredState.script);
+        if (recoveredState.theme) setTheme(recoveredState.theme);
+        if (recoveredState.pageSize) setPageSize(recoveredState.pageSize);
+        if (recoveredState.includeMeaning !== undefined) setIncludeMeaning(recoveredState.includeMeaning);
+        if (recoveredState.fontSizeScale) setFontSizeScale(recoveredState.fontSizeScale);
+        if (recoveredState.orderId) setSavedOrderId(recoveredState.orderId);
+        if (recoveredState.isPaid) setIsPaid(recoveredState.isPaid);
+        if (recoveredState.step) setStep(recoveredState.step);
       } catch (e) {}
+    }
+
+    // B. क्या यूज़र पेमेंट पेज से वापस आया है? (URL Check)
+    const urlParams = new URLSearchParams(window.location.search);
+    const isSuccess = urlParams.get('success');
+    
+    if (isSuccess === 'true' && recoveredState?.orderId) {
+      // URL साफ़ करें ताकि रिफ्रेश होने पर दोबारा ट्रिगर न हो
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setStep(3);
+      
+      // तुरंत वेरीफाई करके PDF जनरेट करें
+      verifyAndGeneratePDF(recoveredState.orderId, recoveredState);
     }
   }, []);
 
-  // 2. 🌟 AUTO-SAVE TO LOCAL STORAGE
+  // 2. 🌟 AUTO-SAVE TO LOCAL STORAGE (सब कुछ सेव करें)
   useEffect(() => {
     if (isClient) {
       localStorage.setItem('bhajanPustikaState', JSON.stringify({
-        step, selectedSlugs, bookTitle, orderId: savedOrderId, isPaid
+        step, selectedSlugs, bookTitle, script, theme, pageSize, 
+        includeMeaning, fontSizeScale, orderId: savedOrderId, isPaid
       }));
     }
-  }, [step, selectedSlugs, bookTitle, savedOrderId, isPaid, isClient]);
+  }, [step, selectedSlugs, bookTitle, script, theme, pageSize, includeMeaning, fontSizeScale, savedOrderId, isPaid, isClient]);
 
   // 3. Fetch Bhajans
   useEffect(() => {
@@ -99,10 +130,11 @@ export default function PublicationTestStudio() {
       setLoadingList(false);
     };
     fetchAllBhajans();
-    loadRazorpayScript();
   }, []);
 
-  // 🌟 DYNAMIC PRICING (प्रति भजन शगुन मॉडल)
+  const fontConfig = useMemo(() => getScriptFontConfig(script), [script]);
+
+  // Dynamic Pricing
   const currentPrice = useMemo(() => {
     const count = selectedSlugs.length;
     if (count === 0) return 0;
@@ -133,12 +165,13 @@ export default function PublicationTestStudio() {
     });
   }, [bhajans, searchQuery, selectedDeity, selectedCategory]);
 
+  const explicitlySelectedBhajans = useMemo(() => {
+    return selectedSlugs.map(slug => bhajans.find(b => b.slug === slug)).filter(Boolean);
+  }, [selectedSlugs, bhajans]);
+
   const toggleSelection = (slug: string) => {
     setSelectedSlugs(prev => prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug]);
-    if (isPaid) {
-      setIsPaid(false);
-      setSavedOrderId(null);
-    }
+    if (isPaid) { setIsPaid(false); setSavedOrderId(null); }
   };
 
   const handleSelectAllFiltered = () => {
@@ -158,13 +191,16 @@ export default function PublicationTestStudio() {
   };
   const prevStep = () => setStep(prev => (prev - 1) as WizardStep);
 
-  // --- PAYMENT & GENERATION FLOW ---
+  // ==========================================
+  // 🌟 SECURE REDIRECT PAYMENT FLOW
+  // ==========================================
   const handlePaymentAndGenerate = async () => {
     if (selectedSlugs.length === 0) return;
     setErrorMessage("");
 
+    // अगर पहले से पेमेंट हो चुका है (Retry)
     if (isPaid && savedOrderId) {
-      return generatePDF();
+      return executePDFGeneration(selectedSlugs, bookTitle, { script, theme, pageSize, includeMeaning, fontSizeScale });
     }
 
     setFlowStatus('payment_pending');
@@ -179,54 +215,50 @@ export default function PublicationTestStudio() {
       const orderData = await orderRes.json();
       setSavedOrderId(orderData.id);
 
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: "हिंदी भजन मंजरी",
-        description: "ई-पुस्तिका संकलन शगुन",
-        order_id: orderData.id,
-        theme: { color: "#ea580c" },
-        handler: async function (response: any) {
-          try {
-            setFlowStatus('building');
-            const verifyRes = await fetch(`/api/razorpay/verify?order_id=${orderData.id}`);
-            const verifyData = await verifyRes.json();
+      // 🌟 REDIRECT TO PAY.HTML
+      window.location.href = `/pay.html?mode=book_builder&amount=${currentPrice}&order_id=${orderData.id}&return_path=/publication-test`;
 
-            if (verifyData.paid && verifyData.orderType === 'book_builder') {
-              setIsPaid(true);
-              await generatePDF();
-            } else {
-              throw new Error("पेमेंट वेरीफाई नहीं हो सका।");
-            }
-          } catch (verifyError) {
-            setFlowStatus('error');
-            setErrorMessage("पेमेंट प्राप्त हुआ, लेकिन वेरीफाई करने में समस्या आई।");
-          }
-        },
-        modal: { ondismiss: () => setFlowStatus('idle') }
-      };
-
-      const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', (response: any) => {
-        setFlowStatus('error');
-        setErrorMessage(response.error.description || "पेमेंट विफल हो गया।");
-      });
-      rzp.open();
     } catch (error: any) {
       setFlowStatus('error');
       setErrorMessage(error.message || "पेमेंट शुरू करने में समस्या आई।");
     }
   };
 
-  const generatePDF = async () => {
-    setFlowStatus('building');
-    const options: PublicationRequestOptions = { script, theme, pageSize, includeMeaning, fontSizeScale, customTitle: bookTitle };
-
+  // 🌟 VERIFY AND GENERATE (Call when returning from pay.html)
+  const verifyAndGeneratePDF = async (orderId: string, stateOptions: any) => {
+    setFlowStatus('verifying');
     try {
-      let model = selectedSlugs.length === 1 
-        ? await createSingleBhajanDocument(selectedSlugs[0], options)
-        : await createMultiBhajanDocument(bookTitle, selectedSlugs, options);
+      const verifyRes = await fetch(`/api/razorpay/verify?order_id=${orderId}`);
+      const verifyData = await verifyRes.json();
+
+      if (verifyData.paid && verifyData.orderType === 'book_builder') {
+        setIsPaid(true);
+        // Pass explicit options so it doesn't use stale React state
+        await executePDFGeneration(stateOptions.selectedSlugs, stateOptions.bookTitle, {
+          script: stateOptions.script,
+          theme: stateOptions.theme,
+          pageSize: stateOptions.pageSize,
+          includeMeaning: stateOptions.includeMeaning,
+          fontSizeScale: stateOptions.fontSizeScale,
+          customTitle: stateOptions.bookTitle
+        });
+      } else {
+        throw new Error("पेमेंट वेरीफाई नहीं हो सका या असफल रहा।");
+      }
+    } catch (error: any) {
+      console.error(error);
+      setFlowStatus('error');
+      setErrorMessage("पेमेंट प्राप्त हुआ, लेकिन वेरीफाई करने में समस्या आई।");
+    }
+  };
+
+  // 🌟 ACTUAL PDF GENERATION ENGINE
+  const executePDFGeneration = async (slugs: string[], title: string, opts: PublicationRequestOptions) => {
+    setFlowStatus('building');
+    try {
+      let model = slugs.length === 1 
+        ? await createSingleBhajanDocument(slugs[0], opts)
+        : await createMultiBhajanDocument(title, slugs, opts);
 
       if (!model) throw new Error("भजन डेटा तैयार नहीं हो सका।");
 
@@ -270,8 +302,9 @@ export default function PublicationTestStudio() {
 
   return (
     <div className="min-h-screen bg-[#fffaf5] text-gray-900 pb-32 sm:pb-12 font-sans selection:bg-orange-200">
-      
-      {/* 🌟 1. TRANSPARENCY BANNER */}
+      <style suppressHydrationWarning>{`@import url('${fontConfig.url}');`}</style>
+
+      {/* TRANSPARENCY BANNER */}
       <div className="bg-orange-100 text-orange-800 text-xs sm:text-sm font-medium py-2.5 px-4 text-center border-b border-orange-200 flex items-center justify-center gap-2">
         <FaInfoCircle className="shrink-0" />
         <span>यह एक विशेष सेवा है। 2 भजनों तक की पुस्तिका का शगुन ₹11, उसके बाद ₹2 प्रति भजन।</span>
@@ -288,7 +321,6 @@ export default function PublicationTestStudio() {
               भजन मंजरी <span className="text-orange-600">ई-पुस्तिका</span>
             </h1>
           </div>
-
           <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm font-bold text-gray-400">
             <span className={step >= 1 ? "text-orange-600" : ""}>1. भजन चुनें</span>
             <span className="w-3 sm:w-6 h-px bg-gray-200"></span>
@@ -311,64 +343,88 @@ export default function PublicationTestStudio() {
               <p className="text-gray-500 font-medium text-sm sm:text-base">अपनी पसंद के भजन चुनकर एक सुंदर, प्रिंट-रेडी PDF पुस्तिका प्राप्त करें।</p>
             </div>
 
-            <div className="bg-white border border-orange-200/80 rounded-3xl p-4 sm:p-6 shadow-sm flex flex-col h-[60vh] sm:h-[65vh]">
-              {/* FILTERS */}
-              <div className="flex flex-col sm:flex-row gap-3 mb-4">
-                <div className="relative flex-1">
-                  <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text" placeholder="भजन खोजें..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-hindi focus:border-orange-500 outline-none"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <select value={selectedDeity} onChange={(e) => setSelectedDeity(e.target.value)} className="bg-orange-50/50 border border-orange-200 rounded-xl px-3 py-2.5 text-sm font-bold text-gray-800 outline-none flex-1 sm:flex-none">
-                    <option value="ALL">सभी देवी-देवता</option>
-                    {uniqueDeities.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                  <button onClick={handleSelectAllFiltered} className="bg-orange-100 text-orange-700 font-bold px-4 py-2.5 rounded-xl text-sm whitespace-nowrap">
-                    {filteredBhajans.every(b => selectedSlugs.includes(b.slug)) ? "हटाएं" : "सभी चुनें"}
-                  </button>
-                </div>
+            <div className="bg-white border border-orange-200/80 rounded-3xl shadow-sm flex flex-col h-[60vh] sm:h-[65vh] overflow-hidden">
+              <div className="flex bg-gray-50 border-b border-gray-200">
+                <button onClick={() => setActiveTab('all')} className={`flex-1 py-3.5 text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'all' ? 'bg-white text-orange-600 border-b-2 border-orange-600' : 'text-gray-500 hover:bg-gray-100'}`}>
+                  <FaSearch /> खोंजे और चुनें
+                </button>
+                <button onClick={() => setActiveTab('selected')} className={`flex-1 py-3.5 text-sm font-bold flex items-center justify-center gap-2 transition-all ${activeTab === 'selected' ? 'bg-white text-orange-600 border-b-2 border-orange-600' : 'text-gray-500 hover:bg-gray-100'}`}>
+                  <FaListUl /> चुने गए भजन <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full text-[10px]">{selectedSlugs.length}</span>
+                </button>
               </div>
 
-              {/* LIST */}
-              <div className="overflow-y-auto pr-1 flex-1 pb-2">
-                {loadingList ? (
-                  <div className="h-full flex flex-col items-center justify-center text-gray-400">
-                    <FaSpinner className="animate-spin text-3xl mb-3 text-orange-500" />
-                    <p>भजन संग्रह लोड हो रहा है...</p>
+              {activeTab === 'all' && (
+                <div className="p-4 sm:p-6 flex-1 flex flex-col min-h-0">
+                  <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                    <div className="relative flex-1">
+                      <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input type="text" placeholder="भजन खोजें..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-hindi focus:border-orange-500 outline-none" />
+                    </div>
+                    <div className="flex gap-2">
+                      <select value={selectedDeity} onChange={(e) => setSelectedDeity(e.target.value)} className="bg-orange-50/50 border border-orange-200 rounded-xl px-3 py-2.5 text-sm font-bold text-gray-800 outline-none flex-1 sm:flex-none">
+                        <option value="ALL">सभी देवी-देवता</option>
+                        {uniqueDeities.map(d => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                      <button onClick={handleSelectAllFiltered} className="bg-orange-100 text-orange-700 font-bold px-4 py-2.5 rounded-xl text-sm whitespace-nowrap">
+                        {filteredBhajans.every(b => selectedSlugs.includes(b.slug)) ? "हटाएं" : "सभी चुनें"}
+                      </button>
+                    </div>
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {filteredBhajans.map((bhajan) => {
-                      const isSelected = selectedSlugs.includes(bhajan.slug);
-                      const orderIndex = selectedSlugs.indexOf(bhajan.slug);
-                      return (
-                        <div key={bhajan.slug} onClick={() => toggleSelection(bhajan.slug)}
-                          className={`relative flex items-center gap-3 p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                            isSelected ? 'bg-orange-50 border-orange-500' : 'bg-white border-gray-100 hover:border-orange-200'
-                          }`}
-                        >
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-2 ${
-                            isSelected ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-300'
-                          }`}>
-                            {isSelected && <span className="text-[10px] font-black">{orderIndex + 1}</span>}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`font-bold text-sm truncate font-hindi ${isSelected ? 'text-orange-900' : 'text-gray-800'}`}>
-                              {bhajan.title_hindi}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
+
+                  <div className="overflow-y-auto flex-1 pb-2 pr-1">
+                    {loadingList ? (
+                      <div className="h-full flex flex-col items-center justify-center text-gray-400"><FaSpinner className="animate-spin text-3xl mb-3 text-orange-500" /></div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {filteredBhajans.map((bhajan) => {
+                          const isSelected = selectedSlugs.includes(bhajan.slug);
+                          const orderIndex = selectedSlugs.indexOf(bhajan.slug);
+                          return (
+                            <div key={bhajan.slug} onClick={() => toggleSelection(bhajan.slug)} className={`relative flex items-center gap-3 p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all ${isSelected ? 'bg-orange-50 border-orange-500' : 'bg-white border-gray-100 hover:border-orange-200'}`}>
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-2 ${isSelected ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-300'}`}>
+                                {isSelected && <span className="text-[10px] font-black">{orderIndex + 1}</span>}
+                              </div>
+                              <p className={`font-bold text-sm truncate font-hindi flex-1 ${isSelected ? 'text-orange-900' : 'text-gray-800'}`}>{bhajan.title_hindi}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+
+              {activeTab === 'selected' && (
+                <div className="p-4 sm:p-6 flex-1 flex flex-col min-h-0 bg-gray-50/50">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-bold text-gray-700">कुल चयनित: {selectedSlugs.length}</h3>
+                    {selectedSlugs.length > 0 && <button onClick={() => setSelectedSlugs([])} className="text-red-500 text-sm font-bold hover:underline">सभी हटाएँ</button>}
+                  </div>
+                  <div className="overflow-y-auto flex-1 pr-1 pb-2">
+                    {explicitlySelectedBhajans.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-gray-400 font-hindi text-sm">
+                        <FaLayerGroup className="text-4xl mb-3 text-gray-200" />
+                        आपने अभी तक कोई भजन नहीं चुना है।
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {explicitlySelectedBhajans.map((bhajan: any, index) => (
+                          <div key={bhajan.slug} onClick={() => toggleSelection(bhajan.slug)} className="relative flex items-center gap-3 p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer bg-orange-50 border-orange-500 group">
+                            <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 bg-orange-500 border-orange-500 text-white group-hover:bg-red-500 group-hover:border-red-500 transition-colors">
+                              <span className="text-[10px] font-black group-hover:hidden">{index + 1}</span>
+                              <span className="text-[10px] font-black hidden group-hover:block">✕</span>
+                            </div>
+                            <p className="font-bold text-sm truncate font-hindi flex-1 text-orange-900">{bhajan.title_hindi}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* FLOATING ACTION BAR FOR MOBILE */}
+            {/* FLOATING ACTION BAR */}
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] p-3 sm:p-5 z-40">
               <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
                 <div className="flex items-center gap-4">
@@ -412,7 +468,6 @@ export default function PublicationTestStudio() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                {/* 🌟 RESTORED ALL LANGUAGES HERE */}
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">लिपि (Language)</label>
                   <select value={script} onChange={(e) => setScript(e.target.value as ScriptLanguage)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm font-bold text-gray-800 outline-none">
@@ -433,6 +488,19 @@ export default function PublicationTestStudio() {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">फॉन्ट साइज़</label>
+                <div className="flex gap-2">
+                  {[1.0, 1.2, 1.5].map(scale => (
+                    <button key={scale} onClick={() => setFontSizeScale(scale)}
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all border-2 ${fontSizeScale === scale ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-600 bg-white hover:border-gray-300'}`}
+                    >
+                      {scale}x
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
                 <input type="checkbox" checked={includeMeaning} onChange={(e) => setIncludeMeaning(e.target.checked)} className="w-5 h-5 accent-orange-600" />
                 <div>
@@ -449,15 +517,46 @@ export default function PublicationTestStudio() {
               </div>
             </div>
 
-            <div className="bg-orange-100/50 border border-orange-200 rounded-3xl p-6 sm:p-10 flex flex-col items-center justify-center">
-              <p className="text-xs font-bold text-orange-600 uppercase tracking-widest mb-4">कवर पेज प्रीव्यू</p>
-              <div className="w-full max-w-[240px] sm:max-w-sm aspect-[1/1.414] bg-[#fffaf0] rounded-r-2xl rounded-l-sm shadow-[15px_15px_30px_rgba(0,0,0,0.1)] border border-amber-900/10 p-6 sm:p-8 flex flex-col items-center justify-center text-center relative">
-                <div className="absolute inset-3 sm:inset-4 border-2 border-amber-800/20"></div>
-                <FaOm className="text-3xl sm:text-4xl text-amber-600 mb-4 sm:mb-6 opacity-80" />
-                <h3 className="text-xl sm:text-2xl font-black text-amber-900 font-hindi leading-snug px-2 sm:px-6">{bookTitle}</h3>
-                <div className="w-12 h-px bg-amber-800/30 my-4 sm:my-6"></div>
-                <p className="text-amber-800/60 font-bold text-xs sm:text-sm">{selectedSlugs.length} भजनों का संकलन</p>
+            {/* LIVE PREVIEW */}
+            <div className="bg-[#e5d5c5]/30 border border-[#d2b48c] rounded-3xl p-4 flex flex-col items-center justify-center overflow-hidden">
+              <p className="text-xs font-bold text-orange-800 uppercase tracking-widest mb-4 bg-white/50 px-3 py-1 rounded-full">लाइव प्रीव्यू (Live Sample)</p>
+              
+              <div 
+                className="relative bg-[#FFF9EF] w-full max-w-[280px] sm:max-w-[320px] aspect-[1/1.414] shadow-2xl rounded-sm overflow-hidden select-none"
+                style={{ fontFamily: `'${fontConfig.name}', sans-serif`, color: '#2C1810' }}
+              >
+                <div className="absolute inset-[6px] border-[1.5px] border-[#D97706] rounded-sm pointer-events-none"></div>
+                <div className="absolute inset-[8px] border-[0.5px] border-[#FDBA74] pointer-events-none"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[120px] font-black text-[#D97706] opacity-[0.035] pointer-events-none">ॐ</div>
+                <div className="absolute top-[12px] left-0 right-0 text-center text-[7px] font-bold text-[#B45309]">{bookTitle || 'भजन पुस्तिका'}</div>
+
+                <div className="absolute inset-[16px] flex flex-col items-center pt-8 text-center" style={{ fontSize: `${11 * fontSizeScale}px` }}>
+                  <div className="font-extrabold text-[#9A3412] leading-tight px-2" style={{ fontFamily: `'Rozha One', '${fontConfig.name}', serif`, fontSize: '1.6em' }}>
+                    {explicitlySelectedBhajans[0]?.title_hindi || 'श्री गणेश स्तुति'}
+                  </div>
+                  <div className="mt-2 mb-4 px-3 py-0.5 text-[5.5px] font-bold text-[#9A3412] bg-[#D97706]/10 border border-[#D97706]/30 rounded-full">
+                    🌐 hindibhajanmanjari.com
+                  </div>
+                  <div className="font-bold text-[#9A3412] border-l-[1.5px] border-[#D97706] pl-2 pr-1 mb-4 leading-relaxed text-[0.9em]">
+                    <div>जय गणेश जय गणेश जय गणेश देवा।</div>
+                    <div>माता जाकी पार्वती पिता महादेवा॥</div>
+                  </div>
+                  {includeMeaning && (
+                    <div className="mt-2 w-[85%] bg-[#FFEDD5]/60 border border-[#FDBA74] rounded p-2 text-left">
+                      <div className="font-bold text-[#9A3412] text-[0.8em] text-center mb-1">॥ भावार्थ ॥</div>
+                      <div className="text-[0.65em] text-[#374151] font-medium leading-normal">
+                        भगवान श्री गणेश की स्तुति, जिनकी माता पार्वती और पिता महादेव हैं, जो सभी विघ्नों को हरने वाले हैं।
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="absolute bottom-[12px] left-0 right-0 text-center text-[6px] font-bold text-[#9A3412]">
+                  ॥ पृष्ठ 1 / {Math.max(1, selectedSlugs.length)} ॥
+                </div>
               </div>
+              <p className="text-[10px] text-gray-500 mt-4 text-center max-w-[250px]">
+                आपके द्वारा चुने गए फॉन्ट साइज़ और भाषा के अनुसार डिज़ाइन बदलता रहेगा।
+              </p>
             </div>
           </div>
         )}
@@ -505,7 +604,7 @@ export default function PublicationTestStudio() {
                       className="w-full bg-green-600 hover:bg-green-700 text-white font-black text-base sm:text-lg py-4 sm:py-5 rounded-2xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 sm:gap-3"
                     >
                       {flowStatus === 'payment_pending' ? (
-                        <><FaSpinner className="animate-spin" /> सुरक्षित भुगतान...</>
+                        <><FaSpinner className="animate-spin" /> सुरक्षित भुगतान की तैयारी...</>
                       ) : isPaid ? (
                         <><FaFilePdf /> पुस्तिका बनाएँ (पेमेंट सफल)</>
                       ) : (
@@ -518,13 +617,14 @@ export default function PublicationTestStudio() {
                     </button>
                   </div>
                 ) : (
-                  // PDF GENERATION STATUS UI
+                  // STATUS UI
                   <div className="py-6 sm:py-8 flex flex-col items-center">
-                    {(flowStatus === 'building' || flowStatus === 'rendering') && (
+                    {(flowStatus === 'verifying' || flowStatus === 'building' || flowStatus === 'rendering') && (
                       <>
                         <FaSpinner className="text-4xl sm:text-5xl text-orange-500 animate-spin mb-4" />
                         <h3 className="text-lg sm:text-xl font-bold font-hindi mb-2">
-                          {flowStatus === 'building' ? 'भजन संकलित हो रहे हैं...' : 'पुस्तिका तैयार हो रही है...'}
+                          {flowStatus === 'verifying' ? 'पेमेंट वेरिफाई हो रहा है...' : 
+                           flowStatus === 'building' ? 'भजन संकलित हो रहे हैं...' : 'पुस्तिका तैयार हो रही है...'}
                         </h3>
                         <p className="text-gray-500 text-sm font-hindi">कृपया पेज बंद न करें।</p>
                       </>
@@ -534,18 +634,15 @@ export default function PublicationTestStudio() {
                         <FaCheckCircle className="text-5xl sm:text-6xl text-green-500 mb-4" />
                         <h3 className="text-xl sm:text-2xl font-black text-gray-900 mb-2 font-hindi">पुस्तिका तैयार है!</h3>
                         <p className="text-gray-500 mb-6 text-sm font-hindi">आपका डाउनलोड स्वतः शुरू हो गया होगा।</p>
-                        <div className="flex gap-3">
-                          <button onClick={() => { if(lastDownloadUrl.current) triggerDownload(lastDownloadUrl.current, bookTitle); }} className="bg-orange-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm">
-                            पुनः डाउनलोड करें
-                          </button>
-                        </div>
+                        <button onClick={() => { if(lastDownloadUrl.current) triggerDownload(lastDownloadUrl.current, bookTitle); }} className="bg-orange-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm">
+                          पुनः डाउनलोड करें
+                        </button>
                       </>
                     )}
                     {flowStatus === 'error' && (
                       <>
                         <FaExclamationTriangle className="text-4xl sm:text-5xl text-red-500 mb-4" />
                         <p className="text-red-600 font-bold mb-4 font-hindi">{errorMessage}</p>
-                        
                         <div className="flex flex-col gap-3 w-full max-w-xs mx-auto">
                           <button onClick={handlePaymentAndGenerate} className="bg-gray-900 text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
                             <FaRedo /> मुफ़्त में पुनः प्रयास करें
