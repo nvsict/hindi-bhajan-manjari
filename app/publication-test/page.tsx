@@ -96,14 +96,36 @@ export default function PublicationTestStudio() {
     // B. क्या यूज़र पेमेंट पेज से वापस आया है? (URL Check)
     const urlParams = new URLSearchParams(window.location.search);
     const isSuccess = urlParams.get('success');
-    
+
     if (isSuccess === 'true' && recoveredState?.orderId) {
       // URL साफ़ करें ताकि रिफ्रेश होने पर दोबारा ट्रिगर न हो
       window.history.replaceState({}, document.title, window.location.pathname);
       setStep(3);
-      
+
       // तुरंत वेरीफाई करके PDF जनरेट करें
       verifyAndGeneratePDF(recoveredState.orderId, recoveredState);
+      try { localStorage.removeItem('bhajanPaymentAttempt'); } catch (e) {}
+    }
+    // 🌟 C. CRASH-RECOVERY: कोई success param नहीं है (pay.html वाला टैब
+    // Android द्वारा discard/crash हो गया था), लेकिन localStorage में एक
+    // pending order मौजूद है। Webhook पहले ही Supabase में payment को
+    // 'completed' मार्क कर चुका हो सकता है — इसलिए चुपचाप वेरीफाई करें,
+    // बिना यूज़र को दोबारा pay करने के लिए मजबूर किए।
+    else if (recoveredState?.orderId && !recoveredState.isPaid) {
+      let hadAttempt = false;
+      try {
+        const lastAttempt = localStorage.getItem('bhajanPaymentAttempt');
+        if (lastAttempt) {
+          const parsed = JSON.parse(lastAttempt);
+          if (parsed.orderId === recoveredState.orderId) hadAttempt = true;
+        }
+      } catch (e) {}
+
+      if (hadAttempt) {
+        setStep(3);
+        verifyAndGeneratePDF(recoveredState.orderId, recoveredState);
+        try { localStorage.removeItem('bhajanPaymentAttempt'); } catch (e) {}
+      }
     }
   }, []);
 
@@ -224,7 +246,7 @@ export default function PublicationTestStudio() {
     }
   };
 
-  // 🌟 VERIFY AND GENERATE (Call when returning from pay.html)
+  // 🌟 VERIFY AND GENERATE (Call when returning from pay.html, or on crash-recovery)
   const verifyAndGeneratePDF = async (orderId: string, stateOptions: any) => {
     setFlowStatus('verifying');
     try {
@@ -243,12 +265,15 @@ export default function PublicationTestStudio() {
           customTitle: stateOptions.bookTitle
         });
       } else {
-        throw new Error("पेमेंट वेरीफाई नहीं हो सका या असफल रहा।");
+        // 🌟 अगर crash-recovery के दौरान वेरीफाई किया और पेमेंट सच में
+        // अभी तक pending/failed है (यूज़र ने UPI ऐप बंद कर दिया था),
+        // तो एरर स्क्रीन दिखाने की बजाय चुपचाप step 3 के idle state पर
+        // वापस भेज दें ताकि यूज़र सीधे "Pay" बटन दोबारा देख सके।
+        setFlowStatus('idle');
       }
     } catch (error: any) {
       console.error(error);
-      setFlowStatus('error');
-      setErrorMessage("पेमेंट प्राप्त हुआ, लेकिन वेरीफाई करने में समस्या आई।");
+      setFlowStatus('idle');
     }
   };
 
