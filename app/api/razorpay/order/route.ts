@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
+import { supabase } from '@/utils/supabase';
 
 // Razorpay इनिशियलाइज़ेशन
 const razorpay = new Razorpay({
@@ -14,13 +15,14 @@ export async function POST(req: Request) {
 
     let finalAmount = 0;
     let orderType = 'donation';
+    let bhajanCount = 0;
 
     // ==========================================
     // 🌟 MODE 1: BOOK BUILDER (Secure Calculation on Backend)
     // ==========================================
     if (count !== undefined && count !== null) {
       orderType = 'book_builder';
-      const bhajanCount = Number(count);
+      bhajanCount = Number(count);
       
       if (bhajanCount <= 0) {
         return NextResponse.json(
@@ -48,20 +50,41 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'अमान्य राशि (Invalid amount)' }, { status: 400 });
     }
 
-    // Razorpay के लिए INR को पैसे (Paise) में बदलें
+    // 1. Razorpay पर नया ऑर्डर बनाएँ
     const options = {
-      amount: finalAmount * 100, 
+      amount: finalAmount * 100, // INR to Paise
       currency: 'INR',
       receipt: `rcpt_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       notes: {
         orderType: orderType,
-        bhajanCount: count ? String(count) : '0'
+        bhajanCount: String(bhajanCount)
       }
     };
 
     const order = await razorpay.orders.create(options);
-    
+
+    // 2. 🌟 SUPABASE DB ENTRY (Pending Status)
+    // Webhook इसी रिकॉर्ड को ढूँढकर 'completed' मार्क करेगा
+    const { error: dbError } = await supabase
+      .from('supporters')
+      .insert([
+        {
+          razorpay_order_id: order.id,
+          amount: finalAmount,
+          order_type: orderType,
+          bhajan_count: bhajanCount,
+          status: 'pending',
+          is_anonymous: true
+        }
+      ]);
+
+    if (dbError) {
+      console.error("⚠️ [API /razorpay/order] Supabase DB Insert Warning:", dbError.message);
+      // DB इंसर्ट में इश्यू आने पर भी हम यूज़र को ब्लॉक नहीं करते, ऑर्डर का रिस्पॉन्स दे देते हैं
+    }
+
     return NextResponse.json(order, { status: 200 });
+
   } catch (error: any) {
     console.error("❌ [API /razorpay/order] Order Creation Error:", error);
     return NextResponse.json(

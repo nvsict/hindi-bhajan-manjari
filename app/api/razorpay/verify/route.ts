@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
+import { createClient } from "@supabase/supabase-js";
+
+// 🌟 Supabase Admin का उपयोग ताकि RLS की समस्या के बिना ऑर्डर वेरीफाई किया जा सके
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 // Razorpay इनिशियलाइज़ेशन
 const razorpay = new Razorpay({
@@ -19,22 +26,49 @@ export async function GET(req: Request) {
       );
     }
 
-    // 1. Razorpay के सर्वर से सीधे ऑर्डर का ताज़ा स्टेटस (Live Status) मंगाएं
+    // ==========================================
+    // 🌟 1. Primary Check: Supabase Database (Fastest & Safest)
+    // ==========================================
+    const { data: dbOrder, error: dbError } = await supabaseAdmin
+      .from('supporters')
+      .select('status, amount, order_type, bhajan_count')
+      .eq('razorpay_order_id', orderId)
+      .single();
+
+    // अगर Webhook ने डेटाबेस को 'completed' कर दिया है, तो तुरंत Success भेजें
+    if (dbOrder && dbOrder.status === 'completed') {
+      console.log(`✅ [Verify API] Verified from DB: ${orderId}`);
+      return NextResponse.json({
+        paid: true,
+        amount: dbOrder.amount,
+        orderType: dbOrder.order_type,
+        bhajanCount: dbOrder.bhajan_count
+      }, { status: 200 });
+    }
+
+    // ==========================================
+    // 🌟 2. Fallback Check: Razorpay API (अगर Webhook आने में 2-3 सेकंड की देरी हो गई हो)
+    // ==========================================
     const order = await razorpay.orders.fetch(orderId);
 
-    // 2. चेक करें कि पेमेंट सफलतापूर्वक पूरा (paid) हुआ है या नहीं
     if (order.status === 'paid') {
+      console.log(`⚠️ [Verify API] Verified from Razorpay (Webhook Delayed): ${orderId}`);
+      
+      // 🌟 Self-Healing: चूँकि वेबहुक लेट है, हम खुद ही DB को अपडेट कर देते हैं
+      await supabaseAdmin
+        .from('supporters')
+        .update({ status: 'completed' })
+        .eq('razorpay_order_id', orderId);
+
       return NextResponse.json({ 
         paid: true, 
-        // 🌟 FIX: पैसे (paise) को वापस ₹ (INR) में बदलें
         amount: Number(order.amount) / 100, 
-        // 🌟 NEW: बुक बिल्डर और डोनेशन को अलग करने के लिए नोट्स भी वापस भेजें
         orderType: order.notes?.orderType || 'donation',
         bhajanCount: order.notes?.bhajanCount ? Number(order.notes.bhajanCount) : 0
       }, { status: 200 });
     }
 
-    // अगर स्टेटस 'created' या 'attempted' है, तो इसका मतलब है कि पेमेंट अभी पेंडिंग या विफल है
+    // अगर स्टेटस 'created' या 'attempted' है, तो पेमेंट सच में पूरा नहीं हुआ है
     return NextResponse.json(
       { paid: false, status: order.status }, 
       { status: 200 }
