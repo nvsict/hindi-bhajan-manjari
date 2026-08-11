@@ -417,8 +417,6 @@
           if (!orderData.id) throw new Error("Order creation failed");
         }
 
-        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        
         const options = {
           key: orderData.key_id || "rzp_live_TEOLlRM13UTm1R", 
           amount: orderData.amount,
@@ -429,21 +427,20 @@
           theme: { color: "#ea580c" },
           modal: {
             ondismiss: function() { toggleLoading(false); }
+          },
+          // 🌟 FIX: Use `handler` (in-modal callback) instead of `redirect: true` +
+          // `callback_url`. The redirect flow does a hard top-level navigation away
+          // from this page when handing off to a UPI app. When Android brings the
+          // tab back afterwards, Chrome tries to restore it from the back-forward
+          // cache instead of reloading it, and Razorpay's checkout iframe (with its
+          // live WebSocket/postMessage connections) doesn't survive that restore
+          // cleanly — that mismatch is what was crashing the tab ("Aw, Snap!").
+          // `handler` keeps the whole flow inside Razorpay's own modal, including
+          // the UPI app hand-off, so there's no top-level navigation to restore from.
+          handler: function(response) {
+            window.location.href = `${returnPath}?success=true&payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}`;
           }
         };
-
-        // 🌟 REDIRECT URL HANDLING
-        // Live site redirects fully to UPI Apps cleanly.
-        // Success-redirect API will push user back to 'returnPath' after checking DB.
-        if (!isLocalhost) {
-          options.callback_url = `${window.location.origin}/api/razorpay/success-redirect?return_path=${encodeURIComponent(returnPath)}`;
-          options.redirect = true;
-        } else {
-          // Localhost fallback logic
-          options.handler = function(response) {
-            window.location.href = `${returnPath}?success=true&payment_id=${response.razorpay_payment_id}`;
-          };
-        }
 
         const rzp = new window.Razorpay(options);
         rzp.open();
