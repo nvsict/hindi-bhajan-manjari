@@ -454,24 +454,20 @@
         } catch (e) {}
 
         const options = {
-          key: razorpayKey, 
-          amount: orderData.amount,
-          currency: orderData.currency,
-          name: "Hindi Bhajan Manjari",
-          description: mode === 'book_builder' ? "ई-पुस्तिका संकलन शगुन" : "सनातन धर्म के लिए सहयोग राशि",
-          order_id: orderData.id,
-          theme: { color: "#ea580c" },
-          modal: {
-            ondismiss: function() { toggleLoading(false); }
-          },
-          // 🌟 `handler` keeps the success callback inside Razorpay's own modal
-          // instead of a top-level `redirect`/`callback_url` round trip. Note:
-          // the actual UPI app hand-off (GPay/PhonePe) still happens via an
-          // Android intent either way — that part is outside this page's control.
-          handler: function(response) {
-            window.location.href = `${returnPath}?success=true&payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}`;
-          }
-        };
+  key: "rzp_live_TEOLlRM13UTm1R", // 🌟 100% Live Key Hardcoded
+  amount: orderData.amount,
+  currency: orderData.currency,
+  name: "Hindi Bhajan Manjari",
+  description: mode === 'book_builder' ? "ई-पुस्तिका संकलन शगुन" : "सनातन धर्म के लिए सहयोग राशि",
+  order_id: orderData.id,
+  theme: { color: "#ea580c" },
+  modal: {
+    ondismiss: function() { toggleLoading(false); }
+  },
+  handler: function(response) {
+    window.location.href = `${returnPath}?success=true&payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}`;
+  }
+};
 
         const rzp = new window.Razorpay(options);
         rzp.open();
