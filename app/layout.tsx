@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from 'next/script'; // 🌟 NEW: Next.js Script component for Journey Ads
 import AnnouncementStrip from '@/components/AnnouncementStrip';
 
 // 🌟 1. PERF FIX: Removed the 4 extra fonts. Only loading default 'Hind' and Base fonts upfront.
@@ -124,6 +125,15 @@ export default async function RootLayout({
         /* 🌟 PERF FIX: Removed heavy font variables from the body string */
         className={`${geistSans.variable} ${geistMono.variable} ${hindFont.variable} antialiased bg-orange-50/30 dark:bg-[#0c0804] flex flex-col min-h-screen selection:bg-orange-500 selection:text-white transition-colors duration-300`}
       >
+        {/* 🌟 2. JOURNEY ADS SCRIPT (Next.js Optimized) */}
+        <Script
+          id="journey-grow-ads"
+          src="https://scripts.scriptwrapper.com/tags/a95f11d6-3dfd-41e5-b8c4-1e5d54d7e561.js"
+          strategy="afterInteractive"
+          data-noptimize="1"
+          data-cfasync="false"
+        />
+
         <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false}>
           <ScrollRecovery />
           <ClarityAnalytics />
