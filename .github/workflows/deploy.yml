@@ -14,10 +14,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🗜️ 2. Compress Source Code
-        # हम सिर्फ नया कोड ज़िप कर रहे हैं। 
-        # यह आपके VPS की .env.local को बिल्कुल नहीं छेड़ेगा।
+        # 🌟 FIX: Added --exclude='source.tar.gz' so tar doesn't try to zip itself
         run: |
-          tar -czf source.tar.gz --exclude='.git' --exclude='node_modules' .
+          tar -czf source.tar.gz --exclude='.git' --exclude='node_modules' --exclude='source.tar.gz' .
 
       - name: 🚀 3. Upload Source to VPS
         uses: appleboy/scp-action@v0.1.7
@@ -25,7 +24,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22 # Connection Timeout (null) एरर को रोकने के लिए
+          port: 22
           source: "source.tar.gz"
           target: "~/"
 
