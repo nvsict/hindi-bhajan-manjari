@@ -1,4 +1,4 @@
-name: Auto Deploy to VPS (Bulletproof)
+name: Auto Deploy to VPS (VPS Build Flow)
 
 on:
   push:
@@ -13,34 +13,23 @@ jobs:
       - name: 📥 1. Checkout Code
         uses: actions/checkout@v4
 
-      - name: ⚙️ 2. Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20' # Next.js के लिए स्टेबल वर्ज़न
-          cache: 'npm'
-
-      - name: 📦 3. Install Dependencies & Build (On GitHub Servers)
+      - name: 🗜️ 2. Compress Source Code
+        # हम सिर्फ नया कोड ज़िप कर रहे हैं। 
+        # यह आपके VPS की .env.local को बिल्कुल नहीं छेड़ेगा।
         run: |
-          npm ci
-          npm run build
+          tar -czf source.tar.gz --exclude='.git' --exclude='node_modules' .
 
-      - name: 🗜️ 4. Compress Build Files
-        # हम सिर्फ वो फाइलें ज़िप कर रहे हैं जो प्रोडक्शन के लिए ज़रूरी हैं
-        # इससे ट्रांसफर सुपर फास्ट हो जाएगा और .env सुरक्षित रहेगी
-        run: |
-          tar -czf deploy.tar.gz .next public package.json package-lock.json next.config.ts
-
-      - name: 🚀 5. Upload Build to VPS
+      - name: 🚀 3. Upload Source to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22 # Null एरर से बचने के लिए डिफ़ॉल्ट पोर्ट
-          source: "deploy.tar.gz"
-          target: "~/hindi-bhajan-manjari"
+          port: 22 # Connection Timeout (null) एरर को रोकने के लिए
+          source: "source.tar.gz"
+          target: "~/"
 
-      - name: 🔄 6. Extract, Install & Restart PM2 on VPS
+      - name: 🔄 4. Build and Restart on VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -54,17 +43,25 @@ jobs:
             echo "Deploying Hindi Bhajan Manjari"
             echo "=============================="
             
+            # फोल्डर सुनिश्चित करें
+            mkdir -p ~/hindi-bhajan-manjari
+            
+            echo "Extracting new code..."
+            tar -xzf ~/source.tar.gz -C ~/hindi-bhajan-manjari
+            rm ~/source.tar.gz # सर्वर की मेमोरी खाली करने के लिए ज़िप हटा दें
+            
             cd ~/hindi-bhajan-manjari
             
-            echo "Extracting new build..."
-            tar -xzf deploy.tar.gz
-            rm deploy.tar.gz # ज़िप फ़ाइल को डिलीट कर दें ताकि सर्वर की मेमोरी न भरे
+            echo "Installing dependencies..."
+            npm ci
             
-            echo "Installing ONLY production dependencies..."
-            npm ci --omit=dev
+            echo "Removing old Next.js build..."
+            rm -rf .next
+            
+            echo "Building application on VPS (Using local .env)..."
+            npm run build
             
             echo "Restarting PM2..."
-            # अगर bhajan-manjari नाम से प्रोसेस नहीं है, तो नया स्टार्ट करेगा
             pm2 reload bhajan-manjari --update-env || pm2 start npm --name "bhajan-manjari" -- start
             pm2 save
             
