@@ -12,13 +12,13 @@ const nextConfig: NextConfig = {
     unoptimized: true,
     formats: ['image/avif', 'image/webp'],
     dangerouslyAllowSVG: true,
-    
+
     // 🌟 THE LCP FIX: Capping max image generation size to 1920px (Blocks 3840px 4K loads)
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
-    
+
     // 🌟 Optional but good: Defined smaller breakpoints for icons/logos
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    
+
     qualities: [50, 60, 75, 90, 100], 
     remotePatterns: [
       { protocol: "https", hostname: "**.supabase.co" },
@@ -64,9 +64,9 @@ const nextConfig: NextConfig = {
             value: 'camera=(), microphone=(self), geolocation=(), browsing-topics=()'
           },
           {
-            // 🌟 CSP FIX: Added browser.sentry-cdn.com to script-src and razorpay.com to frame-src
+            // 🌟 CSP FIX: Added scriptwrapper, journeymv, and Google Ad networks to script-src & frame-src
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.instagram.com https://*.googletagmanager.com https://static.cloudflareinsights.com https://*.clarity.ms https://*.google.com https://checkout.razorpay.com https://cdn.razorpay.com https://cdn.tailwindcss.com https://browser.sentry-cdn.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://news.google.com https://cdnjs.cloudflare.com; img-src * blob: data:; media-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src * https://lumberjack.razorpay.com; frame-src 'self' https://www.youtube.com https://www.instagram.com https://*.google.com https://*.razorpay.com https://cdn.razorpay.com https://razorpay.com; worker-src 'self' blob:;"
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.instagram.com https://*.googletagmanager.com https://static.cloudflareinsights.com https://*.clarity.ms https://*.google.com https://checkout.razorpay.com https://cdn.razorpay.com https://cdn.tailwindcss.com https://browser.sentry-cdn.com https://*.scriptwrapper.com https://*.journeymv.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://news.google.com https://cdnjs.cloudflare.com; img-src * blob: data:; media-src * blob: data:; font-src 'self' https://fonts.gstatic.com data:; connect-src * https://lumberjack.razorpay.com; frame-src 'self' https://www.youtube.com https://www.instagram.com https://*.google.com https://*.razorpay.com https://cdn.razorpay.com https://razorpay.com https://*.scriptwrapper.com https://*.journeymv.com https://*.doubleclick.net https://*.googlesyndication.com; worker-src 'self' blob:;"
           }
         ],
       },
