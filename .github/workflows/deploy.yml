@@ -1,4 +1,4 @@
-name: Auto Deploy to VPS (VPS Build Flow)
+name: Auto Deploy to VPS
 
 on:
   push:
@@ -8,64 +8,15 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: 📥 1. Checkout Code
-        uses: actions/checkout@v4
-
-      - name: 🗜️ 2. Compress Source Code
-        # 🌟 FIX: Race condition से बचने के लिए ज़िप को /tmp में बनाना
-        run: |
-          tar -czf /tmp/source.tar.gz --exclude='.git' --exclude='node_modules' .
-          mv /tmp/source.tar.gz .
-
-      - name: 🚀 3. Upload Source to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          source: "source.tar.gz"
-          target: "~/"
-
-      - name: 🔄 4. Build and Restart on VPS
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          command_timeout: 30m # 🌟 FIX: Timeout को 10 मिनट से बढ़ाकर 30 मिनट कर दिया
-          script: |
-            set -e
-            
-            echo "=============================="
-            echo "Deploying Hindi Bhajan Manjari"
-            echo "=============================="
-            
-            # फोल्डर सुनिश्चित करें
-            mkdir -p ~/hindi-bhajan-manjari
-            
-            echo "Extracting new code..."
-            tar -xzf ~/source.tar.gz -C ~/hindi-bhajan-manjari
-            rm ~/source.tar.gz # मेमोरी खाली करने के लिए ज़िप हटा दें
-            
-            cd ~/hindi-bhajan-manjari
-            
-            echo "Installing dependencies (Skipping Puppeteer Chromium Download)..."
-            # 🌟 FIX: यह कमांड भारी Chromium ब्राउज़र डाउनलोड नहीं करेगी
-            PUPPETEER_SKIP_DOWNLOAD=true npm ci
-            
-            echo "Removing old Next.js build..."
-            rm -rf .next
-            
-            echo "Building application on VPS (Using local .env)..."
-            npm run build
-            
-            echo "Restarting PM2..."
-            pm2 reload bhajan-manjari --update-env || pm2 start npm --name "bhajan-manjari" -- start
-            pm2 save
-            
-            echo "✅ Deployment completed successfully!"
-            pm2 status
+    - name: Trigger Deployment Script on VPS
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        port: 22
+        command_timeout: 30m
+        script: |
+          cd /root/hindi-bhajan-manjari
+          ./deploy.sh
