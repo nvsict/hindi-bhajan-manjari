@@ -17,6 +17,8 @@ export async function getBrowserInstance(): Promise<Browser> {
 
   browserInstance = await puppeteer.launch({
     headless: true,
+    // 🌟 FIX: VPS पर सिस्टम का Chromium यूज़ करेगा, और लोकल कंप्यूटर पर डिफ़ॉल्ट Chrome
+    executablePath: process.env.NODE_ENV === 'production' ? '/usr/bin/chromium-browser' : undefined,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
