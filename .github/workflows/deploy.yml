@@ -1,4 +1,4 @@
-name: Auto Deploy to VPS
+name: Auto Deploy to VPS (Bulletproof)
 
 on:
   push:
@@ -10,43 +10,63 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1.0.0
+      - name: 📥 1. Checkout Code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ 2. Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Next.js के लिए स्टेबल वर्ज़न
+          cache: 'npm'
+
+      - name: 📦 3. Install Dependencies & Build (On GitHub Servers)
+        run: |
+          npm ci
+          npm run build
+
+      - name: 🗜️ 4. Compress Build Files
+        # हम सिर्फ वो फाइलें ज़िप कर रहे हैं जो प्रोडक्शन के लिए ज़रूरी हैं
+        # इससे ट्रांसफर सुपर फास्ट हो जाएगा और .env सुरक्षित रहेगी
+        run: |
+          tar -czf deploy.tar.gz .next public package.json package-lock.json next.config.ts
+
+      - name: 🚀 5. Upload Build to VPS
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
+          port: 22 # Null एरर से बचने के लिए डिफ़ॉल्ट पोर्ट
+          source: "deploy.tar.gz"
+          target: "~/hindi-bhajan-manjari"
+
+      - name: 🔄 6. Extract, Install & Restart PM2 on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
           script: |
             set -e
-
+            
             echo "=============================="
             echo "Deploying Hindi Bhajan Manjari"
             echo "=============================="
-
+            
             cd ~/hindi-bhajan-manjari
-
-            echo "Fetching latest code..."
-            git fetch origin
-
-            echo "Cleaning local repository..."
-            git reset --hard origin/main
-            git clean -fd
-
-            echo "Installing dependencies..."
-            npm ci
-
-            echo "Removing old Next.js build..."
-            rm -rf .next
-
-            echo "Building application..."
-            npm run build
-
+            
+            echo "Extracting new build..."
+            tar -xzf deploy.tar.gz
+            rm deploy.tar.gz # ज़िप फ़ाइल को डिलीट कर दें ताकि सर्वर की मेमोरी न भरे
+            
+            echo "Installing ONLY production dependencies..."
+            npm ci --omit=dev
+            
             echo "Restarting PM2..."
-            pm2 reload bhajan-manjari --update-env
-
-            echo "Saving PM2..."
+            # अगर bhajan-manjari नाम से प्रोसेस नहीं है, तो नया स्टार्ट करेगा
+            pm2 reload bhajan-manjari --update-env || pm2 start npm --name "bhajan-manjari" -- start
             pm2 save
-
-            echo "Deployment completed!"
+            
+            echo "✅ Deployment completed successfully!"
             pm2 status
