@@ -2,20 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import Link from 'next/link';
+import { supabase } from '@/utils/supabase'; 
+import Sanscript from '@indic-transliteration/sanscript';
 import { 
   FaArrowLeft, FaArrowRight, FaWhatsapp, FaFont, 
   FaLanguage, FaPlay, FaOm, FaBookOpen, FaSpinner 
 } from 'react-icons/fa';
 
-// 🌟 Supabase Setup (सुनिश्चित करें कि आपकी .env.local में ये Keys मौजूद हों)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+// 🌟 ग्लोबल इन-मेमोरी कैश (ताकि जो श्लोक एक बार फेच हो जाए, वो दोबारा नेटवर्क कॉल न करे)
+const verseCache: Record<string, any> = {};
 
 export default function PremiumVersePage() {
   const params = useParams();
-  const router = useRouter();
   
   const chapterNum = Number(params.chapter_number) || 1;
   const verseNum = Number(params.verse_number) || 1;
@@ -29,16 +28,20 @@ export default function PremiumVersePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // लिपियों की लिस्ट
+  // 🌟 10 लिपियों की लिस्ट
   const supportedScripts = [
     { id: 'devanagari', label: 'देवनागरी (संस्कृत/हिंदी)' },
-    { id: 'roman', label: 'English (Roman)' },
+    { id: 'hk', label: 'English (Roman)' },
     { id: 'gujarati', label: 'ગુજરાતી (Gujarati)' },
     { id: 'bengali', label: 'বাংলা (Bengali)' },
     { id: 'telugu', label: 'తెలుగు (Telugu)' },
+    { id: 'kannada', label: 'ಕನ್ನಡ (Kannada)' },
+    { id: 'malayalam', label: 'മലയാളം (Malayalam)' },
+    { id: 'oriya', label: 'ଓଡ଼ିଆ (Odia)' },
+    { id: 'gurmukhi', label: 'ਗੁਰਮੁਖੀ (Gurmukhi)' },
+    { id: 'tamil', label: 'தமிழ் (Tamil)' },
   ];
 
-  // 📱 मोबाइल-फ्रेंडली डायनेमिक फॉन्ट क्लासेस
   const getVerseFontClass = () => {
     if (fontSize === 'large') return 'text-2xl sm:text-3xl lg:text-4xl leading-relaxed';
     if (fontSize === 'xlarge') return 'text-3xl sm:text-4xl lg:text-5xl leading-loose';
@@ -51,72 +54,110 @@ export default function PremiumVersePage() {
     else setFontSize('normal');
   };
 
+  // 🌟 कोर फेच फंक्शन (Caching & Smart Fallback के साथ)
+  const fetchVerseFromDB = async (c: number, v: number) => {
+    const targetVerseId = `BG${c}.${v}`;
+    
+    if (verseCache[targetVerseId]) {
+      return verseCache[targetVerseId];
+    }
+
+    try {
+      const { data: verseRow, error: verseError } = await supabase
+        .from('gita_verses')
+        .select('*')
+        .eq('id', targetVerseId)
+        .single();
+
+      if (verseError || !verseRow) return null;
+
+      const { data: commentsRow } = await supabase
+        .from('gita_commentaries')
+        .select('*')
+        .eq('verse_id', targetVerseId);
+
+      // 🌟 SMART BILINGUAL FALLBACK LOGIC
+      let primaryMeaning = "अर्थ उपलब्ध नहीं है।";
+      if (commentsRow && commentsRow.length > 0) {
+        // प्राथमिकता 1: हिंदी अर्थ ढूँढें
+        const hiComm = commentsRow.find(c => ['hi', 'Hindi', 'hindi'].includes(c.language));
+        // प्राथमिकता 2: इंग्लिश अर्थ ढूँढें
+        const enComm = commentsRow.find(c => ['en', 'English', 'english'].includes(c.language));
+
+        if (hiComm) {
+          primaryMeaning = hiComm.content_text;
+        } else if (enComm) {
+          primaryMeaning = enComm.content_text;
+        }
+      }
+
+      const finalData = {
+        chapter: c,
+        verse: v,
+        devanagari: verseRow.sanskrit,
+        roman: verseRow.transliteration,
+        primaryMeaning: primaryMeaning, // मेन कार्ड में दिखाने के लिए
+        translations: commentsRow || []   // नीचे लिस्ट में दिखाने के लिए
+      };
+
+      verseCache[targetVerseId] = finalData;
+      return finalData;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  };
+
   useEffect(() => {
-    const fetchRealVerse = async () => {
+    let isMounted = true;
+
+    const loadData = async () => {
       setIsLoading(true);
       setError(null);
 
-      try {
-        if (!supabase) {
-          throw new Error("Supabase कनेक्शन सेट नहीं है!");
+      const data = await fetchVerseFromDB(chapterNum, verseNum);
+      
+      if (isMounted) {
+        if (data) {
+          setVerseData(data);
+        } else {
+          setError("यह श्लोक डेटाबेस में मौजूद नहीं है या अध्याय समाप्त हो गया है।");
         }
-
-        // 1. Primary Key के इस्तेमाल से श्लोक की ID बनाएं (उदा: "BG1.5")
-        const targetVerseId = `BG${chapterNum}.${verseNum}`;
-
-        // 2. gita_verses टेबल से श्लोक लाएं (सीधे ID से)
-        const { data: verseRow, error: verseError } = await supabase
-          .from('gita_verses')
-          .select('*')
-          .eq('id', targetVerseId)
-          .single();
-
-        if (verseError || !verseRow) {
-          console.error("Verse Fetch Error:", verseError);
-          throw new Error("श्लोक डेटाबेस में नहीं मिला। (कृपया चेक करें कि डेटा सही से इम्पोर्ट हुआ है या RLS इनेबल्ड है)");
-        }
-
-        // 3. gita_commentaries टेबल से उस श्लोक के अनुवाद लाएं
-        const { data: commentsRow, error: commentsError } = await supabase
-          .from('gita_commentaries')
-          .select('*')
-          .eq('verse_id', targetVerseId);
-
-        if (commentsError) {
-          console.error("कमेंट्री फेच करने में एरर:", commentsError);
-        }
-
-        // डेटा को स्टेट में सेट करें
-        setVerseData({
-          chapter: chapterNum,
-          verse: verseNum,
-          scripts: {
-            devanagari: verseRow.sanskrit,
-            roman: verseRow.transliteration,
-          },
-          translations: commentsRow || []
-        });
-
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message);
-      } finally {
         setIsLoading(false);
+      }
+
+      // Background Pre-fetching
+      fetchVerseFromDB(chapterNum, verseNum + 1);
+      if (verseNum > 1) {
+        fetchVerseFromDB(chapterNum, verseNum - 1);
       }
     };
 
-    fetchRealVerse();
+    loadData();
+
+    return () => { isMounted = false; };
   }, [chapterNum, verseNum]);
 
-  // WhatsApp शेयर लॉजिक
+  const getDisplayVerse = () => {
+    if (!verseData) return "";
+    if (script === 'hk') return verseData.roman;
+    if (script === 'devanagari') return verseData.devanagari;
+    try {
+      return Sanscript.t(verseData.devanagari, 'devanagari', script);
+    } catch (e) {
+      console.error("Transliteration Error", e);
+      return verseData.devanagari;
+    }
+  };
+
   const handleWhatsAppShare = () => {
     if (!verseData) return;
-    const text = `✨ *श्रीमद् भगवद्गीता* ✨\n\n📖 *अध्याय ${verseData.chapter}, श्लोक ${verseData.verse}*\n\n🕉️ *श्लोक:*\n${verseData.scripts.devanagari}\n\n👉 *पढ़ने के लिए क्लिक करें:* ${window.location.href}`;
+    const currentVerseText = getDisplayVerse();
+    const text = `✨ *श्रीमद् भगवद्गीता* ✨\n\n📖 *अध्याय ${verseData.chapter}, श्लोक ${verseData.verse}*\n\n🕉️ *श्लोक:*\n${currentVerseText}\n\n🇮🇳 *अर्थ:*\n${verseData.primaryMeaning}\n\n👉 *पढ़ने के लिए क्लिक करें:* ${window.location.href}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  // लोडिंग स्टेट
-  if (isLoading) {
+  if (isLoading && !verseData) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#FDFBF7] space-y-4">
         <FaSpinner className="animate-spin text-orange-500 text-4xl" />
@@ -125,18 +166,17 @@ export default function PremiumVersePage() {
     );
   }
 
-  // एरर स्टेट (अगर श्लोक नहीं मिला)
-  if (error || !verseData) {
+  if (error && !verseData) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#FDFBF7] p-4 text-center space-y-4">
         <div className="w-20 h-20 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4">
           <FaBookOpen size={30} />
         </div>
         <h2 className="text-2xl font-black text-gray-800">श्लोक नहीं मिला</h2>
-        <p className="text-gray-500">{error || "यह श्लोक डेटाबेस में मौजूद नहीं है।"}</p>
-        <button onClick={() => router.push('/bhagavad-gita')} className="bg-orange-500 text-white px-6 py-2 rounded-xl font-bold mt-4">
+        <p className="text-gray-500">{error}</p>
+        <Link href="/bhagavad-gita" className="bg-orange-500 text-white px-6 py-2 rounded-xl font-bold mt-4">
           वापस गीता होम पर जाएं
-        </button>
+        </Link>
       </div>
     );
   }
@@ -149,13 +189,16 @@ export default function PremiumVersePage() {
             1. TOP NAVIGATION
             ========================================== */}
         <div className="flex items-center justify-between bg-white/80 backdrop-blur-md border border-orange-100 p-3 sm:p-4 rounded-2xl sm:rounded-3xl shadow-sm sticky top-2 sm:top-4 z-50">
-          <button 
-            onClick={() => router.push(`/bhagavad-gita/chapter/${chapterNum}/verse/${Math.max(1, verseNum - 1)}`)}
-            disabled={verseNum === 1}
-            className="flex items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm font-bold text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all disabled:opacity-30"
-          >
-            <FaArrowLeft /> <span className="hidden sm:inline">पिछला</span>
-          </button>
+          {verseNum > 1 ? (
+            <Link 
+              href={`/bhagavad-gita/chapter/${chapterNum}/verse/${verseNum - 1}`}
+              className="flex items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm font-bold text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all"
+            >
+              <FaArrowLeft /> <span className="hidden sm:inline">पिछला</span>
+            </Link>
+          ) : (
+            <div className="px-3 py-2 opacity-0 cursor-default"><FaArrowLeft /></div>
+          )}
           
           <div className="text-center flex flex-col items-center">
             <span className="text-[9px] sm:text-[10px] text-orange-500 font-bold uppercase tracking-widest mb-0.5">
@@ -166,12 +209,12 @@ export default function PremiumVersePage() {
             </span>
           </div>
 
-          <button 
-            onClick={() => router.push(`/bhagavad-gita/chapter/${chapterNum}/verse/${verseNum + 1}`)}
+          <Link 
+            href={`/bhagavad-gita/chapter/${chapterNum}/verse/${verseNum + 1}`}
             className="flex items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm font-bold text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all"
           >
             <span className="hidden sm:inline">अगला</span> <FaArrowRight />
-          </button>
+          </Link>
         </div>
 
         {/* ==========================================
@@ -207,16 +250,24 @@ export default function PremiumVersePage() {
             </button>
           </div>
 
-          {/* Sanskrit Verse - Mobile Responsive Wrap */}
-          <div className="relative z-10 text-center min-h-[120px] flex items-center justify-center my-6 sm:my-8 px-2 w-full">
+          {/* 🌟 Dynamic Script Render */}
+          <div className="relative z-10 text-center min-h-[120px] flex items-center justify-center mt-6 sm:mt-8 px-2 w-full">
             <FaOm className="absolute text-orange-500/5 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-0" size={100} />
             <p className={`relative z-10 font-hindi font-black text-[#4A2B11] break-words whitespace-pre-wrap sm:whitespace-pre-line w-full transition-all duration-300 ${getVerseFontClass()}`}>
-              {verseData.scripts[script] || verseData.scripts.devanagari}
+              {getDisplayVerse()}
+            </p>
+          </div>
+
+          {/* 🌟 Primary Meaning Block (New) */}
+          <div className="relative z-10 mt-8 mb-4 bg-orange-50/50 border border-orange-100 rounded-2xl p-4 sm:p-6 text-center">
+            <p className="text-xs font-bold text-orange-600 uppercase tracking-widest mb-2">सरल अर्थ</p>
+            <p className="text-gray-700 font-hindi text-base sm:text-lg leading-relaxed">
+              {verseData.primaryMeaning}
             </p>
           </div>
 
           {/* Action Hub */}
-          <div className="relative z-10 flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
+          <div className="relative z-10 flex flex-col sm:flex-row items-center justify-center gap-3 mt-6">
             <button className="w-full sm:w-auto bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md">
               <FaPlay size={12} /> श्लोक सुनें
             </button>
@@ -259,7 +310,7 @@ export default function PremiumVersePage() {
             ))
           ) : (
             <p className="text-gray-500 text-sm bg-white p-4 rounded-xl border border-gray-100 text-center">
-              इस श्लोक का अनुवाद अभी उपलब्ध नहीं है।
+              इस श्लोक के लिए विस्तृत अनुवाद उपलब्ध नहीं है।
             </p>
           )}
         </div>
