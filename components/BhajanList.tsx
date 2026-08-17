@@ -11,6 +11,10 @@ import {
 import ScrollReveal from './ScrollReveal'; 
 import Image from 'next/image';
 
+// 🌟 DEXIE IMPORTS (Make sure path matches your db.ts location)
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/utils/db'; 
+
 // 🌟 SMART AFFILIATE AD SLOT IMPORTED
 import AffiliateSlot from './AffiliateSlot'; 
 
@@ -43,55 +47,11 @@ const getYouTubeId = (url?: string) => {
 };
 
 // ==========================================
-// 🌟 OPTIMIZED BHAJAN CARD WITH RESPONSIVE SAVE
+// 🌟 OPTIMIZED BHAJAN CARD WITH ADVANCED DEXIE SAVE
 // ==========================================
 const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, index: number, itemsPerPage: number }) => {
   const ytId = getYouTubeId(bhajan.video_embed_url);
   const thumbnailUrl = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
-
-  // 🌟 Direct Save State & Logic
-  const [isSaved, setIsSaved] = useState(false);
-
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('my_saved_bhajans') || '[]');
-      setIsSaved(saved.some((item: any) => item.slug === bhajan.slug));
-    } catch (e) {
-      console.error('Error reading localStorage', e);
-    }
-  }, [bhajan.slug]);
-
-  const handleDirectSave = (e: React.MouseEvent) => {
-    e.preventDefault();  // 🌟 रोक देता है Link को खुलने से
-    e.stopPropagation(); // 🌟 रोक देता है Parent Click Event को
-
-    try {
-      let saved = JSON.parse(localStorage.getItem('my_saved_bhajans') || '[]');
-      const exists = saved.some((item: any) => item.slug === bhajan.slug);
-
-      if (exists) {
-        saved = saved.filter((item: any) => item.slug !== bhajan.slug);
-        setIsSaved(false);
-      } else {
-        saved.push({
-          slug: bhajan.slug,
-          title: bhajan.title_hindi,
-          title_hinglish: bhajan.title_hinglish,
-          savedAt: Date.now()
-        });
-        setIsSaved(true);
-      }
-
-      localStorage.setItem('my_saved_bhajans', JSON.stringify(saved));
-      window.dispatchEvent(new Event('storage')); // ताकि हेडर/नेवबार का काउंट भी अपडेट हो जाए
-
-      if (typeof window !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(30);
-      }
-    } catch (err) {
-      console.error('Failed to save bhajan', err);
-    }
-  };
 
   // 🌟 SMART LYRICS PREVIEW EXTRACTOR
   const getBriefLyrics = (lyrics?: string) => {
@@ -100,12 +60,52 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
     return lines.length > 0 ? lines[0] : "संपूर्ण बोल अंदर पढ़ें";
   };
 
+  // 🌟 DEXIE: Live Query to check if bhajan exists in the database
+  const savedRecord = useLiveQuery(
+    () => db.savedBhajans.get(bhajan.slug),
+    [bhajan.slug]
+  );
+  
+  const isSaved = !!savedRecord;
+
+  // 🌟 ADVANCED SAVE TO NEW DEXIE SCHEMA
+  const handleDirectSave = async (e: React.MouseEvent) => {
+    e.preventDefault();  // Prevents Next.js Link from triggering
+    e.stopPropagation(); // Prevents parent clicks
+
+    try {
+      if (isSaved) {
+        // Remove from Dexie
+        await db.savedBhajans.delete(bhajan.slug);
+      } else {
+        // Add to Dexie (Matching new Advanced Schema)
+        await db.savedBhajans.put({
+          slug: bhajan.slug,
+          title: bhajan.title_hindi,
+          folder: 'All', // Default folder
+          isPinned: 0,   // Not pinned by default
+          addedAt: new Date().toISOString(), 
+          
+          // Offline Metadata cache
+          deity: bhajan.deity?.name_hinglish || 'Bhajan',
+          lyrics_excerpt: getBriefLyrics(bhajan.lyrics_hindi)
+        });
+      }
+
+      if (typeof window !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(30);
+      }
+    } catch (err) {
+      console.error('Failed to update Dexie database', err);
+    }
+  };
+
   return (
     <ScrollReveal delay={(index % itemsPerPage) * 0.05} yOffset={30}>
       <Link href={`/bhajan/${bhajan.slug}`} className="block">
         <div className="group bg-white dark:bg-[#0c0804] p-4 md:p-5 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-orange-200 dark:hover:border-orange-900/50 transition-all duration-300 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 md:gap-6 relative overflow-hidden hover:-translate-y-1">
           
-          {/* 🌟 DESKTOP / TABLET ONLY TOP-RIGHT SAVE BUTTON (sm:flex hidden on mobile) */}
+          {/* 🌟 DESKTOP / TABLET ONLY TOP-RIGHT SAVE BUTTON */}
           <button
             onClick={handleDirectSave}
             title={isSaved ? "संग्रह से हटाएं" : "संग्रह में जोड़ें"}
@@ -119,7 +119,7 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
             )}
           </button>
 
-          {/* YOUTUBE THUMBNAIL */}
+          {/* YOUTUBE THUMBNAIL OR GRADIENT PLACEHOLDER */}
           {thumbnailUrl ? (
             <div className="relative w-full sm:w-48 md:w-56 shrink-0 aspect-video rounded-2xl overflow-hidden bg-gray-900 group-hover:shadow-md transition-all border border-gray-100/50 dark:border-white/5">
               <Image 
@@ -171,7 +171,7 @@ const BhajanCard = memo(({ bhajan, index, itemsPerPage }: { bhajan: Bhajan, inde
                 </p>
               </div>
 
-              {/* 🌟 MOBILE ONLY SAVE BUTTON (Next to title, NOT over image!) */}
+              {/* 🌟 MOBILE ONLY SAVE BUTTON */}
               <button
                 onClick={handleDirectSave}
                 title={isSaved ? "संग्रह से हटाएं" : "संग्रह में जोड़ें"}
