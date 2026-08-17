@@ -56,7 +56,7 @@ const BASE_NAV_STRUCTURE = [
   },
   { name: 'Bhajans', href: '/bhajan', title: 'A-Z Hindi Bhajans Collection' }, 
   { name: 'Gyan', href: '/gyan', title: 'Sanatan Gyan & Spiritual Articles' },
-  { name: 'Bhagwad Gita)', href: '/bhagavad-gita', title: 'Read Shrimad Bhagavad Gita' }, 
+  { name: 'Bhagwad Gita', href: '/bhagavad-gita', title: 'Read Shrimad Bhagavad Gita' }, 
 ];
 
 const SOCIAL_LINKS = [
