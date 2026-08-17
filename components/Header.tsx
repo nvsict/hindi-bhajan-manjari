@@ -56,7 +56,7 @@ const BASE_NAV_STRUCTURE = [
   },
   { name: 'Bhajans', href: '/bhajan', title: 'A-Z Hindi Bhajans Collection' }, 
   { name: 'Gyan', href: '/gyan', title: 'Sanatan Gyan & Spiritual Articles' },
-  { name: 'Wisdom (EN)', href: '/en/gyan', title: 'Read Spiritual Articles in English' }, 
+  { name: 'Bhagwad Gita)', href: '/bhagavad-gita', title: 'Read Shrimad Bhagavad Gita' }, 
 ];
 
 const SOCIAL_LINKS = [
@@ -163,7 +163,7 @@ export default function Header() {
             },
             BASE_NAV_STRUCTURE[3], // Bhajans
             BASE_NAV_STRUCTURE[4], // Gyan
-            BASE_NAV_STRUCTURE[5], // Wisdom (EN)
+            BASE_NAV_STRUCTURE[5], // Bhagvad Gita
           ];
           setNavItems(dynamicNav);
         }
