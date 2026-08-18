@@ -12,7 +12,7 @@ import {
   FaFilePdf, FaSearch, FaSpinner, FaRedo, 
   FaExclamationTriangle, FaLayerGroup, FaArrowRight, 
   FaRupeeSign, FaShieldAlt, FaOm, FaWhatsapp, FaListUl,
-  FaCheckCircle, FaLanguage, FaBook
+  FaCheckCircle, FaLanguage, FaBook, FaPalette
 } from 'react-icons/fa';
 
 type WizardStep = 1 | 2;
@@ -36,11 +36,12 @@ export default function PublicationTestStudio() {
 
   // --- FILTERS ---
   const [selectedDeity, setSelectedDeity] = useState<string>("ALL");
-  const [selectedCategory, setSelectedCategory] = useState<string>("ALL"); // 🌟 NEW: Category State
+  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
 
   // --- ELDER-FRIENDLY CONFIGURATION ---
   const [bookTitle, setBookTitle] = useState("मेरी भजन डायरी");
   const [script, setScript] = useState<ScriptLanguage>('devanagari');
+  const [theme, setTheme] = useState<string>('default'); 
 
   // --- FLOW STATE ---
   const [generatedModel, setGeneratedModel] = useState<PublicationDocument | null>(null);
@@ -48,7 +49,7 @@ export default function PublicationTestStudio() {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const lastDownloadUrl = useRef<string | null>(null);
 
-  // 1. 🌟 LOCAL STORAGE RECOVERY & URL REDIRECT HANDLER
+  // 1. 🌟 LOCAL STORAGE RECOVERY
   useEffect(() => {
     setIsClient(true);
     let recoveredState: any = null;
@@ -60,6 +61,7 @@ export default function PublicationTestStudio() {
         if (recoveredState.selectedSlugs) setSelectedSlugs(recoveredState.selectedSlugs);
         if (recoveredState.bookTitle) setBookTitle(recoveredState.bookTitle);
         if (recoveredState.script) setScript(recoveredState.script);
+        if (recoveredState.theme) setTheme(recoveredState.theme); 
         if (recoveredState.orderId) setSavedOrderId(recoveredState.orderId);
         if (recoveredState.isPaid) setIsPaid(recoveredState.isPaid);
         if (recoveredState.step) setStep(recoveredState.step);
@@ -97,10 +99,10 @@ export default function PublicationTestStudio() {
   useEffect(() => {
     if (isClient) {
       localStorage.setItem('bhajanPustikaStateSimple', JSON.stringify({
-        step, selectedSlugs, bookTitle, script, orderId: savedOrderId, isPaid
+        step, selectedSlugs, bookTitle, script, theme, orderId: savedOrderId, isPaid 
       }));
     }
-  }, [step, selectedSlugs, bookTitle, script, savedOrderId, isPaid, isClient]);
+  }, [step, selectedSlugs, bookTitle, script, theme, savedOrderId, isPaid, isClient]);
 
   // 3. Fetch Bhajans
   useEffect(() => {
@@ -117,7 +119,6 @@ export default function PublicationTestStudio() {
     fetchAllBhajans();
   }, []);
 
-  // Dynamic Pricing
   const currentPrice = useMemo(() => {
     const count = selectedSlugs.length;
     if (count === 0) return 0;
@@ -125,7 +126,6 @@ export default function PublicationTestStudio() {
     return 11 + ((count - 2) * 2);
   }, [selectedSlugs.length]);
 
-  // Filters Extraction
   const uniqueDeities = useMemo(() => Array.from(new Set(bhajans.map(b => b.deity?.name_hindi).filter(Boolean))), [bhajans]);
   const uniqueCategories = useMemo(() => {
     const list = new Set<string>();
@@ -159,10 +159,10 @@ export default function PublicationTestStudio() {
   };
   const prevStep = () => setStep(1);
 
-  // 🌟 RESET EVERYTHING
   const handleStartNew = () => {
     setSelectedSlugs([]);
     setBookTitle("मेरी भजन डायरी");
+    setTheme("default");
     setSavedOrderId(null);
     setIsPaid(false);
     setFlowStatus('idle');
@@ -172,22 +172,18 @@ export default function PublicationTestStudio() {
     window.scrollTo(0,0);
   };
 
-  // ==========================================
-  // 🌟 SECURE REDIRECT PAYMENT FLOW
-  // ==========================================
   const handlePaymentAndGenerate = async () => {
     if (selectedSlugs.length === 0) return;
     setErrorMessage("");
 
-    // 🛠️ DEVELOPER CHEAT CODE
     if (bookTitle.trim().toUpperCase() === "TEST") {
       setSavedOrderId("dev_test_order_123");
       setIsPaid(true);
-      return executePDFGeneration(selectedSlugs, bookTitle, script);
+      return executePDFGeneration(selectedSlugs, bookTitle, script, theme); 
     }
 
     if (isPaid && savedOrderId) {
-      return executePDFGeneration(selectedSlugs, bookTitle, script);
+      return executePDFGeneration(selectedSlugs, bookTitle, script, theme); 
     }
 
     setFlowStatus('payment_pending');
@@ -217,7 +213,7 @@ export default function PublicationTestStudio() {
 
       if (verifyData.paid && verifyData.orderType === 'book_builder') {
         setIsPaid(true);
-        await executePDFGeneration(stateOptions.selectedSlugs, stateOptions.bookTitle, stateOptions.script);
+        await executePDFGeneration(stateOptions.selectedSlugs, stateOptions.bookTitle, stateOptions.script, stateOptions.theme || 'default');
       } else {
         setFlowStatus('idle');
       }
@@ -227,12 +223,14 @@ export default function PublicationTestStudio() {
     }
   };
 
-  const executePDFGeneration = async (slugs: string[], title: string, userScript: ScriptLanguage) => {
+  // 🌟 FIX: themeName की जगह सीधे 'theme: userTheme' पास किया गया है
+  const executePDFGeneration = async (slugs: string[], title: string, userScript: ScriptLanguage, userTheme: string) => {
     setFlowStatus('building');
     try {
-      const opts: PublicationRequestOptions = {
+      const opts: any = {
         script: userScript,
-        theme: 'temple', 
+        theme: userTheme, // 👈 THE MAGIC FIX! अब यह 'sawan' या 'navratri' सीधा बैकएंड को पास करेगा
+        themeName: userTheme, 
         pageSize: 'A4', 
         includeMeaning: true, 
         fontSizeScale: 1.0, 
@@ -283,7 +281,6 @@ export default function PublicationTestStudio() {
 
   if (!isClient) return null;
 
-  // Shared classes for UI Consistency across Step 1 and Step 2
   const inputStyles = "w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-800 outline-none focus:border-orange-500 transition-colors shadow-sm";
 
   return (
@@ -318,7 +315,6 @@ export default function PublicationTestStudio() {
             
             <div className="bg-white border border-gray-100 rounded-3xl shadow-sm flex flex-col h-[65vh] sm:h-[70vh] overflow-hidden">
               
-              {/* PILL SHAPED TABS */}
               <div className="flex p-2 bg-gray-50/50 border-b border-gray-100 gap-2">
                 <button onClick={() => setActiveTab('all')} className={`flex-1 py-2.5 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 rounded-xl transition-all ${activeTab === 'all' ? 'bg-white text-orange-600 shadow-[0_2px_10px_rgba(0,0,0,0.05)] border border-gray-200' : 'text-gray-500 hover:bg-gray-100'}`}>
                   <FaSearch /> खोंजे और चुनें
@@ -331,7 +327,6 @@ export default function PublicationTestStudio() {
               {activeTab === 'all' && (
                 <div className="p-3 sm:p-5 flex-1 flex flex-col min-h-0 bg-white">
                   
-                  {/* 🌟 FIX 1 & 2: RESPONSIVE ALIGNED SEARCH & FILTERS */}
                   <div className="flex flex-col md:flex-row gap-2.5 mb-4">
                     <div className="relative flex-1">
                       <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
@@ -351,7 +346,6 @@ export default function PublicationTestStudio() {
                     </div>
                   </div>
 
-                  {/* 🌟 FIX 5: ADDED pb-28 SO LAST BHAJAN IS NOT HIDDEN */}
                   <div className="overflow-y-auto flex-1 pb-28 pr-1 custom-scrollbar">
                     {loadingList ? (
                       <div className="h-full flex flex-col items-center justify-center text-gray-400"><FaSpinner className="animate-spin text-2xl mb-2 text-orange-500" /></div>
@@ -361,7 +355,6 @@ export default function PublicationTestStudio() {
                           const isSelected = selectedSlugs.includes(bhajan.slug);
                           const orderIndex = selectedSlugs.indexOf(bhajan.slug);
                           return (
-                            // 🌟 FIX 4: PROPER VISUAL FEEDBACK (+)
                             <div key={bhajan.slug} onClick={() => toggleSelection(bhajan.slug)} className={`relative flex items-center gap-3 p-3 rounded-2xl border cursor-pointer transition-all ${isSelected ? 'bg-orange-50 border-orange-400 shadow-sm' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
                               <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border ${isSelected ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-200 bg-gray-50 text-gray-400'}`}>
                                 {isSelected ? <span className="text-[10px] font-black">{orderIndex + 1}</span> : <span className="text-sm font-black mb-0.5">+</span>}
@@ -385,7 +378,6 @@ export default function PublicationTestStudio() {
                     {selectedSlugs.length > 0 && <button onClick={() => setSelectedSlugs([])} className="text-red-500 text-sm font-bold hover:underline bg-white px-3 py-1 rounded-full border border-red-100 shadow-sm">सभी हटाएँ</button>}
                   </div>
                   <div className="overflow-y-auto flex-1 pr-1 pb-28">
-                    {/* 🌟 FIX 3: ACTIONABLE EMPTY STATE */}
                     {explicitlySelectedBhajans.length === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center text-gray-500 font-hindi text-sm">
                         <FaLayerGroup className="text-5xl mb-4 text-gray-200" />
@@ -456,7 +448,7 @@ export default function PublicationTestStudio() {
               <div className="p-6 sm:p-10 text-center">
                 <h2 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2 font-hindi">पुस्तिका का विवरण</h2>
                 <p className="text-gray-500 text-sm font-medium mb-6 font-hindi">
-                  अपनी डायरी का नाम और भाषा चुनें।
+                  अपनी डायरी का नाम, भाषा और थीम चुनें।
                 </p>
 
                 <div className="space-y-5 text-left mb-8">
@@ -464,24 +456,37 @@ export default function PublicationTestStudio() {
                     <label className="flex items-center gap-2 text-sm font-bold text-gray-600 mb-2 font-hindi">
                       <FaBook className="text-orange-500" /> डायरी का नाम
                     </label>
-                    {/* 🌟 FIX 2: UNIFIED INPUT STYLES */}
                     <input type="text" value={bookTitle} onChange={(e) => setBookTitle(e.target.value)}
                       className={inputStyles}
                       placeholder="उदा. शर्मा परिवार का भजन संग्रह"
                     />
                   </div>
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-bold text-gray-600 mb-2 font-hindi">
-                      <FaLanguage className="text-orange-500" /> भाषा (Lipi)
-                    </label>
-                    <select value={script} onChange={(e) => setScript(e.target.value as ScriptLanguage)} className={inputStyles}>
-                      <option value="devanagari">हिंदी (Devanagari)</option>
-                      <option value="gujarati">ગુજરાતી (Gujarati)</option>
-                      <option value="bengali">বাংলা (Bengali)</option>
-                      <option value="telugu">తెలుగు (Telugu)</option>
-                      <option value="gurmukhi">ਪੰਜਾਬੀ (Gurmukhi)</option>
-                      <option value="hinglish">English (Hinglish)</option>
-                    </select>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-bold text-gray-600 mb-2 font-hindi">
+                        <FaLanguage className="text-orange-500" /> भाषा (Lipi)
+                      </label>
+                      <select value={script} onChange={(e) => setScript(e.target.value as ScriptLanguage)} className={inputStyles}>
+                        <option value="devanagari">हिंदी (Devanagari)</option>
+                        <option value="gujarati">ગુજરાતી (Gujarati)</option>
+                        <option value="bengali">বাংলা (Bengali)</option>
+                        <option value="telugu">తెలుగు (Telugu)</option>
+                        <option value="gurmukhi">ਪੰਜਾਬੀ (Gurmukhi)</option>
+                        <option value="hinglish">English (Hinglish)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-bold text-gray-600 mb-2 font-hindi">
+                        <FaPalette className="text-orange-500" /> थीम (रंग/डिज़ाइन)
+                      </label>
+                      <select value={theme} onChange={(e) => setTheme(e.target.value)} className={inputStyles}>
+                        <option value="default">क्लासिक (सफेद)</option>
+                        <option value="sawan">सावन विशेष (हरा)</option>
+                        <option value="navratri">नवरात्रि विशेष (लाल)</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
