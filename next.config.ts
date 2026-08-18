@@ -27,7 +27,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "i.ytimg.com" }, 
       { protocol: "https", hostname: "img.youtube.com" }, 
       { protocol: "https", hostname: "*.amazonaws.com" }, 
-      // 🌟 FIX: हटा दिया गया -> { protocol: "https", hostname: "**" } (Ads के लिए खुला छोड़ा गया था)
+      { protocol: "https", hostname: "**" }, // इसे वापस रखा है ताकि आपकी कोई इमेज ब्रेक न हो
     ],
   },
 
@@ -62,10 +62,10 @@ const nextConfig: NextConfig = {
             value: 'camera=(), microphone=(self), geolocation=(), browsing-topics=()'
           },
           {
-            // 🌟 THE FIX: Ads नेटवर्क की खुली छूट (https: और *) हटा दी गई है। 
-            // अब सिर्फ आपके काम के टूल्स (GA, Clarity, Supabase, YouTube) ही अलाउड हैं।
+            // 🌟 THE FIX: इसे वापस ओरिजिनल स्टेट में कर दिया है ताकि आपका api.hindibhajanmanjari.com 
+            // और Cloudflare Insights बिना ब्लॉक हुए काम कर सकें।
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.clarity.ms; style-src 'self' 'unsafe-inline' https:; img-src * blob: data:; media-src * blob: data:; font-src 'self' https: data:; connect-src 'self' https://*.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://*.clarity.ms; frame-src 'self' https://www.youtube.com; worker-src 'self' blob:;"
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob:; style-src 'self' 'unsafe-inline' https:; img-src * blob: data:; media-src * blob: data:; font-src 'self' https: data:; connect-src *; frame-src *; worker-src 'self' blob:;"
           }
         ],
       },
