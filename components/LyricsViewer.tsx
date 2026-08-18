@@ -518,7 +518,7 @@ export default function LyricsViewer({
       {/* 🌟 4. ASYMMETRICAL ADAPTIVE FLOATING TOOLBAR */}
       {/* Container adopts a unique Teardrop/Pill Shape: full circle left, tighter curve right */}
       <div 
-        className={`fixed bottom-16 md:bottom-24 left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:opacity-100 hover:scale-100 ${isScrollingDown ? 'opacity-40 scale-95' : 'opacity-100 scale-100'}`}
+        className={`fixed bottom-10 md:bottom-20 left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:opacity-100 hover:scale-100 ${isScrollingDown ? 'opacity-40 scale-95' : 'opacity-100 scale-100'}`}
       >
         <div className="relative p-1.5 md:p-2 bg-white/95 backdrop-blur-xl border border-gray-200 shadow-[0_8px_30px_rgba(0,0,0,0.12)] rounded-l-[2.5rem] rounded-r-2xl flex items-center gap-1 sm:gap-1.5">
           
