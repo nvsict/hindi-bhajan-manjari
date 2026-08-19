@@ -5,15 +5,12 @@ import { Metadata } from 'next';
 import { supabase } from '@/utils/supabase';
 import { 
   FaGlobe, FaInstagram, FaEnvelope, 
-  FaFacebookF, FaWhatsapp, // 🌟 नए इम्पोर्ट्स 
+  FaFacebookF, FaWhatsapp, FaShareAlt,
   FaCheckCircle, FaUserShield, FaPenNib, 
-  FaMusic, FaQuoteLeft 
+  FaMusic, FaQuoteLeft, FaTrophy, FaArrowRight
 } from 'react-icons/fa';
 import { FaOm, FaHandsPraying } from 'react-icons/fa6';
 
-// ==========================================
-// 🌟 CENTRAL AUTHOR CONFIGURATION (Enhanced)
-// ==========================================
 // ==========================================
 // 🌟 CENTRAL AUTHOR CONFIGURATION
 // ==========================================
@@ -28,11 +25,8 @@ export const AUTHORS: Record<string, any> = {
     image: "https://i.ibb.co/NddGCY05/Whats-App-Image-2026-02-28-at-12-37-16-AM.jpg",
     verified: true,
     stats: {
-      articles: "10+",
-      bhajans: "300+",
       experience: "5+ Years"
     },
-    // 🌟 आपका नया Social Data
     social: {
       website: "https://www.hindibhajanmanjari.com",
       facebook: "https://www.facebook.com/mohit.tarkar.7121/",
@@ -46,7 +40,6 @@ export const AUTHORS: Record<string, any> = {
 // ==========================================
 // 🌟 DYNAMIC SOCIAL STYLES MAP
 // ==========================================
-// यहाँ हम हर प्लेटफ़ॉर्म का अपना ब्रांड कलर और आइकॉन सेट करते हैं
 const SOCIAL_STYLES: Record<string, { icon: any, color: string, label: string }> = {
   website: { icon: FaGlobe, color: 'hover:bg-slate-800 hover:text-white', label: 'Website' },
   facebook: { icon: FaFacebookF, color: 'hover:bg-[#1877F2] hover:text-white text-blue-600', label: 'Facebook' },
@@ -87,26 +80,33 @@ export default async function AuthorPage({ params }: PageProps) {
   if (!author) notFound();
 
   // ==========================================
-  // 🌟 OPTIMIZATION: PARALLEL DATA FETCHING
-  // Supabase queries now run at the EXACT same time!
+  // 🌟 APPLIED FIX 1: REAL-TIME COUNT FETCHING
+  // Using { count: 'exact' } to get the live database numbers
   // ==========================================
   const [
-    { data: recentArticles },
-    { data: recentBhajans }
+    { data: recentArticles, count: articlesCount },
+    { data: recentBhajans, count: bhajansCount }
   ] = await Promise.all([
     supabase
       .from('articles')
-      .select('title_hindi, title_hinglish, slug, read_time_minutes, created_at')
+      .select('title_hindi, title_hinglish, slug, read_time_minutes, created_at', { count: 'exact' })
       .eq('author_slug', slug)
       .eq('is_published', true)
       .order('created_at', { ascending: false })
       .limit(4),
     supabase
       .from('bhajans')
-      .select('title_hindi, title_hinglish, slug, created_at')
+      .select('title_hindi, title_hinglish, slug, created_at', { count: 'exact' })
       .order('created_at', { ascending: false })
-      .limit(4) // Assuming recent edits globally. Add .eq('editor_slug', slug) if you track it!
+      .limit(4) 
   ]);
+
+  const liveBhajansCount = bhajansCount || 500;
+  const liveArticlesCount = articlesCount || 10;
+  
+  // URL for Sharing Profile
+  const profileUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com'}/author/${slug}`;
+  const shareText = `हरि ॐ! 🙏 मिलिए ${author.nameHindi} (चीफ एडिटर) से। इन्होंने हिंदी भजन मंजरी पर ${liveBhajansCount}+ प्रामाणिक भजनों का संकलन किया है। प्रोफाइल यहाँ देखें: ${profileUrl}`;
 
   // ==========================================
   // 🌟 KNOWLEDGE GRAPH SCHEMA (JSON-LD)
@@ -121,23 +121,21 @@ export default async function AuthorPage({ params }: PageProps) {
       "@type": "Organization",
       "name": "Hindi Bhajan Manjari"
     },
-    "url": `${process.env.NEXT_PUBLIC_SITE_URL}/author/${slug}`,
+    "url": profileUrl,
     "image": author.image,
     "description": author.bio,
-    "sameAs": Object.values(author.social).filter(Boolean) // Dynamically adds all active socials
+    "sameAs": Object.values(author.social).filter(Boolean)
   };
 
   return (
     <div className="min-h-screen bg-[#faf9f8] pb-24 font-sans">
       
-      {/* INJECT SCHEMA TO DOM */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }} />
 
       {/* ==========================================
           🌟 ELITE PROFILE HEADER
           ========================================== */}
       <div className="bg-white border-b border-gray-100/50 pt-20 pb-20 relative overflow-hidden shadow-[0_4px_30px_rgb(0,0,0,0.02)]">
-        {/* Decorative Background Glows */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-orange-100/40 via-red-50/20 to-transparent rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/3"></div>
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-50/50 rounded-full blur-3xl pointer-events-none translate-y-1/3 -translate-x-1/4"></div>
         <div className="absolute top-1/2 left-1/2 w-full h-px bg-gradient-to-r from-transparent via-gray-100 to-transparent -translate-x-1/2"></div>
@@ -146,6 +144,15 @@ export default async function AuthorPage({ params }: PageProps) {
           
           {/* Avatar Area */}
           <div className="relative shrink-0 group flex flex-col items-center">
+            
+            {/* 🌟 APPLIED FIX 2: 500+ MILESTONE BADGE */}
+            {liveBhajansCount >= 500 && (
+              <div className="absolute -top-4 -right-2 md:-right-6 bg-gradient-to-r from-amber-500 to-orange-600 text-white px-4 py-1.5 rounded-full shadow-[0_5px_15px_rgba(245,158,11,0.4)] border-2 border-white flex items-center gap-2 z-20">
+                <FaTrophy className="text-yellow-100" />
+                <span className="text-[11px] font-black uppercase tracking-widest whitespace-nowrap">{liveBhajansCount}+ Milestone</span>
+              </div>
+            )}
+
             <div className="absolute -inset-4 bg-gradient-to-br from-orange-400 to-red-500 rounded-full blur-lg opacity-20 group-hover:opacity-40 transition duration-700"></div>
             <div className="relative w-40 h-40 md:w-56 md:h-56 rounded-full overflow-hidden border-[6px] border-white shadow-2xl bg-white">
               <Image 
@@ -188,25 +195,23 @@ export default async function AuthorPage({ params }: PageProps) {
               {author.role}
             </p>
 
-            {/* Quick Stats Banner */}
-            {author.stats && (
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 md:gap-8 mb-8 pb-8 border-b border-gray-100">
-                <div className="flex flex-col">
-                  <span className="text-2xl font-black text-gray-900">{author.stats.articles}</span>
-                  <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Articles</span>
-                </div>
-                <div className="w-px h-8 bg-gray-200"></div>
-                <div className="flex flex-col">
-                  <span className="text-2xl font-black text-gray-900">{author.stats.bhajans}</span>
-                  <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Bhajans Verified</span>
-                </div>
-                <div className="w-px h-8 bg-gray-200"></div>
-                <div className="flex flex-col">
-                  <span className="text-2xl font-black text-gray-900">{author.stats.experience}</span>
-                  <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Experience</span>
-                </div>
+            {/* Quick Stats Banner (Real-time Numbers) */}
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 md:gap-8 mb-8 pb-8 border-b border-gray-100">
+              <div className="flex flex-col">
+                <span className="text-2xl font-black text-gray-900">{liveArticlesCount}</span>
+                <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Articles</span>
               </div>
-            )}
+              <div className="w-px h-8 bg-gray-200"></div>
+              <div className="flex flex-col">
+                <span className="text-2xl font-black text-gray-900">{liveBhajansCount}+</span>
+                <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Bhajans Verified</span>
+              </div>
+              <div className="w-px h-8 bg-gray-200"></div>
+              <div className="flex flex-col">
+                <span className="text-2xl font-black text-gray-900">{author.stats.experience}</span>
+                <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Experience</span>
+              </div>
+            </div>
 
             <p className="text-gray-600 leading-[1.8] max-w-3xl mb-8 font-medium text-lg md:text-xl">
               {author.bio}
@@ -231,8 +236,8 @@ export default async function AuthorPage({ params }: PageProps) {
               ))}
             </div>
 
-            {/* Dynamic Social Links */}
-            <div className="flex items-center justify-center md:justify-start gap-3">
+            {/* Dynamic Social Links & Share Button */}
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
               {Object.entries(author.social).map(([platform, url]) => {
                 if (!url || url === "#") return null;
                 const style = SOCIAL_STYLES[platform];
@@ -252,6 +257,19 @@ export default async function AuthorPage({ params }: PageProps) {
                   </a>
                 );
               })}
+              
+              {/* 🌟 APPLIED FIX 3: SHARE PROFILE BUTTON */}
+              <div className="w-px h-8 bg-gray-200 mx-2 hidden md:block"></div>
+              <a
+                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-12 px-5 flex items-center justify-center gap-2 rounded-2xl bg-orange-100 text-orange-600 font-bold transition-all shadow-sm border border-orange-200 hover:-translate-y-1 hover:shadow-md hover:bg-orange-500 hover:text-white"
+                title="Share via WhatsApp"
+              >
+                <FaShareAlt size={18} />
+                <span className="text-sm">Share Profile</span>
+              </a>
             </div>
           </div>
         </div>
@@ -265,7 +283,7 @@ export default async function AuthorPage({ params }: PageProps) {
         <div className="grid lg:grid-cols-2 gap-12">
           
           {/* Gyan Articles Column */}
-          <div>
+          <div className="flex flex-col h-full">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl md:text-3xl font-black text-gray-900 flex items-center gap-3 tracking-tighter">
                 <span className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center text-orange-500 shadow-inner">
@@ -275,7 +293,7 @@ export default async function AuthorPage({ params }: PageProps) {
               </h2>
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-4 flex-1">
               {recentArticles && recentArticles.length > 0 ? (
                 recentArticles.map((article) => (
                   <Link 
@@ -297,16 +315,25 @@ export default async function AuthorPage({ params }: PageProps) {
                   </Link>
                 ))
               ) : (
-                <div className="bg-white border border-dashed border-gray-200 p-10 rounded-[2rem] text-center">
+                <div className="bg-white border border-dashed border-gray-200 p-10 rounded-[2rem] text-center h-full flex flex-col justify-center items-center">
                   <FaPenNib className="mx-auto text-gray-300 text-3xl mb-3" />
                   <p className="text-gray-500 text-sm font-medium">No recent articles published yet.</p>
                 </div>
               )}
             </div>
+
+            {/* 🌟 APPLIED FIX 4: VIEW ALL ARTICLES BUTTON */}
+            {recentArticles && recentArticles.length > 0 && (
+              <div className="mt-8 text-center md:text-left">
+                <Link href="/gyan" className="inline-flex items-center gap-2 text-sm font-black uppercase tracking-widest text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-6 py-3 rounded-full transition-colors border border-orange-100">
+                  Read All Articles <FaArrowRight />
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Edited Bhajans Column */}
-          <div>
+          <div className="flex flex-col h-full">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl md:text-3xl font-black text-gray-900 flex items-center gap-3 tracking-tighter">
                 <span className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-500 shadow-inner">
@@ -316,7 +343,7 @@ export default async function AuthorPage({ params }: PageProps) {
               </h2>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 flex-1">
               {recentBhajans && recentBhajans.length > 0 ? (
                 recentBhajans.map((bhajan) => (
                   <Link 
@@ -338,12 +365,21 @@ export default async function AuthorPage({ params }: PageProps) {
                   </Link>
                 ))
               ) : (
-                <div className="bg-white border border-dashed border-gray-200 p-10 rounded-[2rem] text-center">
+                <div className="bg-white border border-dashed border-gray-200 p-10 rounded-[2rem] text-center h-full flex flex-col justify-center items-center">
                   <FaMusic className="mx-auto text-gray-300 text-3xl mb-3" />
                   <p className="text-gray-500 text-sm font-medium">No recent bhajans verified yet.</p>
                 </div>
               )}
             </div>
+
+            {/* 🌟 APPLIED FIX 4: VIEW ALL BHAJANS BUTTON */}
+            {recentBhajans && recentBhajans.length > 0 && (
+              <div className="mt-8 text-center md:text-left">
+                <Link href="/bhajan" className="inline-flex items-center gap-2 text-sm font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-6 py-3 rounded-full transition-colors border border-blue-100">
+                  Explore {liveBhajansCount} Bhajans <FaArrowRight />
+                </Link>
+              </div>
+            )}
           </div>
 
         </div>
