@@ -169,7 +169,12 @@ export default function LyricsViewer({
       if (!isMounted) return;
       try {
         const from = 'devanagari';
-        const to = activeScript === 'hinglish' ? 'iast' : activeScript;
+        
+        // 🌟 SANSCRIPT FIX: 'assamese' और 'hinglish' की सही मैपिंग
+        let to = activeScript;
+        if (activeScript === 'hinglish') to = 'iast';
+        if (activeScript === 'assamese') to = 'bengali'; // असमिया के लिए बंगाली लिपि का इस्तेमाल
+
         const s = Sanscript.default || Sanscript;
         setDisplayLyrics(s.t(lyricsHindi, from, to));
       } catch (e) { console.error("Transliteration Error:", e); }
@@ -189,7 +194,12 @@ export default function LyricsViewer({
     if (activeScript !== 'devanagari') {
       try {
         const Sanscript = await import('sanscript'); 
-        const fromScript = activeScript === 'hinglish' ? 'iast' : activeScript;
+        
+        // 🌟 REVERSE TRANSLITERATION FIX
+        let fromScript = activeScript;
+        if (activeScript === 'hinglish') fromScript = 'iast';
+        if (activeScript === 'assamese') fromScript = 'bengali';
+
         const s = Sanscript.default || Sanscript;
         searchWord = s.t(cleanText, fromScript, 'devanagari');
       } catch (e) { console.error("Reverse transliteration failed", e); }
