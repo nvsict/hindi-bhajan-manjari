@@ -5,7 +5,7 @@ import {
   FaWhatsapp, FaHeart, FaRegHeart,
   FaLightbulb, FaRegLightbulb, FaMusic, FaYoutube, FaLanguage,
   FaChevronDown, FaCheck, FaFont, FaXmark, FaBookOpen, FaSpinner,
-  FaMagnifyingGlass 
+  FaMagnifyingGlass, FaToggleOn, FaToggleOff
 } from 'react-icons/fa6';
 import PdfDownloadButton from './PdfDownloadButton';
 import { supabase } from '@/utils/supabase';
@@ -14,6 +14,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import MagneticButton from '@/components/MagneticButton'; 
 import SaveToSangrahButton from '@/components/SaveToSangrahButton';
 import PushPrompt from './PushPrompt';
+
+// 🌟 NEW: Cultural Themes Import
+import { CULTURAL_THEMES, DEFAULT_THEME } from '@/lib/culturalThemes';
 
 interface LyricsViewerProps {
   title: string;
@@ -27,12 +30,12 @@ interface LyricsViewerProps {
 const SCRIPT_OPTIONS = [
   { id: 'devanagari', label: 'हिंदी (Devanagari)' },
   { id: 'hinglish', label: 'English' },
-  { id: 'gurmukhi', label: 'ਪੰਜਾਬੀ (Punjabi)' },       // 🌟 NEW
+  { id: 'gurmukhi', label: 'ਪੰਜਾਬੀ (Punjabi)' },
   { id: 'gujarati', label: 'ગુજરાતી (Gujarati)' },
   { id: 'bengali', label: 'বাংলা (Bengali)' },
-  { id: 'assamese', label: 'অসমীয়া (Assamese)' },     // 🌟 NEW
+  { id: 'assamese', label: 'অসমীয়া (Assamese)' },
   { id: 'oriya', label: 'ଓଡ଼ିଆ (Odia)' },
-  { id: 'tamil', label: 'தமிழ் (Tamil)' },           // 🌟 NEW
+  { id: 'tamil', label: 'தமிழ் (Tamil)' },
   { id: 'telugu', label: 'తెలుగు (Telugu)' },
   { id: 'kannada', label: 'ಕನ್ನಡ (Kannada)' },
   { id: 'malayalam', label: 'മലയാളം (Malayalam)' }
@@ -120,6 +123,9 @@ export default function LyricsViewer({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeScript, setActiveScript] = useState<string>('devanagari');
   
+  // 🌟 NEW: Dual-Script State
+  const [isDualScript, setIsDualScript] = useState(false);
+  
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [wakeLockActive, setWakeLockActive] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -143,6 +149,10 @@ export default function LyricsViewer({
   const triggerHaptic = useCallback(() => {
     if (typeof window !== 'undefined' && navigator.vibrate) navigator.vibrate(30); 
   }, []);
+
+  // 🌟 Active Theme Settings 
+  const theme = CULTURAL_THEMES[activeScript] || DEFAULT_THEME;
+  const tc = theme.colors;
 
   useEffect(() => {
     if (activeScript === 'devanagari') {
@@ -230,10 +240,7 @@ export default function LyricsViewer({
   }, []);
 
   const isRecordingActiveRef = useRef(false);
-
-  useEffect(() => {
-    isRecordingActiveRef.current = isRecordingActive; 
-  }, [isRecordingActive]);
+  useEffect(() => { isRecordingActiveRef.current = isRecordingActive; }, [isRecordingActive]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -283,7 +290,6 @@ export default function LyricsViewer({
 
   useEffect(() => {
     setFontSize(window.innerWidth < 768 ? 17 : 22);
-    
     const savedFont = localStorage.getItem('preferred_lyrics_font');
     if (savedFont) {
       setSelectedFont(savedFont);
@@ -296,7 +302,6 @@ export default function LyricsViewer({
     setSelectedFont(fontClass);
     localStorage.setItem('preferred_lyrics_font', fontClass);
     setIsFontMenuOpen(false);
-    
     loadFontDynamically(fontClass); 
   };
 
@@ -353,12 +358,13 @@ export default function LyricsViewer({
     }
   }
 
-  const cleanHinglishTitle = slug.replace(/-/g, ' ').toUpperCase();
+  // 🌟 Preparing Dual Script Data
+  const stanzasDisplay = String(displayLyrics).split(/\n\s*\n/);
+  const stanzasHindi = String(lyricsHindi).split(/\n\s*\n/);
 
   return (
     <div className="relative w-full max-w-4xl mx-auto">
 
-      {/* 🌟 1. TARZ (Clickable Reference Button) */}
       {tarz && (
         <div className="mb-4 flex justify-center relative z-20">
           <Link 
@@ -372,7 +378,7 @@ export default function LyricsViewer({
         </div>
       )}
 
-      {/* 🌟 2. UNIFIED READING TOOLBAR (Now without A-/A+ for cleaner look) */}
+      {/* TOOLBAR */}
       <div className="bg-white border border-gray-200 rounded-2xl p-2 md:p-3 shadow-sm mb-6 flex flex-wrap items-center justify-between gap-2 z-20 relative">
         
         <div className="flex items-center gap-2 flex-1 min-w-[200px]">
@@ -385,10 +391,24 @@ export default function LyricsViewer({
               </div>
               <FaChevronDown className="text-gray-400 text-xs shrink-0" />
             </button>
-            <div className={`absolute top-full left-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-lg z-40 transition-all origin-top ${isDropdownOpen ? 'opacity-100 scale-y-100 translate-y-0' : 'opacity-0 scale-y-95 -translate-y-2 pointer-events-none'}`}>
-              <div className="py-1 max-h-[50vh] overflow-y-auto">
+            <div className={`absolute top-full left-0 mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-lg z-40 transition-all origin-top ${isDropdownOpen ? 'opacity-100 scale-y-100 translate-y-0' : 'opacity-0 scale-y-95 -translate-y-2 pointer-events-none'}`}>
+              
+              {/* 🌟 DUAL SCRIPT TOGGLE */}
+              {activeScript !== 'devanagari' && (
+                <div className="p-3 border-b border-gray-100 bg-gray-50/50 rounded-t-xl">
+                  <div className="flex items-center justify-between cursor-pointer" onClick={() => setIsDualScript(!isDualScript)}>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-gray-800">संगम मोड (Dual)</span>
+                      <span className="text-[10px] text-gray-500">Show Hindi along with it</span>
+                    </div>
+                    {isDualScript ? <FaToggleOn className="text-2xl text-orange-500" /> : <FaToggleOff className="text-2xl text-gray-300" />}
+                  </div>
+                </div>
+              )}
+
+              <div className="py-1 max-h-[40vh] overflow-y-auto">
                 {SCRIPT_OPTIONS.map((opt) => (
-                  <button key={opt.id} onClick={() => { triggerHaptic(); setActiveScript(opt.id); setIsDropdownOpen(false); }} className={`w-full flex justify-between px-4 py-2.5 text-sm font-medium ${activeScript === opt.id ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'}`}>
+                  <button key={opt.id} onClick={() => { triggerHaptic(); setActiveScript(opt.id); setIsDropdownOpen(false); }} className={`w-full flex justify-between px-4 py-2.5 text-sm font-medium ${activeScript === opt.id ? tc.dropdownActive : 'text-gray-700 hover:bg-gray-50'}`}>
                     {opt.label} {activeScript === opt.id && <FaCheck />}
                   </button>
                 ))}
@@ -418,7 +438,6 @@ export default function LyricsViewer({
           </div>
         </div>
 
-        {/* Right Side: PDF ONLY (A-/A+ removed from here) */}
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 border-gray-100 pt-2 sm:pt-0">
           <PdfDownloadButton 
             slug={slug} 
@@ -428,7 +447,6 @@ export default function LyricsViewer({
         </div>
       </div>
 
-      {/* 🌟 3. DICTIONARY PILL */}
       <div className="flex justify-center mb-6 relative z-10 px-4">
         <div className="inline-flex items-center gap-2 bg-blue-50/80 text-blue-700 text-xs md:text-sm font-bold px-4 py-2 rounded-full border border-blue-100 shadow-sm backdrop-blur-sm">
           <FaLightbulb className="text-blue-500 shrink-0" />
@@ -437,9 +455,9 @@ export default function LyricsViewer({
         </div>
       </div>
 
-      {/* LYRICS CONTAINER */}
+      {/* 🌟 CULTURAL THEMED LYRICS CONTAINER */}
       <div 
-        className="bg-orange-50/30 rounded-3xl p-6 md:p-12 border border-orange-100/50 relative overflow-hidden shadow-sm select-none transition-all duration-300 hover:shadow-md" 
+        className={`${tc.background} rounded-3xl p-6 md:p-12 border ${tc.border} relative overflow-hidden shadow-sm select-none transition-colors duration-500 hover:shadow-md`} 
         onDoubleClick={handleDoubleTap}
         onClick={handleLyricsContainerClick}
       >
@@ -452,7 +470,7 @@ export default function LyricsViewer({
         
         <AnimatePresence mode="wait">
           <motion.div 
-            key={activeScript} 
+            key={activeScript + (isDualScript ? 'dual' : 'single')} 
             initial={{ opacity: 0, filter: "blur(8px)", y: 5 }}
             animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
             exit={{ opacity: 0, filter: "blur(8px)", y: -5 }}
@@ -463,29 +481,42 @@ export default function LyricsViewer({
               fontFamily: FONT_OPTIONS.find(f => f.className === selectedFont)?.fontFamily || '"Hind", sans-serif'
             }}
           >
-            {String(displayLyrics).split(/\n\s*\n/).map((stanza: string, index: number, array: string[]) => {
+            {stanzasDisplay.map((stanza: string, index: number, array: string[]) => {
               
-              // 🌟 FIX: हमने फालतू का Ad logic हटा दिया है ताकि स्पेंसिंग खराब न हो
-              
+              const linesDisplay = stanza.split('\n');
+              const linesHindi = stanzasHindi[index] ? stanzasHindi[index].split('\n') : [];
+
               return (
                 <div key={index} className="flex flex-col items-center w-full">
                   <div className="w-full">
-                    {stanza.split('\n').map((line: string, lineIndex: number) => (
-                      <div key={lineIndex} className="min-h-[1.5em]">
-                        {line.split(' ').map((word: string, wordIndex: number, wordsArray: string[]) => (
-                          <span key={wordIndex}>
-                            <span className="cursor-pointer active:bg-orange-200/80 lg:hover:bg-orange-100/60 transition-colors rounded-md">{word}</span>
-                            {wordIndex < wordsArray.length - 1 ? ' ' : ''}
-                          </span>
-                        ))}
+                    {linesDisplay.map((line: string, lineIndex: number) => (
+                      <div key={lineIndex} className="min-h-[1.5em] mb-1">
+                        
+                        {/* 🌟 1. Selected Language Line */}
+                        <div>
+                          {line.split(' ').map((word: string, wordIndex: number, wordsArray: string[]) => (
+                            <span key={wordIndex}>
+                              <span className={`cursor-pointer ${tc.wordHoverBg} transition-colors rounded-md`}>{word}</span>
+                              {wordIndex < wordsArray.length - 1 ? ' ' : ''}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* 🌟 2. Dual Script Hindi Line (Smaller & Gray) */}
+                        {isDualScript && activeScript !== 'devanagari' && linesHindi[lineIndex] && (
+                          <div className="text-[0.65em] font-hindi text-gray-500/80 mt-[-0.2em] mb-[0.6em] tracking-wide pointer-events-none select-none">
+                            {linesHindi[lineIndex]}
+                          </div>
+                        )}
+
                       </div>
                     ))}
                   </div>
                   
-                  {/* 🌟 FIX: यहाँ अब हर Stanza के बाद एक समान गैप (py-6 md:py-8) आएगा */}
+                  {/* 🌟 Cultural Divider & SPACING FIX */}
                   {index < array.length - 1 && (
                     <div className="flex items-center justify-center opacity-60 w-full py-6 md:py-8">
-                      <div className="w-3/4 md:w-1/2 max-w-md h-[1px] bg-gradient-to-r from-transparent via-orange-300 to-transparent"></div>
+                      <div className={`w-3/4 md:w-1/2 max-w-md h-[1.5px] bg-gradient-to-r ${tc.divider}`}></div>
                     </div>
                   )}
 
@@ -516,7 +547,6 @@ export default function LyricsViewer({
       </div>
 
       {/* 🌟 4. ASYMMETRICAL ADAPTIVE FLOATING TOOLBAR */}
-      {/* Container adopts a unique Teardrop/Pill Shape: full circle left, tighter curve right */}
       <div 
         className={`fixed bottom-10 md:bottom-20 left-1/2 -translate-x-1/2 z-[90] w-max max-w-[95vw] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:opacity-100 hover:scale-100 ${isScrollingDown ? 'opacity-40 scale-95' : 'opacity-100 scale-100'}`}
       >
@@ -526,7 +556,6 @@ export default function LyricsViewer({
             <div className="absolute top-0 left-0 h-[2px] bg-orange-500 transition-all duration-150 ease-out opacity-80" style={{ width: `${scrollProgress}%` }}></div>
           </div>
           
-          {/* 🌟 Big Bulb Button (Primary Prominent Action) */}
           <button 
             onClick={toggleWakeLock} 
             className={`relative z-10 flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full transition-colors shrink-0 shadow-sm border ${wakeLockActive ? 'bg-yellow-100 border-yellow-200 text-yellow-600' : 'bg-gray-50 border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
@@ -538,7 +567,6 @@ export default function LyricsViewer({
           
           <div className="relative z-10 w-[1px] h-6 bg-gray-200 shrink-0 mx-0.5"></div>
           
-          {/* 🌟 A- / A+ Controls (Integrated inside the floating bar) */}
           <div className="relative z-10 flex items-center bg-gray-50 border border-gray-100 rounded-xl px-1 h-9 sm:h-10 shrink-0">
             <button onClick={() => { triggerHaptic(); setFontSize(prev => Math.max(14, prev - 2)); }} className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-gray-600 hover:text-black font-bold font-serif text-sm">A-</button>
             <div className="w-px h-4 bg-gray-200"></div>
@@ -547,7 +575,6 @@ export default function LyricsViewer({
 
           <div className="relative z-10 w-[1px] h-6 bg-gray-200 shrink-0 mx-0.5"></div>
           
-          {/* 🌟 Secondary Small Icons */}
           <div className="relative z-10 shrink-0 text-gray-600 hover:text-gray-900">
             <SaveToSangrahButton slug={slug} title={title} />
           </div>
