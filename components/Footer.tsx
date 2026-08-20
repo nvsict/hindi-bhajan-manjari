@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useLenis } from 'lenis/react';
+// 🌟 NEW: Supabase इम्पोर्ट किया गया है
+import { supabase } from '@/utils/supabase'; 
 import {
   FaFacebook, FaInstagram, FaWhatsapp, FaArrowUp,
-  FaEnvelope, FaGavel, FaShieldAlt, FaFileContract, FaHeart, FaUsers
+  FaEnvelope, FaGavel, FaShieldAlt, FaFileContract, FaHeart
 } from 'react-icons/fa';
 import { HiSparkles } from 'react-icons/hi';
 
@@ -17,16 +19,39 @@ export default function Footer() {
   
   const lenis = useLenis();
 
+  // 🌟 FIX: Supabase के साथ रियल डेटाबेस कनेक्शन
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    setStatus('loading');
 
-    setTimeout(() => {
-      setStatus('success');
-      setMessage("✨ जय श्री राम! आप हमारी संगत से जुड़ चुके हैं।");
-      setEmail('');
-    }, 1500);
+    setStatus('loading');
+    setMessage('');
+
+    try {
+      const { error } = await supabase
+        .from('subscribers')
+        .insert([{ email: email.toLowerCase().trim() }]); // ईमेल को क्लीन करके सेव करें
+
+      if (error) {
+        // अगर ईमेल पहले से डेटाबेस में है (Unique Constraint Error)
+        if (error.code === '23505' || error.message.includes('unique')) {
+          setStatus('success');
+          setMessage("🙏 आप पहले से ही हमारी संगत में जुड़े हुए हैं!");
+          setEmail('');
+        } else {
+          throw error;
+        }
+      } else {
+        // नया सब्सक्राइबर जुड़ने पर
+        setStatus('success');
+        setMessage("✨ जय श्री राम! आप हमारी संगत से जुड़ चुके हैं।");
+        setEmail('');
+      }
+    } catch (err: any) {
+      console.error("Newsletter Error:", err);
+      setStatus('error');
+      setMessage("सर्वर में कुछ समस्या है, कृपया थोड़ी देर बाद प्रयास करें।");
+    }
   };
 
   const scrollToTop = () => {
@@ -41,7 +66,6 @@ export default function Footer() {
   };
 
   return (
-    // 🌟 FIX: Changed text-slate-400 to text-slate-300 for better contrast on dark bg
     <footer className="bg-[#0a0a0c] text-slate-300 mt-auto w-full border-t border-white/5 font-sans relative">
 
       {/* Top decorative glowing line */}
@@ -52,7 +76,6 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 relative">
         <button
           onClick={scrollToTop}
-          // 🌟 FIX: Changed bg-orange-600 to bg-orange-700 so white text passes contrast
           className="absolute -top-5 right-6 md:right-0 bg-gradient-to-br from-orange-600 to-orange-700 text-white p-3 rounded-xl shadow-[0_0_20px_rgba(234,88,12,0.4)] hover:shadow-[0_0_25px_rgba(234,88,12,0.6)] hover:-translate-y-1 transition-all z-20 group outline-none focus-visible:ring-2 focus-visible:ring-orange-400 border border-orange-400/50"
           aria-label="ऊपर जाएं (Back to top)"
         >
@@ -81,14 +104,12 @@ export default function Footer() {
                 <span className="text-xl font-black text-white tracking-tighter leading-none transition-colors group-hover:text-orange-50">
                   HINDI <span className="text-orange-500">BHAJAN</span>
                 </span>
-                {/* 🌟 FIX: Changed text-slate-500 to text-slate-400 */}
                 <span className="text-[10px] text-slate-400 tracking-[0.2em] uppercase font-bold mt-1">
                   Manjari
                 </span>
               </div>
             </Link>
             
-            {/* 🌟 FIX: Changed text-slate-400 to text-slate-300 */}
             <p className="text-sm leading-[1.8] pr-4 text-slate-300 font-hindi">
               आपके प्रिय भजनों, आरती और चालीसा का प्रामाणिक डिजिटल संग्रह। सनातन संस्कृति और भक्ति परंपरा को आने वाली पीढ़ियों के लिए संजोने का एक छोटा सा प्रयास।
             </p>
@@ -100,7 +121,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* 2. Sacred Collections (भक्ति सागर) */}
+          {/* 2. Sacred Collections */}
           <div className="lg:pl-4">
             <h3 className="text-white font-black mb-6 text-lg md:text-xl font-hindi flex items-center gap-2">
               <HiSparkles className="text-orange-500 text-base" /> भक्ति सागर
@@ -114,7 +135,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* 3. Quick Links (महत्वपूर्ण लिंक्स) */}
+          {/* 3. Quick Links */}
           <div>
             <h3 className="text-white font-black mb-6 text-lg md:text-xl font-hindi flex items-center gap-2">
               <HiSparkles className="text-orange-500 text-base" /> सहायता एवं जानकारी
@@ -141,9 +162,11 @@ export default function Footer() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (status !== 'idle') setStatus('idle'); // रिसेट एरर मैसेज जब यूज़र टाइप करे
+                  }}
                   placeholder="अपना ईमेल दर्ज़ करें..."
-                  // 🌟 FIX: Updated placeholder text color for contrast
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all font-hindi placeholder:font-hindi placeholder:text-slate-400"
                   required
                 />
@@ -151,10 +174,9 @@ export default function Footer() {
               <button
                 type="submit"
                 disabled={status === 'loading'}
-                // 🌟 FIX: Changed bg-orange-600 to bg-orange-700 so white text passes contrast
                 className="w-full bg-orange-700 hover:bg-orange-600 disabled:opacity-60 text-white font-bold font-hindi text-base md:text-lg py-3 rounded-xl transition-all shadow-[0_4px_14px_0_rgba(234,88,12,0.3)] hover:shadow-[0_6px_20px_rgba(234,88,12,0.4)] flex items-center justify-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
               >
-                {status === 'loading' ? 'कृपया प्रतीक्षा करें...' : 'हमारी संगत से जुड़ें'}
+                {status === 'loading' ? 'प्रतीक्षा करें...' : 'हमारी संगत से जुड़ें'}
               </button>
               {message && (
                 <p className={`text-sm text-center font-bold font-hindi mt-2 ${status === 'success' ? 'text-green-400' : 'text-red-400'}`}>
@@ -164,7 +186,6 @@ export default function Footer() {
             </form>
 
             <div className="mt-10">
-              {/* 🌟 FIX: Changed text-slate-500 to text-slate-300 */}
               <p className="text-sm text-slate-300 font-bold mb-4 font-hindi">सोशल मीडिया पर जुड़ें</p>
               <div className="flex gap-3 flex-wrap">
                 <SocialIcon href="https://wa.me/918384844353" icon={<FaWhatsapp size={18} />} color="hover:bg-[#25D366] hover:border-[#25D366]" label="WhatsApp" />
@@ -175,10 +196,10 @@ export default function Footer() {
           </div>
 
         </div>
-{/* Bottom Bar */}
+        
+        {/* Bottom Bar */}
         <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-4">
           
-          {/* Copyright */}
           <div className="text-center md:text-left">
             <p className="text-sm text-slate-400 font-medium font-hindi leading-relaxed">
               © {new Date().getFullYear()}{' '}
@@ -186,7 +207,6 @@ export default function Footer() {
               <br className="md:hidden" /> दुनिया भर के भक्तों के लिए भक्ति भाव से निर्मित।
             </p>
             
-            {/* 🌟 Amazon Affiliate Disclaimer (इसे यहाँ जोड़ें) */}
             <p className="text-[11px] text-slate-500 mt-2 max-w-lg leading-tight font-sans">
               As an Amazon Associate, I earn from qualifying purchases. 
               <br/>
@@ -194,7 +214,6 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Links */}
           <div className="flex items-center gap-6 text-[13px] font-bold text-slate-300 font-hindi">
             <Link href="/sitemap.xml" className="hover:text-orange-400 transition-colors">
               साइटमैप (Sitemap)
@@ -214,7 +233,6 @@ export default function Footer() {
 }
 
 // --- Helper Components ---
-
 interface FooterLinkProps {
   href: string;
   children: React.ReactNode;
@@ -226,7 +244,6 @@ function FooterLink({ href, children, overrideColor, icon }: FooterLinkProps) {
   return (
     <Link
       href={href}
-      // 🌟 FIX: Added default fallback color with better contrast text-slate-300
       className={`flex items-center gap-2 font-hindi text-[15px] hover:text-orange-400 hover:translate-x-1 transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded w-fit ${overrideColor ?? 'text-slate-300'}`}
     >
       {icon && <span className="text-orange-500/70">{icon}</span>}
@@ -249,7 +266,6 @@ function SocialIcon({ href, icon, color, label }: SocialIconProps) {
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label}
-      // 🌟 FIX: Changed text-slate-400 to text-slate-300
       className={`w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center text-slate-300 transition-all duration-300 border border-white/5 hover:text-white ${color} hover:shadow-[0_4px_20px_rgba(0,0,0,0.5)] outline-none focus-visible:ring-2 focus-visible:ring-orange-500`}
     >
       {icon}
