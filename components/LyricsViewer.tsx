@@ -464,10 +464,9 @@ export default function LyricsViewer({
             }}
           >
             {String(displayLyrics).split(/\n\s*\n/).map((stanza: string, index: number, array: string[]) => {
-              const shouldShowAd = index === 1 || (index > 2 && (index - 1) % 5 === 0);
-              const adCount = Math.floor((index - 1) / 5) + 1;
-              const isAllowedAd = shouldShowAd && adCount <= 3;
-
+              
+              // 🌟 FIX: हमने फालतू का Ad logic हटा दिया है ताकि स्पेंसिंग खराब न हो
+              
               return (
                 <div key={index} className="flex flex-col items-center w-full">
                   <div className="w-full">
@@ -483,8 +482,9 @@ export default function LyricsViewer({
                     ))}
                   </div>
                   
+                  {/* 🌟 FIX: यहाँ अब हर Stanza के बाद एक समान गैप (py-6 md:py-8) आएगा */}
                   {index < array.length - 1 && (
-                    <div className={`flex items-center justify-center opacity-60 w-full ${isAllowedAd ? 'pt-6 md:pt-8 pb-2' : 'py-6 md:py-8'}`}>
+                    <div className="flex items-center justify-center opacity-60 w-full py-6 md:py-8">
                       <div className="w-3/4 md:w-1/2 max-w-md h-[1px] bg-gradient-to-r from-transparent via-orange-300 to-transparent"></div>
                     </div>
                   )}
