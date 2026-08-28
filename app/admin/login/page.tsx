@@ -3,10 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaLock, FaUser, FaSpinner, FaEye, FaEyeSlash, FaCheckCircle, FaShieldAlt } from 'react-icons/fa';
+// 🌟 1. Supabase Browser Client Import किया
+import { createBrowserClient } from '@supabase/ssr';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState('');
+  
+  // 🌟 2. Username को Email में बदल दिया (Supabase Auth के लिए)
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   
@@ -15,6 +19,12 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // 🌟 3. Client-Side Supabase Instance बनाया
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   // For a smooth entrance animation
   useEffect(() => {
@@ -27,15 +37,20 @@ export default function AdminLoginPage() {
     setError('');
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+      // 🌟 4. Custom API की जगह Supabase Auth का सीधा इस्तेमाल
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
       });
 
-      const data = await res.json();
+      if (authError) {
+        // Supabase से जो एरर आएगा, वह दिखा देंगे
+        setError(authError.message || 'Invalid credentials. Access Denied.');
+        setIsLoading(false);
+        return;
+      }
 
-      if (res.ok && data.success) {
+      if (data.session) {
         // 🌟 Trigger Success Animation
         setLoginSuccess(true);
         
@@ -44,10 +59,6 @@ export default function AdminLoginPage() {
           router.push('/admin');
           router.refresh(); // Crucial: Forces Next.js to re-run middleware with the new cookie
         }, 600);
-
-      } else {
-        setError(data.error || 'Invalid credentials. Access Denied.');
-        setIsLoading(false);
       }
     } catch (err) {
       setError('Connection error. Please try again.');
@@ -93,20 +104,20 @@ export default function AdminLoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-6">
             
-            {/* Username Input */}
+            {/* Email Input */}
             <div className="group">
-              <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-orange-500 transition-colors">Username</label>
+              <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1 group-focus-within:text-orange-500 transition-colors">Admin Email</label>
               <div className="relative flex items-center">
                 <FaUser className="absolute left-5 text-gray-500 group-focus-within:text-orange-500 transition-colors z-10" />
                 <input 
-                  type="text" 
+                  type="email" 
                   required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading || loginSuccess}
                   className="w-full bg-gray-50/50 border border-gray-200 rounded-2xl pl-12 pr-4 py-4 focus:bg-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-400 outline-none transition-all font-bold text-gray-900 disabled:opacity-50"
-                  placeholder="Enter admin ID"
-                  autoComplete="username"
+                  placeholder="Enter admin email"
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -142,7 +153,7 @@ export default function AdminLoginPage() {
             {/* Submit Button */}
             <button 
               type="submit" 
-              disabled={isLoading || loginSuccess || !username || !password}
+              disabled={isLoading || loginSuccess || !email || !password}
               className={`w-full py-4 md:py-5 rounded-2xl font-black text-[15px] tracking-wide uppercase flex items-center justify-center gap-3 transition-all duration-300 mt-8 outline-none ${
                 loginSuccess 
                   ? 'bg-green-500 text-white shadow-[0_4px_15px_rgba(34,197,94,0.3)]'

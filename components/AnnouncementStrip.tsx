@@ -1,10 +1,17 @@
 "use client";
 
 import Link from 'next/link';
-// 🌟 FaHeart को हटाकर FaBook आइकॉन जोड़ दिया गया है
+import { usePathname } from 'next/navigation'; // 🌟 1. usePathname इम्पोर्ट किया
 import { FaHandsPraying, FaStar, FaBook } from 'react-icons/fa6';
 
 export default function AnnouncementStrip() {
+  const pathname = usePathname(); // 🌟 2. वर्तमान पाथ (URL) निकाला
+
+  // 🌟 3. अगर पाथ /admin से शुरू होता है, तो कुछ भी रिटर्न (रेंडर) मत करो
+  if (pathname.startsWith('/admin')) {
+    return null;
+  }
+
   const ANNOUNCEMENTS = [
     // 🌟 1. नया ई-पुस्तिका (Publication) मैसेज
     {

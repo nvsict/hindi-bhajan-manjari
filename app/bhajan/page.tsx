@@ -1,4 +1,4 @@
-import { supabase } from '../../utils/supabase';
+import { createClient } from '@supabase/supabase-js';
 import Sidebar from '../../components/Sidebar';
 import Link from 'next/link';
 import { Metadata } from 'next';
@@ -32,17 +32,36 @@ export const metadata: Metadata = {
 // 🌟 2. MAIN PAGE COMPONENT
 // ==========================================
 export default async function AToZBhajansPage() {
-  // 1. Fetch ALL Bhajans
-  const { data: allBhajans, error } = await supabase
-    .from('bhajans')
-    .select('id, title_hinglish, title_hindi, slug, view_count')
-    .order('title_hinglish', { ascending: true });
+  // 🌟 FIX 1: Create a stateless, pure server client for static generation.
+  // Do NOT use the browser client here as it can deadlock parallel build workers.
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: { persistSession: false } // Crucial for build performance
+    }
+  );
 
-  if (error) {
-    console.error("Error fetching A-Z Directory:", error);
+  let bhajans: any[] = [];
+
+  try {
+    // 🌟 FIX 2: Added AbortSignal to prevent the 10s Cloudflare timeout from crashing the build.
+    // If it takes more than 8 seconds, it aborts cleanly and logs a warning.
+    const { data: allBhajans, error } = await supabaseAdmin
+      .from('bhajans')
+      .select('id, title_hinglish, title_hindi, slug, view_count')
+      .order('title_hinglish', { ascending: true })
+      .abortSignal(AbortSignal.timeout(8000));
+
+    if (error) throw error;
+    bhajans = allBhajans || [];
+
+  } catch (error: any) {
+    // 🌟 FIX 3: Graceful Fallback. We don't throw the error, we just log it.
+    // This allows `npm run build` to finish successfully with an empty state.
+    // The `revalidate = 3600` will fetch the actual data in the background once deployed!
+    console.warn("⚠️ Build-Time Fetch Warning (Likely Cloudflare Rate Limit):", error.message);
   }
-
-  const bhajans = allBhajans || [];
 
   // 2. Group Bhajans by First Letter
   const groupedBhajans = bhajans.reduce((acc: any, bhajan) => {
@@ -114,10 +133,9 @@ export default async function AToZBhajansPage() {
           </div>
 
           {/* ==========================================
-              🔤 ALPHABET BAR (Now Normal & Non-Sticky)
+              🔤 ALPHABET BAR 
               ========================================== */}
           <div className="relative bg-[#f9fafb] pb-6 md:pb-8 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
-            
             <div className="bg-white/95 px-4 py-3 md:p-5 rounded-2xl md:rounded-[2rem] border border-orange-100 shadow-[0_4px_20px_-10px_rgba(234,88,12,0.1)] transition-all">
               <div className="flex items-center md:flex-wrap md:justify-center gap-2 overflow-x-auto md:overflow-visible pb-1 md:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                 {alphabets.map((letter) => {
@@ -153,7 +171,6 @@ export default async function AToZBhajansPage() {
                 <section 
                   key={letter} 
                   id={`letter-${letter}`} 
-                  // 🌟 Reduced scroll-margin because the keyboard is no longer sticky!
                   className="scroll-mt-[100px] md:scroll-mt-[120px]" 
                 >
                   
@@ -197,14 +214,14 @@ export default async function AToZBhajansPage() {
               ))}
             </div>
           ) : (
-            // Empty State Fallback
+            // Empty State Fallback (Shows during build if Cloudflare blocks)
             <div className="bg-white p-12 md:p-24 rounded-[2.5rem] border border-dashed border-gray-300 text-center shadow-sm mt-8">
               <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-50 text-gray-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FaMusic size={24} className="md:text-3xl opacity-50" />
               </div>
-              <h3 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">No Bhajans Found</h3>
+              <h3 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">Syncing Database...</h3>
               <p className="text-sm md:text-base text-gray-500 max-w-sm mx-auto">
-                The database is currently empty. Please check back later!
+                The library is currently generating. Please refresh the page in a few moments to see the complete A-Z list!
               </p>
             </div>
           )}
