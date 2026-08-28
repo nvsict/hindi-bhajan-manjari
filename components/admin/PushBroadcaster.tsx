@@ -17,17 +17,26 @@ export default function PushBroadcaster() {
     setStatus({ type: null, message: '' });
 
     try {
+      // 🌟 FIX: Updated payload key from 'body' to 'message' to match API expectation
       const res = await fetch('/api/push/broadcast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, body, url }),
+        body: JSON.stringify({ 
+          title, 
+          message: body, 
+          url: url || 'https://hindibhajanmanjari.com' 
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.error || 'Failed to send broadcast');
 
-      setStatus({ type: 'success', message: data.message });
+      // 🌟 FIX: Safely parse message based on backend return fields (totalSent and removed)
+      const successMsg = `Successfully broadcasted to ${data.totalSent || 0} subscribers!` + 
+        (data.removed > 0 ? ` (Cleaned up ${data.removed} dead subscriptions)` : '');
+
+      setStatus({ type: 'success', message: successMsg });
       setTitle('');
       setBody('');
       setUrl('');

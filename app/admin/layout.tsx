@@ -8,7 +8,7 @@ import {
   FaChartBar, FaPlus, FaTags, FaGlobe, FaBars, FaTimes, 
   FaSignOutAlt, FaNewspaper, FaUserShield, FaBell, 
   FaExclamationTriangle, FaBookOpen, FaBullhorn, 
-  FaShoppingBag, FaPenNib, FaClock, FaHeart
+  FaShoppingBag, FaPenNib, FaClock, FaHeart, FaEnvelope
 } from 'react-icons/fa';
 import { GiLotusFlower } from 'react-icons/gi';
 
@@ -34,12 +34,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Mere Vichar', href: '/admin/mere-vichar', icon: FaPenNib },
     { name: 'Gyan Articles', href: '/admin/articles', icon: FaNewspaper },
     { name: 'Dictionary', href: '/admin/dictionary', icon: FaBookOpen },
-    { name: 'Pending Approvals', href: '/admin/pending', icon: FaClock },
-    { name: 'Supporters', href: '/admin/supporters', icon: FaHeart },
     { name: 'Campaigns', href: '/admin/campaign', icon: FaBullhorn }, 
     { name: 'Affiliates', href: '/admin/affiliates', icon: FaShoppingBag }, 
     { name: 'Site Metadata', href: '/admin/manage', icon: FaTags },
     { name: 'Broadcast Push', href: '/admin/broadcast', icon: FaBell },
+    { name: 'Newsletter', href: '/admin/newsletter', icon: FaEnvelope },
   ];
 
   const confirmLogout = async () => {

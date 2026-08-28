@@ -1,87 +1,106 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/utils/supabase';
+import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 
-// Configure the web-push library with your VAPID keys
+// 1. Initialize Supabase Admin (Bypasses RLS to read all subs)
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+// 2. Configure Web Push with your VAPID keys
 webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT || 'mailto:admin@hindibhajanmanjari.com',
+  'mailto:contact@hindibhajanmanjari.com', // Must be a valid email (or your subject URL)
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
   process.env.VAPID_PRIVATE_KEY!
 );
 
+// ============================================================================
+// GET: Fetch total live subscriber count for your Dashboard
+// ============================================================================
+export async function GET() {
+  try {
+    const { count, error } = await supabaseAdmin
+      .from('push_subscriptions')
+      .select('*', { count: 'exact', head: true });
+
+    if (error) throw new Error(error.message);
+    return NextResponse.json({ count: count || 0 });
+  } catch (error: any) {
+    return NextResponse.json({ count: 0, error: error.message }, { status: 500 });
+  }
+}
+
+// ============================================================================
+// POST: Execute the Broadcast safely
+// ============================================================================
 export async function POST(req: Request) {
   try {
-    // 1. Get the message details from your admin form
-    const { title, body, url } = await req.json();
+    const body = await req.json();
+    const { title, message, url } = body;
 
-    if (!title || !body) {
-      return NextResponse.json({ error: 'Title and body are required' }, { status: 400 });
+    if (!title || !message) {
+      return NextResponse.json({ error: 'Title and message are required' }, { status: 400 });
     }
 
-    // 2. Fetch all active subscribers from your database
-    const { data: subscriptions, error } = await supabase
+    // 1. Fetch all subscriptions from Supabase
+    const { data: subscriptions, error: dbError } = await supabaseAdmin
       .from('push_subscriptions')
       .select('*');
 
-    if (error) throw error;
+    if (dbError) throw new Error(dbError.message);
     if (!subscriptions || subscriptions.length === 0) {
-      return NextResponse.json({ message: 'No subscribers found.' });
+      return NextResponse.json({ success: true, totalSent: 0, removed: 0 });
     }
 
-    // 3. Prepare the encrypted payload
     const payload = JSON.stringify({
-      title: title,
-      body: body,
-      url: url || '/', // Default to homepage if no URL is provided
+      title,
+      message,
+      url: url || 'https://hindibhajanmanjari.com',
     });
 
     let successCount = 0;
-    let failCount = 0;
+    let removedCount = 0;
 
-    // 4. Fire them all off simultaneously
-    const pushPromises = subscriptions.map(async (sub) => {
+    // 2. Map through subs and send individually so one failure doesn't break the loop
+    const sendPromises = subscriptions.map(async (sub) => {
+      const pushSubscription = {
+        endpoint: sub.endpoint,
+        keys: {
+          p256dh: sub.p256dh,
+          auth: sub.auth,
+        },
+      };
+
       try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload
-        );
+        await webpush.sendNotification(pushSubscription, payload);
         successCount++;
-      } catch (err: any) {
-        failCount++;
-        // 🌟 AUTO-CLEANUP: If the user revoked permission, delete them from the database
-        if (err.statusCode === 410 || err.statusCode === 404) {
-          console.log(`Subscriber ${sub.id} expired. Cleaning up...`);
-          await supabase.from('push_subscriptions').delete().eq('id', sub.id);
+      } catch (error: any) {
+        // 3. Auto-clean Dead Subscriptions
+        // 410 (Gone) or 404 (Not Found) means the user unsubscribed or token expired
+        if (error.statusCode === 410 || error.statusCode === 404) {
+          await supabaseAdmin
+            .from('push_subscriptions')
+            .delete()
+            .eq('endpoint', sub.endpoint);
+          removedCount++;
         } else {
-          console.error('Push error for subscriber:', sub.id, err);
+          console.error(`Failed to push to endpoint ${sub.endpoint}:`, error);
         }
       }
     });
 
-    // Wait for all messages to finish sending
-    await Promise.all(pushPromises);
+    // 4. Wait for all pushes to attempt delivery
+    await Promise.all(sendPromises);
 
     return NextResponse.json({ 
       success: true, 
-      message: `Broadcast complete! Sent: ${successCount}, Failed/Cleaned: ${failCount}` 
+      totalSent: successCount, 
+      removed: removedCount 
     });
 
   } catch (error: any) {
-    console.error('Broadcast API Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
-export async function GET() {
-  try {
-    const { count, error } = await supabase
-      .from('push_subscriptions')
-      .select('*', { count: 'exact', head: true });
-
-    if (error) throw error;
-
-    return NextResponse.json({ count: count || 0 });
-  } catch (error: any) {
+    console.error('Broadcast Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
