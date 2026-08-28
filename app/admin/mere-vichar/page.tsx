@@ -108,7 +108,7 @@ export default function ManageMereVicharPage() {
         </div>
         
         <Link 
-          href="/admin/add-mere-vichar" 
+          href="/admin/mere-vichar/add" 
           className="bg-gradient-to-r from-orange-600 to-orange-500 text-white px-6 py-3.5 rounded-xl font-black text-sm flex items-center gap-2 shadow-[0_4px_15px_rgba(234,88,12,0.3)] hover:shadow-[0_8px_25px_rgba(234,88,12,0.4)] transition-all hover:-translate-y-0.5 active:scale-95 whitespace-nowrap"
         >
           <FaPlus /> New Vichar
@@ -232,8 +232,8 @@ export default function ManageMereVicharPage() {
                         
                         {/* Edit Button */}
                         <Link 
-                          href={`/admin/mere-vichar/edit/${vichar.slug || vichar.id}`}
-                          title="Edit"
+  href={`/admin/mere-vichar/edit/${vichar.id}`}
+  title="Edit"
                           className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm hover:-translate-y-0.5 hover:shadow-[0_4px_10px_rgba(37,99,235,0.3)] active:scale-95"
                         >
                           <FaPenToSquare size={14} />
