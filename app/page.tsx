@@ -14,8 +14,9 @@ import { FaBookOpen, FaClock, FaArrowRight, FaMusic } from 'react-icons/fa';
 import ScrollReveal from '../components/ScrollReveal';
 import SupportersWall from '@/components/SupportersWall';
 
-// 🌟 NEW: Affiliate Slot Import
+// 🌟 NEW: Affiliate Slot & Vichar Banner
 import AffiliateSlot from '../components/AffiliateSlot';
+import VicharBanner from '../components/VicharBanner';
 
 // VPS Native ISR (Incremental Static Regeneration)
 export const revalidate = 300; 
@@ -58,7 +59,7 @@ export const metadata: Metadata = {
 };
 
 // ==========================================
-// 🌟 HELPER: FETCH WITH RETRY LOGIC (To fix "fetch failed" errors)
+// 🌟 HELPER: FETCH WITH RETRY LOGIC
 // ==========================================
 async function fetchLatestBhajansWithRetry(retries = 3, delayMs = 1000) {
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -84,10 +85,9 @@ async function fetchLatestBhajansWithRetry(retries = 3, delayMs = 1000) {
       console.warn(`[Homepage] Fetch attempt ${attempt} failed:`, err.message);
       
       if (attempt === retries) {
-        throw err; // अगर आखिरी कोशिश भी फेल हो जाए, तो एरर को बाहर फेंक दें
+        throw err; 
       }
       
-      // अगली कोशिश से पहले delayMs (1000ms) तक रुकें
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
   }
@@ -95,7 +95,24 @@ async function fetchLatestBhajansWithRetry(retries = 3, delayMs = 1000) {
 }
 
 // ==========================================
-// THE PUBLISHER TRUST SIGNAL (Sanatan Gyan)
+// 🌟 NEW: VICHAR BANNER SECTION
+// ==========================================
+async function LatestVicharSection() {
+  const { data: latestVichars, error } = await supabase
+    .from('mere_vichar')
+    .select('slug, title_hindi, quote_text')
+    .eq('is_published', true)
+    .order('created_at', { ascending: false })
+    .limit(5); // Top 5 vichars for the slider
+
+  // अगर डेटा नहीं है, तो कुछ भी रेंडर मत करो
+  if (error || !latestVichars || latestVichars.length === 0) return null;
+
+  return <VicharBanner vichars={latestVichars} />;
+}
+
+// ==========================================
+// 🌟 LATEST GYAN SECTION
 // ==========================================
 async function LatestGyanSection() {
   const { data: articles, error } = await supabase
@@ -110,7 +127,6 @@ async function LatestGyanSection() {
   return (
     <div className="mt-16 mb-12">
       <ScrollReveal yOffset={20}>
-        {/* 🌟 FIX 2: Dark mode borders and text colors added */}
         <div className="flex flex-row items-center justify-between border-b border-orange-100 dark:border-[#2a1d12] pb-3 md:pb-4 mb-6">
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2 md:gap-3 transition-colors">
             सनातन <span className="text-orange-600">ज्ञान</span>
@@ -130,7 +146,6 @@ async function LatestGyanSection() {
           return (
             <div key={article.slug}>
               <ScrollReveal delay={index * 0.1} yOffset={30}>
-                {/* 🌟 FIX 3: Dark mode gradient background for cards */}
                 <Link 
                   href={`/gyan/${article.slug}`} 
                   className="flex flex-col sm:flex-row gap-4 p-5 bg-gradient-to-br from-white to-orange-50/30 dark:from-[#110c08] dark:to-[#1a120b] rounded-2xl border border-orange-100 dark:border-[#2a1d12] hover:border-orange-300 dark:hover:border-orange-900/50 hover:shadow-md transition-all duration-300 group outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
@@ -153,7 +168,6 @@ async function LatestGyanSection() {
                   </div>
                 </Link>
               </ScrollReveal>
-              
             </div>
           );
         })}
@@ -163,18 +177,16 @@ async function LatestGyanSection() {
 }
 
 // ==========================================
-// 🌟 LATEST BHAJANS (Using superfast Materialized View & Retry Logic)
+// 🌟 LATEST BHAJANS SECTION
 // ==========================================
 async function LatestBhajansSection() {
   try {
-    // 🌟 SPEED BOOST: Directly using the View with our new Retry Logic
     const rawBhajans = await fetchLatestBhajansWithRetry(3, 1000);
 
     if (!rawBhajans) {
       throw new Error("No data returned from database");
     }
 
-    // 🌟 No need to transform arrays, our view already formats `deity` and `categories` perfectly
     const initialBhajans = rawBhajans.map((bhajan: any) => ({
       ...bhajan,
       deity: Array.isArray(bhajan.deity) ? bhajan.deity[0] : bhajan.deity,
@@ -183,7 +195,6 @@ async function LatestBhajansSection() {
     return <BhajanList initialBhajans={initialBhajans} />;
     
   } catch (error: any) {
-    // यह ब्लॉक तभी रन होगा जब 3 बार Retry करने के बाद भी एरर आए
     console.error("[Homepage] Failed to fetch latest bhajans after retries:", error.message);
     return (
       <div className="p-8 text-center bg-orange-50 dark:bg-orange-950/20 rounded-2xl border border-orange-100 dark:border-orange-900/30">
@@ -194,9 +205,6 @@ async function LatestBhajansSection() {
 }
 
 export default function Home() {
-  // ==========================================================
-  // 🌟 HOMEPAGE SEO GRAPH
-  // ==========================================================
   const homeSchemaGraph = {
     "@context": "https://schema.org",
     "@graph": [
@@ -234,7 +242,6 @@ export default function Home() {
   };
 
   return (
-    // 🌟 FIX 1: Removed `bg-white` so the layout's dark background can shine through!
     <div className="min-h-screen bg-transparent transition-colors duration-300">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(homeSchemaGraph) }} />
 
@@ -245,6 +252,13 @@ export default function Home() {
         
         <main className="flex-1 w-full min-w-0">
           
+          {/* ==========================================
+              🌟 1.5. AAJ KA VICHAR BANNER (Above Deities)
+              ========================================== */}
+          <Suspense fallback={<div className="h-[300px] bg-gray-50 dark:bg-[#110c08] rounded-[2.5rem] animate-pulse mb-8 border border-gray-100 dark:border-[#2a1d12]"></div>}>
+            <LatestVicharSection />
+          </Suspense>
+
           {/* 2. Visual Hook: Who to pray to? */}
           <DeityBrowse /> 
 
@@ -280,7 +294,6 @@ export default function Home() {
             <TrendingArtists />
           </div>
 
-          {/* 🌟 यहाँ 'SupportersWall' को Popular Artists और सनातन ज्ञान के बीच में रखा गया है */}
           <div className="mt-16">
             <SupportersWall />
           </div>
@@ -298,7 +311,6 @@ export default function Home() {
         }>
           <div className="hidden lg:block lg:sticky lg:top-28 h-fit w-[300px] shrink-0 pb-8">
             <Sidebar />
-            
           </div>
         </Suspense>
 
