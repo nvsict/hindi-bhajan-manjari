@@ -143,35 +143,28 @@ export async function updateVicharAction(id: string, payload: any) {
 // 3. TOGGLE VICHAR STATUS (LIVE / DRAFT)
 // ============================================================================
 export async function toggleVicharStatusAction(id: string, currentStatus: boolean) {
-  // 🌟 HARDCODED MASTER KEY (सिर्फ टेस्टिंग के लिए)
-  const MASTER_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE2NDE3NjkyMDAsImV4cCI6MTk5OTk5OTk5OX0.5xbY6RNWlxOSl9a7HwF39TN0EXxdrIB3qwMhkpnCuSU";
-  const DB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-
-  // 🌟 SERVER TERMINAL LOGS
-  console.log("=== SERVER ACTION TRIGGERED ===");
-  console.log("Target ID:", id);
-  console.log("DB URL Exists?:", !!DB_URL);
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { success: false, error: "Missing Service Key" };
+  }
   
-  const supabaseAdmin = createClient(DB_URL, MASTER_KEY);
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!, 
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
   
   try {
-    const { data, error } = await supabaseAdmin
+    const { error } = await supabaseAdmin
       .from('mere_vichar')
       .update({ is_published: !currentStatus })
-      .eq('id', id)
-      .select(); // Select लगाकर चेक करेंगे कि डेटा वापस आया या नहीं
+      .eq('id', id);
       
-    if (error) {
-      console.log("❌ SUPABASE ERROR:", error.message);
-      throw new Error(error.message);
-    }
-    
-    console.log("✅ UPDATE SUCCESS:", data);
+    if (error) throw new Error(error.message);
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
+
 // ============================================================================
 // 4. DELETE VICHAR
 // ============================================================================
