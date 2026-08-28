@@ -48,7 +48,7 @@ export default function VicharBanner({ vichars }: { vichars: Vichar[] }) {
           
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-100/50 text-orange-600 border border-orange-200/50 mb-6 shadow-sm">
             <FaPenNib size={12} />
-            <span className="text-[10px] font-black uppercase tracking-widest">आज का विचार</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">मेरी कलम से</span>
           </div>
 
           <div className="flex-1 flex flex-col justify-center w-full max-w-2xl">
