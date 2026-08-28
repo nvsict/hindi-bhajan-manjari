@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image'; 
-import { FaSearch, FaMusic, FaSpinner, FaTimes, FaChevronDown, FaBookOpen } from 'react-icons/fa';
+import { FaSearch, FaMusic, FaSpinner, FaTimes, FaChevronDown, FaBookOpen, FaFire, FaInfoCircle, FaArrowRight } from 'react-icons/fa';
 import Link from 'next/link';
 
 const BACKGROUND_IMAGES = [
@@ -11,38 +11,51 @@ const BACKGROUND_IMAGES = [
   '/images/pexels-photo-9277866t.avif',
   '/images/debabrata-patra-QBdIEE_eU7g-unsplash.avif',
   '/images/ankit-dandhare-i-SZ80CcBSc-unsplash.avif',
-
+  '/images/lordk.avif'
 ];
 
 interface SearchResult {
   slug: string;
-  title_hindi?: string;
-  title_hinglish?: string;
+  title_hindi: string;
+  title_hinglish: string;
   title?: string; 
   type: 'bhajan' | 'article'; 
 }
 
 export default function Hero() {
+  // 🌟 DATA STATES
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [currentBgIndex, setCurrentBgIndex] = useState(0);
+  const [trending, setTrending] = useState<SearchResult[]>([]);
   
-  // 🌟 MOBILE OPTIMIZATION STATE
+  // 🌟 UI STATES
+  const [isSearching, setIsSearching] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const [currentBgIndex, setCurrentBgIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   
   const router = useRouter();
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // 🌟 PERFORMANCE: Check if mobile on mount
+  // ---------------- FETCH TRENDING (ONCE ON MOUNT) ----------------
+  useEffect(() => {
+    fetch(`/api/search?q=`)
+      .then((res) => res.json())
+      .then((data) => setTrending(data || []))
+      .catch(() => console.error("Failed to load trending items"));
+  }, []);
+
+  // ---------------- MOBILE OPTIMIZATION ----------------
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile(); // Check immediately on client load
+    checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // ---------------- SLIDESHOW ----------------
   useEffect(() => {
     if (BACKGROUND_IMAGES.length <= 1) return;
     const intervalId = setInterval(() => {
@@ -51,60 +64,85 @@ export default function Hero() {
     return () => clearInterval(intervalId);
   }, []);
 
+  // ---------------- SMART DEBOUNCE ----------------
   useEffect(() => {
-    const timeoutId = setTimeout(async () => {
-      if (query.trim().length >= 2) {
-        setIsSearching(true);
-        try {
-          const response = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`);
-          if (response.ok) {
-            const data = await response.json();
-            setSearchResults(data || []);
-            setIsDropdownOpen(true);
-          }
-        } catch (error) {
-          console.error("Instant search failed:", error);
-        } finally {
-          setIsSearching(false);
-        }
-      } else {
-        setSearchResults([]);
-        setIsDropdownOpen(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
+    const handler = setTimeout(() => {
+      setDebouncedQuery(query.trim());
+    }, 350);
+    return () => clearTimeout(handler);
   }, [query]);
 
+  // ---------------- SEARCH FETCH ENGINE ----------------
+  useEffect(() => {
+    if (!debouncedQuery) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setIsSearching(true);
+
+    fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}`, {
+      signal: controller.signal,
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Search failed");
+        return res.json();
+      })
+      .then((data) => {
+        setSearchResults(data || []);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          setSearchResults([]);
+        }
+      })
+      .finally(() => {
+        setIsSearching(false);
+      });
+
+    return () => controller.abort();
+  }, [debouncedQuery]);
+
+  // ---------------- OUTSIDE CLICK HANDLER ----------------
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
+        setIsFocused(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // ---------------- ACTIONS ----------------
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (query.trim()) {
-      setIsDropdownOpen(false);
+      setIsFocused(false);
       router.push(`/search?q=${encodeURIComponent(query.trim())}`);
     }
   };
 
   const clearSearch = () => {
     setQuery("");
-    setSearchResults([]);
-    setIsDropdownOpen(false);
-    document.getElementById('hero-search-input')?.focus();
+    setDebouncedQuery("");
+    inputRef.current?.focus();
   };
+
+  // ---------------- DERIVED UI LOGIC ----------------
+  const isTrendingView = !debouncedQuery;
+  const displayData = isTrendingView ? trending : searchResults;
+  const showDropdown = isFocused && (displayData.length > 0 || isSearching || debouncedQuery);
+
+  const bhajans = displayData.filter((r) => r.type === "bhajan");
+  const articles = displayData.filter((r) => r.type === "article");
 
   return (
     <section className="relative w-full min-h-[100svh] flex flex-col justify-center px-6 sm:px-12 lg:px-24 bg-[#1a0500]">
       
-      {/* 🌟 OPTIMIZED SLIDESHOW CONTAINER */}
+      {/* BACKGROUND SLIDESHOW */}
       <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none bg-[#1a0500]">
         {BACKGROUND_IMAGES.map((src, index) => (
           <div
@@ -114,20 +152,19 @@ export default function Hero() {
             }`}
           >
             <Image 
-  src={src} 
-  alt={`Hindi Bhajan Manjari Background ${index + 1}`}
-  fill
-  priority={index === 0}             
-  fetchPriority={index === 0 ? "high" : "auto"}  
-  loading="eager"        // 🌟 यह नई लाइन जोड़ें
-  quality={50} 
-  className="object-cover object-[center_30%]"
-  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1920px" 
-/>
+              src={src} 
+              alt={`Hindi Bhajan Manjari Background ${index + 1}`}
+              fill
+              priority={index === 0}             
+              fetchPriority={index === 0 ? "high" : "auto"}  
+              loading="eager"        
+              quality={50} 
+              className="object-cover object-[center_30%]"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1920px" 
+            />
           </div>
         ))}
         
-        {/* 🌟 FIX: Disabled backdrop-blur on mobile to save GPU */}
         <div className={`absolute inset-0 bg-[#1a0500]/40 ${!isMobile ? 'backdrop-blur-[1px]' : ''} z-20 transition-all duration-300`}></div>
         <div className="absolute inset-0 bg-gradient-to-r from-[#1a0500] via-[#1a0500]/70 to-transparent z-20"></div>
       </div>
@@ -164,16 +201,19 @@ export default function Hero() {
 
             <input 
               id="hero-search-input"
+              ref={inputRef}
               type="text" 
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setIsFocused(true)}
               placeholder="Search Bhajans, Chalisa or Sanatan Gyan..." 
               className="flex-1 w-full bg-transparent px-5 md:px-4 py-3 md:py-4 text-gray-900 font-bold text-base md:text-lg placeholder:text-gray-500 focus:outline-none"
               role="combobox"
               aria-label="Search for bhajans, aartis, or chalisa"
-              aria-expanded={isDropdownOpen}
+              aria-expanded={isFocused}
               aria-controls="search-dropdown-results"
               autoComplete="off"
+              spellCheck={false}
             />
 
             {query.length > 0 && (
@@ -198,53 +238,102 @@ export default function Hero() {
           </form>
 
           {/* INSTANT SEARCH DROPDOWN */}
-          {isDropdownOpen && (
+          {showDropdown && (
             <div 
               id="search-dropdown-results"
-              className="absolute top-full left-0 right-0 mt-3 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-orange-100 overflow-hidden text-left z-[100] flex flex-col"
+              className="absolute top-full left-0 right-0 mt-3 bg-white rounded-2xl shadow-2xl border border-orange-100 overflow-hidden text-left z-[100] flex flex-col"
             >
-              {searchResults.length > 0 ? (
-                <>
-                  <div className="py-2 max-h-[50vh] overflow-y-auto overscroll-contain">
-                    {searchResults.map((item) => {
-                      const isArticle = item.type === 'article';
-                      const linkHref = isArticle ? `/gyan/${item.slug}` : `/bhajan/${item.slug}`;
-                      const displayTitle = isArticle ? (item.title || item.title_hindi) : item.title_hindi;
-                      const displaySub = isArticle ? "Sanatan Gyan" : item.title_hinglish;
-                      
-                      return (
+              {/* STATE 1: FALLBACK / NO INSTANT RESULTS */}
+              {!isTrendingView && searchResults.length === 0 && !isSearching && (
+                <div className="p-8 text-center flex flex-col items-center justify-center animate-fade-in">
+                  <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mb-4 border border-orange-100">
+                    <FaInfoCircle className="text-orange-400 text-2xl" />
+                  </div>
+                  <p className="text-gray-900 font-black text-lg mb-1">No instant suggestions found</p>
+                  <p className="text-gray-500 text-sm font-medium mb-6">We couldn't find a quick match for <span className="font-bold text-gray-800">"{query}"</span></p>
+                  <button
+                    type="button"
+                    onClick={handleSearchSubmit}
+                    className="bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all flex items-center gap-2"
+                  >
+                    <FaSearch size={14} /> Search Entire Database
+                  </button>
+                </div>
+              )}
+
+              {/* STATE 2: RESULTS FOUND (TRENDING OR ACTIVE) */}
+              {(articles.length > 0 || bhajans.length > 0) && (
+                <div className={`py-2 max-h-[50vh] overflow-y-auto overscroll-contain ${isSearching ? 'opacity-50 pointer-events-none transition-opacity' : 'transition-opacity'}`}>
+                  
+                  {/* ARTICLES LIST */}
+                  {articles.length > 0 && (
+                    <div>
+                      <div className="px-6 py-2.5 text-[10px] font-black uppercase tracking-widest bg-orange-50/80 text-orange-600 flex items-center gap-2 border-y border-orange-100">
+                        <FaBookOpen /> Sanatan Gyan
+                      </div>
+                      {articles.map((item) => (
                         <Link 
-                          key={`${item.type}-${item.slug}`} 
-                          href={linkHref}
-                          onClick={() => setIsDropdownOpen(false)}
-                          className="group flex items-center gap-4 px-6 py-3.5 hover:bg-orange-50 transition-colors border-b border-gray-100 last:border-0 focus-visible:bg-orange-50 outline-none"
+                          key={item.slug} 
+                          href={`/gyan/${item.slug}`}
+                          onClick={() => setIsFocused(false)}
+                          className="group flex items-center gap-4 px-6 py-3.5 hover:bg-orange-50 transition-colors border-b border-gray-100 last:border-0 outline-none"
                         >
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${isArticle ? 'bg-blue-100/50 text-blue-500 group-hover:bg-blue-200' : 'bg-orange-100/50 text-orange-500 group-hover:bg-orange-200'}`} aria-hidden="true">
-                            {isArticle ? <FaBookOpen size={14} /> : <FaMusic size={14} />}
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-blue-100/50 text-blue-500 group-hover:bg-blue-200 transition-colors" aria-hidden="true">
+                            <FaBookOpen size={14} />
                           </div>
                           <div>
                             <h4 className="font-bold font-hindi text-gray-900 group-hover:text-orange-700 transition-colors text-base line-clamp-1">
-                              {displayTitle}
+                              {item.title || item.title_hindi}
                             </h4>
-                            <p className={`text-[11px] font-bold uppercase tracking-widest mt-1 line-clamp-1 ${isArticle ? 'text-blue-500' : 'text-gray-500'}`}>
-                              {displaySub}
+                            <p className="text-[11px] font-bold uppercase tracking-widest mt-1 line-clamp-1 text-blue-500">
+                              Sanatan Gyan
                             </p>
                           </div>
                         </Link>
-                      )
-                    })}
-                  </div>
-                  <button 
-                    onClick={handleSearchSubmit}
-                    className="w-full text-center py-3.5 bg-gray-50 hover:bg-orange-100 text-orange-700 font-bold text-sm transition-colors border-t border-gray-100 outline-none focus-visible:bg-orange-100"
-                  >
-                    View all results for "{query}" &rarr;
-                  </button>
-                </>
-              ) : (
-                <div className="px-6 py-8 text-center" role="alert">
-                  <p className="text-gray-500 font-medium">No results found matching <span className="font-bold text-gray-800">"{query}"</span></p>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* BHAJANS LIST */}
+                  {bhajans.length > 0 && (
+                    <div>
+                      <div className="px-6 py-2.5 text-[10px] font-black uppercase tracking-widest bg-gray-50 text-gray-500 flex items-center gap-2 border-y border-gray-100">
+                        {isTrendingView ? <FaFire className="text-orange-500" /> : <FaMusic />}
+                        {isTrendingView ? "Trending Bhajans" : "Bhajans & Aarti"}
+                      </div>
+                      {bhajans.map((item) => (
+                        <Link 
+                          key={item.slug} 
+                          href={`/bhajan/${item.slug}`}
+                          onClick={() => setIsFocused(false)}
+                          className="group flex items-center gap-4 px-6 py-3.5 hover:bg-orange-50 transition-colors border-b border-gray-100 last:border-0 outline-none"
+                        >
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-orange-100/50 text-orange-500 group-hover:bg-orange-200 transition-colors" aria-hidden="true">
+                            <FaMusic size={14} />
+                          </div>
+                          <div>
+                            <h4 className="font-bold font-hindi text-gray-900 group-hover:text-orange-700 transition-colors text-base line-clamp-1">
+                              {item.title_hindi}
+                            </h4>
+                            <p className="text-[11px] font-bold uppercase tracking-widest mt-1 line-clamp-1 text-gray-500">
+                              {item.title_hinglish}
+                            </p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
+              )}
+
+              {/* BOTTOM ACTION: VIEW ALL RESULTS */}
+              {!isTrendingView && (searchResults.length > 0 || isSearching) && (
+                <button 
+                  onClick={handleSearchSubmit}
+                  className="w-full text-center py-3.5 bg-gray-50 hover:bg-orange-100 text-orange-700 font-bold text-sm transition-colors border-t border-gray-100 outline-none focus-visible:bg-orange-100 flex items-center justify-center gap-2"
+                >
+                  View all results for "{query}" <FaArrowRight size={12} />
+                </button>
               )}
             </div>
           )}
