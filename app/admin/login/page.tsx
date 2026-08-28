@@ -56,9 +56,9 @@ export default function AdminLoginPage() {
         
         // Wait for half a second to show the success checkmark, then redirect
         setTimeout(() => {
-          router.push('/admin');
-          router.refresh(); // Crucial: Forces Next.js to re-run middleware with the new cookie
-        }, 600);
+  // 🌟 FIX: Hard redirect forces the browser to send the new cookie to proxy.ts
+  window.location.href = '/admin';
+}, 600);
       }
     } catch (err) {
       setError('Connection error. Please try again.');
