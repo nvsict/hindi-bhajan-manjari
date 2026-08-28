@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
+// 🌟 FIX: यहाँ हमने सुरक्षित Server Actions को इम्पोर्ट किया है
+import { toggleVicharStatusAction, deleteVicharAction } from '@/app/actions/vicharActions';
 import { 
   FaPlus, 
   FaTrash, 
@@ -12,8 +14,6 @@ import {
   FaMagnifyingGlass,
   FaListUl
 } from 'react-icons/fa6';
-
-// 🌟 FIX: FaCheckCircle को यहाँ FaSpinner के साथ जोड़ दें
 import { FaSpinner, FaCheckCircle } from 'react-icons/fa';
 
 export default function ManageMereVicharPage() {
@@ -22,7 +22,7 @@ export default function ManageMereVicharPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // 1. Fetch all data on load
+  // 1. Fetch all data on load (GET रिक्वेस्ट RLS में सेफ होती है)
   const fetchVichars = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -49,36 +49,41 @@ export default function ManageMereVicharPage() {
     setTimeout(() => setMessage({ type: '', text: '' }), 3000);
   };
 
-  // 3. Toggle Publish/Draft Status
+  // 3. Toggle Publish/Draft Status (🌟 Upgraded to Server Action)
   const handleTogglePublish = async (id: string, currentStatus: boolean) => {
-    const { error } = await supabase
-      .from('mere_vichar')
-      .update({ is_published: !currentStatus })
-      .eq('id', id);
+    // Optimistic Update (UI को तुरंत बदलने के लिए ताकि यूज़र को इंतज़ार न करना पड़े)
+    setVichars(vichars.map(v => v.id === id ? { ...v, is_published: !currentStatus } : v));
+    
+    // सुरक्षित रूप से बैकएंड कॉल
+    const response = await toggleVicharStatusAction(id, currentStatus);
 
-    if (error) {
-      showMessage('error', 'स्टेटस अपडेट नहीं हो पाया!');
+    if (!response.success) {
+      // अगर सर्वर पर एरर आया, तो बदलाव वापस (Rollback) कर दें
+      setVichars(vichars.map(v => v.id === id ? { ...v, is_published: currentStatus } : v));
+      showMessage('error', `एरर: ${response.error || 'स्टेटस अपडेट नहीं हो पाया'}`);
     } else {
-      setVichars(vichars.map(v => v.id === id ? { ...v, is_published: !currentStatus } : v));
       showMessage('success', !currentStatus ? 'रचना लाइव हो गई!' : 'रचना ड्राफ्ट में डाल दी गई!');
     }
   };
 
-  // 4. Delete Entry
+  // 4. Delete Entry (🌟 Upgraded to Server Action)
   const handleDelete = async (id: string, title: string) => {
     if (!window.confirm(`⚠️ क्या आप सच में "${title}" को हमेशा के लिए डिलीट करना चाहते हैं?`)) {
       return;
     }
 
-    const { error } = await supabase
-      .from('mere_vichar')
-      .delete()
-      .eq('id', id);
+    // Optimistic Update: तुरंत UI से गायब करें
+    const previousVichars = [...vichars];
+    setVichars(vichars.filter(v => v.id !== id));
 
-    if (error) {
-      showMessage('error', 'डिलीट करने में समस्या हुई!');
+    // सुरक्षित रूप से बैकएंड कॉल
+    const response = await deleteVicharAction(id);
+
+    if (!response.success) {
+      // अगर फेल हुआ तो लिस्ट में वापस ले आएं
+      setVichars(previousVichars);
+      showMessage('error', `डिलीट फेल: ${response.error || 'समस्या हुई'}`);
     } else {
-      setVichars(vichars.filter(v => v.id !== id));
       showMessage('success', 'रचना सफलतापूर्वक डिलीट कर दी गई!');
     }
   };
@@ -232,8 +237,8 @@ export default function ManageMereVicharPage() {
                         
                         {/* Edit Button */}
                         <Link 
-  href={`/admin/mere-vichar/edit/${vichar.id}`}
-  title="Edit"
+                          href={`/admin/mere-vichar/edit/${vichar.id}`}
+                          title="Edit"
                           className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm hover:-translate-y-0.5 hover:shadow-[0_4px_10px_rgba(37,99,235,0.3)] active:scale-95"
                         >
                           <FaPenToSquare size={14} />
