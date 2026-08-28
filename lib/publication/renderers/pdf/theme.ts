@@ -1,5 +1,5 @@
 // ==========================================
-// 🎨 PRINT THEMES CONFIGURATION
+// 🎨 PRINT THEMES CONFIGURATION (Smart Engine Compatible)
 // ==========================================
 
 export const printThemes = {
@@ -46,10 +46,21 @@ export const printThemes = {
   }
 };
 
-// कॉमन लेआउट सेटिंग्स (जो हर थीम में एक जैसी रहेंगी)
+// ==========================================
+// 📏 GLOBAL LAYOUT CONFIGURATION
+// ==========================================
 export const layoutConfig = {
+  // A4 पेज मार्जिन्स
   pageMargin: '22mm 16mm',
+  
+  // बैकग्राउंड फ्रेम के लिए ऑफसेट
   globalOffsetTB: '-22mm',
   globalOffsetLR: '-16mm',
+  
+  // फुटर की पोज़िशन
   footerBottom: '9mm',
+  
+  // 🌟 Puppeteer Measurement Limit
+  // A4 (1123px) - Top/Bottom Margins (~166px) = 957px (Safe: 960px)
+  maxSafeHeightPx: 960, 
 };

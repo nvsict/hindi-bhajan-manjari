@@ -1,5 +1,5 @@
 // ==========================================
-// 🌟 PUPPETEER PDF RENDERER (TypeScript Build Safe)
+// 🌟 PUPPETEER PDF RENDERER (Smart Adaptive Engine - Per Chapter)
 // ==========================================
 import { PDFDocument } from 'pdf-lib';
 import { getBrowserInstance } from './browserPool';
@@ -13,21 +13,64 @@ export async function renderToPDFBuffer(doc: PublicationDocument): Promise<Buffe
   try {
     const htmlContent = generatePrintHTML(doc);
 
-    // 1. HTML सेट करें ('load' वैलिड इवेंट है)
+    // 1. HTML सेट करें
     await page.setContent(htmlContent, {
       waitUntil: 'load',
     });
 
-    // 2. Race Condition Fix: सुनिश्चित करें कि Google Devanagari Font पूरी तरह लोड हो चुका है
+    // 2. Race Condition Fix: सुनिश्चित करें कि Google Font लोड हो चुका है
     await page.evaluate(async () => {
       await document.fonts.ready;
     });
 
-    // 3. Puppeteer से Raw Print-Ready PDF Buffer जनरेट करें
+    // 3. 🌟 SMART PER-CHAPTER MEASUREMENT ENGINE 🌟
+    await page.emulateMediaType('print');
+    await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
+
+    await page.evaluate(() => {
+      // पेज पर मौजूद सभी भजनों (Chapters) को सिलेक्ट करें
+      const chapters = document.querySelectorAll('.dynamic-chapter');
+      if (chapters.length === 0) return;
+
+      const profiles = [
+        'layout-single-standard',
+        'layout-single-compact',
+        'layout-two-column',
+        'layout-two-column-compact'
+      ];
+
+      // A4 सेफ हाइट (Top 22mm + Bottom 22mm margin घटाकर)
+      const MAX_SAFE_HEIGHT = 960;
+
+      // हर भजन के लिए अलग-अलग बेस्ट लेआउट तय करें
+      chapters.forEach((chapter) => {
+        let bestProfile = profiles[profiles.length - 1]; // Default to compact
+
+        for (const profile of profiles) {
+          // पिछले प्रोफाइल्स को हटाकर नया टेस्ट प्रोफाइल लगाएँ 
+          // (नोट: 'chapter' और 'dynamic-chapter' क्लासेज़ हमेशा बनी रहनी चाहिए)
+          chapter.className = `chapter dynamic-chapter ${profile}`;
+          
+          // इस अकेले भजन (Chapter) की हाइट नापें
+          const currentHeight = chapter.getBoundingClientRect().height;
+
+          // अगर यह भजन इस लेआउट में 1 पेज के अंदर आ रहा है, तो यही परफेक्ट है
+          if (currentHeight <= MAX_SAFE_HEIGHT) {
+            bestProfile = profile;
+            break; 
+          }
+        }
+
+        // लूप खत्म होने के बाद, इस भजन को इसका अपना बेस्ट लेआउट दे दें
+        chapter.className = `chapter dynamic-chapter ${bestProfile}`;
+      });
+    });
+
+    // 4. Puppeteer से Raw Print-Ready PDF Buffer जनरेट करें
     const rawPdfBuffer = await page.pdf({
-      format: doc.config.pageSize.toLowerCase() === 'a5' ? 'A5' : 'A4',
+      format: doc.config.pageSize?.toLowerCase() === 'a5' ? 'A5' : 'A4',
       printBackground: true,
-      preferCSSPageSize: true, // @page CSS नियमों का पालन करें
+      preferCSSPageSize: true, 
       margin: {
         top: '0mm',
         bottom: '0mm',
@@ -36,7 +79,7 @@ export async function renderToPDFBuffer(doc: PublicationDocument): Promise<Buffe
       },
     });
 
-    // 4. pdf-lib के ज़रिए डॉक्यूमेंट मेटाडेटा और स्ट्रीम ऑप्टिमाइज़ेशन (बिना अमान्य permissions प्रॉपर्टी के)
+    // 5. pdf-lib के ज़रिए मेटाडेटा ऑप्टिमाइज़ेशन
     const pdfDoc = await PDFDocument.load(rawPdfBuffer);
     pdfDoc.setTitle(doc.metadata.title || 'Hindi Bhajan Manjari Book');
     pdfDoc.setAuthor('Hindi Bhajan Manjari');
@@ -48,7 +91,7 @@ export async function renderToPDFBuffer(doc: PublicationDocument): Promise<Buffe
 
     return Buffer.from(optimizedPdfBytes);
   } finally {
-    // Memory Leak Protection: हर PDF जनरेशन के बाद पेज बंद करें, ब्राउज़र नहीं
+    // हर PDF जनरेशन के बाद पेज बंद करें
     await page.close();
   }
 }

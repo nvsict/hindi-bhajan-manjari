@@ -58,6 +58,19 @@ const MASCOTS: Mascot[] = [
       "राम राम! ✨",
       "राम काज कीन्हें बिनु मोहि कहाँ बिश्राम! 🌸"
     ]
+  },
+  {
+    id: "sherawali-lion",
+    name: "Sherawali Mata ka Sher",
+    src: "/images/lion.webp",
+    triggers: ["durga", "sherawali", "ambe", "mata", "maa", "navratri", "bhavani", "vaishno", "devi", "jagadambe", "sher"],
+    messages: [
+      "जय माता दी! 🦁", 
+      "माँ शेरावाली की जय! ✨", 
+      "सच्चे दरबार की जय! 🙏", 
+      "माँ जगदम्बे सबकी रक्षा करें! 🌺",
+      "भय मत कर, माँ तेरे साथ है! 🔱"
+    ]
   }
 ];
 

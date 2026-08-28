@@ -56,7 +56,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 // 2. HELPER COMPONENTS (Micro-Design Elements)
 // ==========================================
 const OrnateDivider = () => (
-  // 🌟 FIX: Reduced margin from my-12 to my-8 for a tighter layout
   <div className="flex items-center justify-center w-full my-8 opacity-80 select-none pointer-events-none">
     <div className="h-[1px] w-full max-w-[80px] bg-gradient-to-r from-transparent to-[#D35400]/40"></div>
     <div className="px-3 text-[#D35400]/60 flex gap-1.5">
@@ -127,16 +126,13 @@ export default async function MereVicharDetailPage({ params }: PageProps) {
     <div className="min-h-screen bg-[#F9F8F6] font-sans text-[#2C2724] selection:bg-[#E5C2A4] selection:text-[#2C2724]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      {/* 🌟 FIX: Reduced background bloat from 60vh to a soft 400px gradient */}
       <div className="absolute top-0 left-0 w-full h-[400px] bg-gradient-to-b from-[#F2E8DC]/80 to-transparent -z-10 pointer-events-none"></div>
 
-      {/* 🌟 FIX: Slashed top padding from pt-32 to pt-8/pt-12 to pull content up */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 md:pt-12 pb-16">
         
         {/* ==========================================
             B. BREADCRUMBS & NAVIGATION
             ========================================== */}
-        {/* 🌟 FIX: Reduced bottom margin of breadcrumbs (mb-10 -> mb-5) */}
         <nav className="flex items-center gap-2 md:gap-3 text-[10px] md:text-xs font-bold tracking-widest uppercase mb-5 text-[#8B7D72]">
           <Link href="/" className="hover:text-[#D35400] transition-colors">Home</Link>
           <span className="text-[#D35400]/40">/</span>
@@ -156,21 +152,18 @@ export default async function MereVicharDetailPage({ params }: PageProps) {
           <DecorativeCorner position="bl" />
           <DecorativeCorner position="br" />
 
-          {/* Background Watermark (Scaled down slightly) */}
           <FaQuoteLeft className="absolute top-8 left-8 text-[100px] md:text-[180px] text-[#F9F8F6] z-0 pointer-events-none select-none" />
 
-          {/* 🌟 FIX: Drastically reduced internal padding (p-16 -> p-8 md:p-12) */}
           <div className="relative z-10 p-8 md:p-10 lg:p-12 flex flex-col items-center text-center">
             
-            {/* Meta Info (Date & Read Time) */}
             <div className="flex items-center gap-3 text-[10px] md:text-xs font-semibold tracking-widest text-[#A69B91] uppercase mb-5">
               <span className="flex items-center gap-1.5"><FaRegCalendar className="mb-0.5"/> {publishDate}</span>
               <span className="w-1 h-1 rounded-full bg-[#D35400]/30"></span>
               <span className="flex items-center gap-1.5"><FaRegClock className="mb-0.5"/> {readingTime} Min Read</span>
             </div>
 
-            {/* 🌟 FIX: Tightened Title margin and adjusted sizing to prevent excessive wrapping */}
-            <h1 className="text-2xl md:text-4xl lg:text-5xl font-black text-[#3E2723] font-hindi leading-[1.2] text-balance mb-8 drop-shadow-sm">
+            {/* 🌟 FIX: Shifted large title into a sleek Theme Badge, keeping semantic <h1> for SEO */}
+            <h1 className="inline-flex items-center justify-center px-5 py-2 mb-8 rounded-full border border-[#D35400]/30 bg-[#F2E8DC]/50 text-[#D35400] text-sm md:text-base font-bold font-hindi tracking-wide shadow-sm">
               {vichar.title_hindi}
             </h1>
 
@@ -178,7 +171,6 @@ export default async function MereVicharDetailPage({ params }: PageProps) {
             <div className="relative inline-block w-full max-w-2xl mx-auto px-2 md:px-4">
               <HiSparkles className="absolute -top-6 -left-2 text-2xl text-[#D35400]/30 animate-pulse hidden md:block" />
               
-              {/* 🌟 FIX: Reduced line-height from 2.2 to 1.9 to make the poem read more naturally */}
               <p className="font-hindi text-[20px] md:text-[28px] lg:text-[32px] font-bold text-[#4E342E] leading-[1.8] md:leading-[1.9] whitespace-pre-wrap tracking-wide drop-shadow-sm">
                 {vichar.quote_text}
               </p>
@@ -188,7 +180,7 @@ export default async function MereVicharDetailPage({ params }: PageProps) {
 
             <OrnateDivider />
 
-            {/* Author Profile Block (Compacted) */}
+            {/* Author Profile Block */}
             <div className="flex items-center gap-4 bg-[#FDFBF7] border border-[#F2E8DC] px-6 py-4 rounded-2xl shadow-sm">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#D35400] to-[#E67E22] flex items-center justify-center text-white shadow-md shrink-0">
                 <FaPenNib size={14} />
