@@ -2,16 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
 import { 
-  FaChartBar, FaPlus, FaTags, FaGlobe, FaBars, FaTimes, FaSignOutAlt, FaNewspaper, FaUserShield, FaBell, FaExclamationTriangle, FaBookOpen,FaBullhorn, FaShoppingBag
+  FaChartBar, FaPlus, FaTags, FaGlobe, FaBars, FaTimes, 
+  FaSignOutAlt, FaNewspaper, FaUserShield, FaBell, 
+  FaExclamationTriangle, FaBookOpen, FaBullhorn, 
+  FaShoppingBag, FaPenNib, FaClock, FaHeart
 } from 'react-icons/fa';
 import { GiLotusFlower } from 'react-icons/gi';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter(); 
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -25,16 +27,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setMounted(true);
   }, []);
 
-  // 🌟 Updated Navigation Items
+  // 🌟 UPDATED: Full Navigation reflecting your actual Next.js Routes
   const navItems = [
     { name: 'Dashboard', href: '/admin', icon: FaChartBar },
     { name: 'Add New Bhajan', href: '/admin/add-bhajan', icon: FaPlus },
-    { name: 'Site Metadata', href: '/admin/manage', icon: FaTags },
+    { name: 'Mere Vichar', href: '/admin/mere-vichar', icon: FaPenNib },
     { name: 'Gyan Articles', href: '/admin/articles', icon: FaNewspaper },
-    { name: 'Broadcast Push', href: '/admin/broadcast', icon: FaBell },
     { name: 'Dictionary', href: '/admin/dictionary', icon: FaBookOpen },
-    { name: 'Campaigns', href: '/admin/campaign', icon: FaBullhorn },    // 🌟 New
-    { name: 'Affiliates', href: '/admin/affiliates', icon: FaShoppingBag }, // 🌟 New
+    { name: 'Pending Approvals', href: '/admin/pending', icon: FaClock },
+    { name: 'Supporters', href: '/admin/supporters', icon: FaHeart },
+    { name: 'Campaigns', href: '/admin/campaign', icon: FaBullhorn }, 
+    { name: 'Affiliates', href: '/admin/affiliates', icon: FaShoppingBag }, 
+    { name: 'Site Metadata', href: '/admin/manage', icon: FaTags },
+    { name: 'Broadcast Push', href: '/admin/broadcast', icon: FaBell },
   ];
 
   const confirmLogout = async () => {
@@ -48,11 +53,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       // 2. Supabase सेशन क्लियर करें (Promise.race ताकि नेटवर्क स्लो हो तो भी न अटके)
       await Promise.race([
         supabase.auth.signOut(),
-        new Promise(resolve => setTimeout(resolve, 2000)) // 2 सेकंड का टाइमआउट फॉलबैक
+        new Promise(resolve => setTimeout(resolve, 2000))
       ]);
       
-      // 🌟 THE FIX: Hard Reload is actually the safest way for Auth Logouts!
-      // यह ब्राउज़र की मेमोरी साफ करके सीधे लॉगिन पेज पर फेंक देगा।
+      // 3. Hard Reload to clear memory and cache
       window.location.href = '/admin/login';
       
     } catch (error) {
@@ -62,7 +66,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 font-sans flex flex-col md:flex-row selection:bg-orange-100 selection:text-orange-900">
+    // 🌟 FIX: Updated background color slightly to better match your glassmorphism cards
+    <div className="min-h-screen bg-[#f8f9fa] font-sans flex flex-col md:flex-row selection:bg-orange-100 selection:text-orange-900">
       
       {/* ==========================================
           📱 MOBILE HEADER
@@ -105,11 +110,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 px-5 py-8 md:py-6 space-y-2 overflow-y-auto custom-scrollbar">
-          <p className="px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4 mt-4 md:mt-0">Main Menu</p>
+        <nav className="flex-1 px-5 py-8 md:py-6 space-y-1.5 overflow-y-auto custom-scrollbar">
+          <p className="px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 mt-4 md:mt-0">Main Menu</p>
           
           {navItems.map((item) => {
-            // 🌟 FIX 1: Strict match for Dashboard ('/admin'), startsWith for others!
             const isActive = item.href === '/admin' 
               ? pathname === '/admin' 
               : pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -119,9 +123,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 key={item.name} 
                 href={item.href}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl font-bold transition-all duration-300 group relative overflow-hidden ${
+                className={`flex items-center gap-4 px-4 py-3 rounded-2xl font-bold transition-all duration-300 group relative overflow-hidden ${
                   isActive 
-                    ? 'text-white shadow-lg shadow-orange-900/20 translate-x-1' 
+                    ? 'text-white shadow-md shadow-orange-900/10 translate-x-1' 
                     : 'text-gray-500 hover:bg-orange-50/50 hover:text-orange-600'
                 }`}
               >
@@ -131,11 +135,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 )}
                 
                 <div className={`p-2 rounded-xl transition-all duration-300 ${
-                  isActive ? 'bg-white/20 text-white shadow-inner' : 'bg-gray-50 text-gray-500 group-hover:bg-orange-100 group-hover:text-orange-600'
+                  isActive ? 'bg-white/20 text-white shadow-inner' : 'bg-gray-50 text-gray-400 group-hover:bg-orange-100 group-hover:text-orange-600'
                 }`}>
-                  <item.icon size={16} />
+                  <item.icon size={15} />
                 </div>
-                <span className="relative z-10">{item.name}</span>
+                <span className="relative z-10 text-[14px]">{item.name}</span>
               </Link>
             );
           })}
@@ -175,11 +179,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       />
 
       {/* ==========================================
-          ✨ MAIN CONTENT AREA
+          ✨ MAIN CONTENT AREA (THE UI FIX)
           ========================================== */}
       <main className="flex-1 w-full min-w-0 transition-all duration-300 relative z-0">
-        <div className="h-full">
-          {children}
+        {/* 🌟 FIX: Removed h-screen and overflow constraints. 
+            Now it uses smooth, natural browser scrolling! */}
+        <div className="w-full p-4 md:p-8 lg:p-10">
+          <div className="max-w-[1600px] mx-auto w-full">
+            {children}
+          </div>
         </div>
       </main>
 
@@ -188,13 +196,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ========================================== */}
       {mounted && (
         <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all duration-300 ${showLogoutModal ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
-          {/* Backdrop */}
           <div 
             className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" 
             onClick={() => !isLoggingOut && setShowLogoutModal(false)}
           />
           
-          {/* Modal Card */}
           <div className={`bg-white rounded-[2rem] w-full max-w-sm p-8 relative z-10 shadow-2xl flex flex-col items-center text-center transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${showLogoutModal ? 'translate-y-0 scale-100' : 'translate-y-10 scale-95'}`}>
             
             <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6 relative">

@@ -124,7 +124,7 @@ export default function AddBhajanPage() {
       if (response.success) {
         setMessage("success");
         setTimeout(() => {
-          router.push('/admin');
+          window.location.href = '/admin'
           router.refresh(); // डेटा रिफ्रेश करने के लिए
         }, 1500);
       } else {

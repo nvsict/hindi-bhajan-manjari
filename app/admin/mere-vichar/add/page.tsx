@@ -118,8 +118,8 @@ export default function AddMereVicharPage() {
       setMessage("✅ रचना सफलतापूर्वक पब्लिश हो गई! Redirecting...");
       
       setTimeout(() => {
-        router.push('/admin');
-      }, 1500);
+  window.location.href = '/admin'; // 🌟 Hard redirect to clear cache and update UI instantly
+}, 1500);
 
     } catch (err: any) {
       setMessage(`❌ ${err.message}`);
