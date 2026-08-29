@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/utils/supabase';
+import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 
-// Configure keys for the welcome message
+// 🌟 1. INITIALIZE SUPABASE ADMIN (Bypasses RLS to allow database inserts)
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+// Configure VAPID keys for the welcome message
 webpush.setVapidDetails(
   process.env.VAPID_SUBJECT || 'mailto:nvsict06@gmail.com',
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
@@ -13,14 +19,14 @@ export async function POST(req: Request) {
   try {
     const subscription = await req.json();
 
-    // 🌟 1. VALIDATION: Check if valid subscription object is received
+    // VALIDATION: Check if valid subscription object is received
     if (!subscription || !subscription.endpoint || !subscription.keys) {
       return NextResponse.json({ error: 'Invalid subscription payload' }, { status: 400 });
     }
 
-    // 🌟 2. SAVE TO DATABASE
-    const { error } = await supabase
-      .from('push_subscriptions') // Ensure this matches your table name exactly
+    // 🌟 2. SAVE TO DATABASE (Using Admin Client)
+    const { error } = await supabaseAdmin
+      .from('push_subscriptions')
       .upsert({ 
         endpoint: subscription.endpoint, 
         p256dh: subscription.keys.p256dh, 
@@ -31,15 +37,16 @@ export async function POST(req: Request) {
       throw new Error(`Database error: ${error.message}`);
     }
 
-    // 🌟 3. INSTANT WELCOME NOTIFICATION (Themed for your site)
+    // 🌟 3. INSTANT WELCOME NOTIFICATION
+    // Using 'message' instead of 'body' to perfectly match our new sw.js
     const welcomePayload = JSON.stringify({
       title: "🙏 भजन मंजरी में आपका स्वागत है!",
-      body: "सब्सक्राइब करने के लिए धन्यवाद! अब आपको रोज़ाना नए भजन और आरती के अपडेट्स मिलेंगे। ✨",
+      message: "सब्सक्राइब करने के लिए धन्यवाद! अब आपको रोज़ाना नए भजन और आरती के अपडेट्स मिलेंगे। ✨",
       url: "/"
     });
 
-    // We use .catch() here so that even if the welcome message fails to send (e.g. network glitch), 
-    // it doesn't crash the API and the user still gets successfully registered in the database.
+    // Send the welcome message. We catch errors so the API still returns 200 OK 
+    // even if the user's internet drops immediately after saving to the DB.
     webpush.sendNotification(subscription, welcomePayload).catch((err) => {
       console.error('Welcome notification delivery failed:', err);
     });
