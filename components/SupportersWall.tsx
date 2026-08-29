@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, Variants } from 'framer-motion';
 import { FaHeart, FaOm, FaCrown, FaStar, FaArrowRight } from 'react-icons/fa6';
-import { supabase } from '@/utils/supabase'; // 🌟 SPEED BOOST: Directly using Supabase client
 
 const HOMEPAGE_SHOWCASE_LIMIT = 8; // 🌟 fixed forever — homepage never grows past this
 
@@ -18,7 +16,7 @@ const DiamondDivider = () => (
   </div>
 );
 
-type Supporter = {
+export type Supporter = {
   id: string;
   name: string | null;
   amount: number;
@@ -28,47 +26,13 @@ type Supporter = {
   created_at: string;
 };
 
-export default function SupportersWall() {
-  const [supporters, setSupporters] = useState<Supporter[]>([]);
-  const [total, setTotal] = useState(0); 
+// 🌟 NEW: Component now accepts data instantly as PROPS from the Server Component
+interface SupportersWallProps {
+  supporters: Supporter[];
+  total: number;
+}
 
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        // 🌟 SPEED BOOST: Parallel fetching from our new Materialized View
-        const [
-          { data: supportersData, error: suppError },
-          { count, error: countError }
-        ] = await Promise.all([
-          // 1. Fetch top 8 supporters directly
-          supabase
-            .from('mv_active_supporters')
-            .select('*')
-            .limit(HOMEPAGE_SHOWCASE_LIMIT),
-          
-          // 2. Fetch exact total count instantly (COUNT on MV is blazing fast)
-          supabase
-            .from('mv_active_supporters')
-            .select('*', { count: 'exact', head: true })
-        ]);
-
-        if (suppError) throw suppError;
-        if (countError) throw countError;
-
-        setSupporters(supportersData ?? []);
-        setTotal(count ?? 0);
-      } catch (err) {
-        console.error("Failed to load supporters wall", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    load();
-  }, []);
-
+export default function SupportersWall({ supporters = [], total = 0 }: SupportersWallProps) {
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: { opacity: 1, transition: { staggerChildren: 0.08 } }
@@ -78,13 +42,6 @@ export default function SupportersWall() {
     hidden: { opacity: 0, y: 15, scale: 0.96 },
     show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 70, damping: 15 } }
   };
-
-  if (loading) return (
-    <div className="w-full py-10 flex flex-col items-center justify-center">
-      <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin mb-3"></div>
-      <p className="text-orange-600 dark:text-orange-400 font-hindi font-medium animate-pulse text-sm">भक्तों की सूची लोड हो रही है...</p>
-    </div>
-  );
 
   return (
     <section className="relative py-8 md:py-10 overflow-hidden rounded-3xl md:rounded-[2.5rem] bg-gradient-to-b from-orange-50/50 to-transparent dark:from-[#110c08]/80 dark:to-transparent border border-orange-100/50 dark:border-[#2a1d12]/50 my-4 md:my-6">
@@ -171,7 +128,7 @@ export default function SupportersWall() {
           </motion.div>
         ) : (
           <div className="text-center py-6 mb-6">
-            <p className="text-gray-500 dark:text-gray-400 italic font-hindi text-sm">सूची अपडेट हो रही है...</p>
+            <p className="text-gray-500 dark:text-gray-400 italic font-hindi text-sm">अभी तक कोई सहयोग प्राप्त नहीं हुआ है।</p>
           </div>
         )}
 

@@ -2,9 +2,7 @@ import { supabase } from '@/utils/supabase';
 import { Metadata } from 'next';
 import ShabdkoshClient from './ShabdkoshClient';
 
-// 🌟 FIX 1 & 3: Force Dynamic (Bypass all stubborn Next.js caches)
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
 
@@ -18,41 +16,47 @@ export const metadata: Metadata = {
   }
 };
 
-export default async function ShabdkoshPage() {
-  // 🌟 FIX: Fetch ALL records seamlessly regardless of Supabase's 1000 limit
-  let dictionaryWords: any[] = [];
-  let hasMore = true;
-  let from = 0;
-  const step = 1000;
+// 🌟 FIX: In Next.js 15, searchParams is a Promise
+export default async function ShabdkoshPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  // 🌟 FIX: Unwrap the Promise before accessing properties
+  const resolvedSearchParams = await searchParams;
 
-  while (hasMore) {
-    const { data: words, error } = await supabase
-      .from('dictionary')
-      .select('id, word_hi, word_en, meaning_hi, meaning_en, slug')
-      .order('word_en', { ascending: true })
-      .range(from, from + step - 1);
+  // Determine what the user is looking for based on URL, default to 'A'
+  const letter = typeof resolvedSearchParams.letter === 'string' ? resolvedSearchParams.letter.toUpperCase() : 'A';
+  const searchQuery = typeof resolvedSearchParams.q === 'string' ? resolvedSearchParams.q : '';
 
-    if (error) {
-      console.error("Error fetching dictionary words:", error);
-      break; // Exit loop on error
-    }
+  // 🌟 THE SCALABLE QUERY: Only fetch exactly what we need
+  let query = supabase
+    .from('dictionary')
+    .select('id, word_hi, word_en, meaning_hi, meaning_en, slug')
+    .order('word_en', { ascending: true });
 
-    if (words && words.length > 0) {
-      dictionaryWords = [...dictionaryWords, ...words];
-      from += step;
-      
-      // If we got less than 1000, it means we reached the end of the table
-      if (words.length < step) {
-        hasMore = false;
-      }
-    } else {
-      hasMore = false;
-    }
+  if (searchQuery) {
+    // Search mode: Look across multiple columns, limit to 100 results to prevent lag
+    query = query
+      .or(`word_hi.ilike.%${searchQuery}%,word_en.ilike.%${searchQuery}%,meaning_hi.ilike.%${searchQuery}%`)
+      .limit(100);
+  } else if (letter === '#') {
+    // Special character mode: Fetch words with no English translation yet
+    query = query.is('word_en', null);
+  } else {
+    // Letter mode: Fetch only words starting with the active letter (e.g., "A%")
+    query = query.ilike('word_en', `${letter}%`);
   }
 
-  // ==========================================
-  // GOOGLE DICTIONARY SCHEMA (DefinedTermSet)
-  // ==========================================
+  const { data: words, error } = await query;
+
+  if (error) {
+    console.error("Error fetching dictionary words:", error);
+  }
+
+  const dictionaryWords = words || [];
+
+  // 🌟 DYNAMIC SCHEMA: Only inject the schema for the words currently on screen
   const shabdkoshSchema = {
     "@context": "https://schema.org",
     "@type": "DefinedTermSet",
@@ -71,7 +75,6 @@ export default async function ShabdkoshPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(shabdkoshSchema) }} />
 
       <div className="bg-[#1a0500] pt-24 pb-32 px-4 text-center relative overflow-hidden">
@@ -90,8 +93,11 @@ export default async function ShabdkoshPage() {
         </div>
       </div>
 
-      <ShabdkoshClient initialWords={dictionaryWords} />
-
+      <ShabdkoshClient 
+        words={dictionaryWords} 
+        currentLetter={!searchQuery ? letter : null} 
+        currentSearch={searchQuery}
+      />
     </div>
   );
 }

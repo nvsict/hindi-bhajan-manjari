@@ -204,6 +204,32 @@ async function LatestBhajansSection() {
   }
 }
 
+// ==========================================
+// 🌟 NEW: SERVER-SIDE SUPPORTERS WALL FETCH
+// ==========================================
+async function SupportersWallSection() {
+  let supporters = [];
+  let total = 0;
+
+  try {
+    const { data, count, error } = await supabase
+      .from('mv_active_supporters')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .limit(8);
+
+    if (error) throw error;
+    
+    supporters = data || [];
+    total = count || 0;
+  } catch (err: any) {
+    console.error("[Homepage] Failed to load supporters wall on server:", err.message);
+  }
+
+  // Pass instantly fetched data as props
+  return <SupportersWall supporters={supporters} total={total} />;
+}
+
 export default function Home() {
   const homeSchemaGraph = {
     "@context": "https://schema.org",
@@ -294,8 +320,11 @@ export default function Home() {
             <TrendingArtists />
           </div>
 
+          {/* 🌟 0ms Server-Rendered Supporters Wall */}
           <div className="mt-16">
-            <SupportersWall />
+            <Suspense fallback={<div className="h-64 bg-orange-50/50 dark:bg-[#110c08]/80 rounded-[2.5rem] animate-pulse border border-orange-100/50 dark:border-[#2a1d12]/50 my-4 md:my-6"></div>}>
+              <SupportersWallSection />
+            </Suspense>
           </div>
 
           {/* 5. Deep Reading Anchor */}
