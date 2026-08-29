@@ -1,7 +1,7 @@
 // ==========================================
 // 🌟 1. BHAJAN APP LOGIC (PWA & CACHE)
 // ==========================================
-const CACHE_NAME = 'bhajan-cache-v3'; // Version bumped to v3 for safety
+const CACHE_NAME = 'bhajan-cache-v4'; // Version bumped to v3 for safety
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
