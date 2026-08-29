@@ -107,7 +107,8 @@ self.addEventListener('push', function (event) {
       const data = event.data.json();
       if (data && data.title) {
         const options = {
-          body: data.body,
+          // 🌟 THE FIX: Accept 'message' from the backend payload
+          body: data.message || data.body || '', 
           icon: '/logo.png', 
           badge: '/logo.png', 
           vibrate: [200, 100, 200], 
