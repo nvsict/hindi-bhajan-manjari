@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
@@ -8,54 +8,19 @@ import { FaExternalLinkAlt, FaShoppingCart, FaChevronLeft, FaChevronRight } from
 import { HiSparkles } from 'react-icons/hi';
 
 interface AffiliateSlotProps {
-  deityId?: string | null;
   layout?: 'inline' | 'card' | 'sidebar' | 'homepage-carousel';
+  product?: any | null; // For inline, sidebar, and card layouts
+  products?: any[];     // For homepage-carousel layout
 }
 
-export default function AffiliateSlot({ deityId, layout = 'inline' }: AffiliateSlotProps) {
-  const [product, setProduct] = useState<any>(null);
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  
+export default function AffiliateSlot({ layout = 'inline', product, products = [] }: AffiliateSlotProps) {
   // 🌟 Scroll Container Reference for Desktop Controls
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const fetchAffiliateData = async () => {
-      setLoading(true);
-      try {
-        let query = supabase.from('affiliate_products').select('*').eq('is_active', true);
-        
-        if (layout === 'homepage-carousel') {
-          query = query.order('clicks', { ascending: false }).limit(8); // Fetching 8 to allow good scrolling
-          const { data, error } = await query;
-          if (data && !error) setProducts(data);
-        } else {
-          if (deityId) query = query.eq('deity_id', deityId);
-          
-          const { data, error } = await query;
-
-          if (data && data.length > 0) {
-            setProduct(data[Math.floor(Math.random() * data.length)]);
-          } else if (deityId) {
-            const { data: generalData } = await supabase.from('affiliate_products').select('*').eq('is_active', true).is('deity_id', null);
-            if (generalData && generalData.length > 0) {
-              setProduct(generalData[Math.floor(Math.random() * generalData.length)]);
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Affiliate Slot Error:", err);
-      }
-      setLoading(false);
-    };
-
-    fetchAffiliateData();
-  }, [deityId, layout]);
 
   const handleAdClick = async (clickedProduct: any) => {
     if (!clickedProduct) return;
     
+    // Background click tracking
     supabase.rpc('increment_click', { product_id: clickedProduct.id }).then(); 
 
     if (typeof window !== 'undefined' && (window as any).gtag) {
@@ -66,7 +31,7 @@ export default function AffiliateSlot({ deityId, layout = 'inline' }: AffiliateS
     }
   };
 
-  // 🌟 Scroll Controller Function
+  // 🌟 Scroll Controller Function for Carousel
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
       const scrollAmount = window.innerWidth > 768 ? 320 : 260; // Card width + gap
@@ -78,43 +43,10 @@ export default function AffiliateSlot({ deityId, layout = 'inline' }: AffiliateS
   };
 
   // ==========================================
-  // 🌟 ANTI-CLS SKELETON LOADERS
-  // ==========================================
-  if (loading) {
-    if (layout === 'homepage-carousel') {
-      return (
-        <div className="w-full my-8 min-h-[420px]">
-          <div className="flex items-center justify-between mb-6 px-2">
-            <div className="h-8 w-48 bg-gray-200 dark:bg-[#1a120b] rounded-full animate-pulse"></div>
-            {/* Skeleton for Desktop Controls */}
-            <div className="hidden md:flex gap-2">
-              <div className="h-10 w-10 bg-gray-200 dark:bg-[#1a120b] rounded-full animate-pulse"></div>
-              <div className="h-10 w-10 bg-gray-200 dark:bg-[#1a120b] rounded-full animate-pulse"></div>
-            </div>
-          </div>
-          <div className="flex gap-4 md:gap-6 overflow-hidden px-2">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="w-[260px] md:w-[280px] h-[340px] bg-white dark:bg-[#120c08] border border-gray-100 dark:border-white/5 rounded-[2rem] animate-pulse shrink-0 p-4">
-                <div className="w-full aspect-square bg-gray-100 dark:bg-white/5 rounded-2xl mb-4"></div>
-                <div className="h-4 w-3/4 bg-gray-100 dark:bg-white/5 rounded mb-2"></div>
-                <div className="h-4 w-1/2 bg-gray-100 dark:bg-white/5 rounded mb-4"></div>
-                <div className="h-10 w-full bg-gray-100 dark:bg-white/5 rounded-xl mt-auto"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-    return (
-      <div className="w-full h-[180px] md:h-[220px] bg-white dark:bg-[#0c0804] border border-gray-100 dark:border-white/5 rounded-[2.5rem] animate-pulse my-4"></div>
-    );
-  }
-
-  // ==========================================
   // 🌟 PREMIUM HOMEPAGE CAROUSEL 
   // ==========================================
   if (layout === 'homepage-carousel') {
-    if (products.length === 0) return null;
+    if (!products || products.length === 0) return null;
 
     return (
       <div className="w-full my-10 relative group/carousel">
@@ -251,7 +183,7 @@ export default function AffiliateSlot({ deityId, layout = 'inline' }: AffiliateS
               )}
 
               <div className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-sm transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:bg-orange-600 dark:group-hover:bg-orange-500 group-hover:text-white group-hover:scale-[1.03] group-hover:shadow-[0_8px_20px_rgba(234,88,12,0.25)] flex items-center justify-center gap-2 shrink-0">
-                अमेज़न पर देखें 
+                अमेज़न पर देखें 
                 <FaExternalLinkAlt size={12} className="opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300" />
               </div>
             </div>
@@ -303,7 +235,7 @@ export default function AffiliateSlot({ deityId, layout = 'inline' }: AffiliateS
             )}
 
             <div className="w-full py-3.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-sm transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:bg-orange-600 dark:group-hover:bg-orange-500 group-hover:text-white group-hover:shadow-[0_8px_20px_rgba(234,88,12,0.25)] flex items-center justify-center gap-2">
-              अमेज़न पर देखें 
+              अमेज़न पर देखें 
               <FaExternalLinkAlt size={12} className="opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300" />
             </div>
           </div>

@@ -95,7 +95,7 @@ async function fetchLatestBhajansWithRetry(retries = 3, delayMs = 1000) {
 }
 
 // ==========================================
-// 🌟 NEW: VICHAR BANNER SECTION
+// 🌟 VICHAR BANNER SECTION
 // ==========================================
 async function LatestVicharSection() {
   const { data: latestVichars, error } = await supabase
@@ -103,12 +103,33 @@ async function LatestVicharSection() {
     .select('slug, title_hindi, quote_text')
     .eq('is_published', true)
     .order('created_at', { ascending: false })
-    .limit(5); // Top 5 vichars for the slider
+    .limit(5);
 
-  // अगर डेटा नहीं है, तो कुछ भी रेंडर मत करो
   if (error || !latestVichars || latestVichars.length === 0) return null;
 
   return <VicharBanner vichars={latestVichars} />;
+}
+
+// ==========================================
+// 🌟 SERVER-SIDE AFFILIATE CAROUSEL FETCH
+// ==========================================
+async function HomepageCarouselSection() {
+  try {
+    const { data: products, error } = await supabase
+      .from('affiliate_products')
+      .select('*')
+      .eq('is_active', true)
+      .order('clicks', { ascending: false })
+      .limit(8);
+
+    if (error) throw error;
+    if (!products || products.length === 0) return null;
+
+    return <AffiliateSlot layout="homepage-carousel" products={products} />;
+  } catch (err: any) {
+    console.error("[Homepage] Failed to fetch affiliate products:", err.message);
+    return null;
+  }
 }
 
 // ==========================================
@@ -205,7 +226,7 @@ async function LatestBhajansSection() {
 }
 
 // ==========================================
-// 🌟 NEW: SERVER-SIDE SUPPORTERS WALL FETCH
+// 🌟 SERVER-SIDE SUPPORTERS WALL FETCH
 // ==========================================
 async function SupportersWallSection() {
   let supporters = [];
@@ -226,7 +247,6 @@ async function SupportersWallSection() {
     console.error("[Homepage] Failed to load supporters wall on server:", err.message);
   }
 
-  // Pass instantly fetched data as props
   return <SupportersWall supporters={supporters} total={total} />;
 }
 
@@ -289,10 +309,21 @@ export default function Home() {
           <DeityBrowse /> 
 
           {/* ==========================================
-              🌟 2.5 PREMIUM HOMEPAGE CAROUSEL
+              🌟 2.5 PREMIUM HOMEPAGE CAROUSEL (0ms Server Load)
               ========================================== */}
           <div className="mt-8 md:mt-12">
-            <AffiliateSlot layout="homepage-carousel" />
+            <Suspense fallback={
+              <div className="w-full my-8 min-h-[420px] flex flex-col justify-between">
+                <div className="h-8 w-48 bg-gray-200 dark:bg-[#1a120b] rounded-full animate-pulse mb-6 ml-2"></div>
+                <div className="flex gap-4 md:gap-6 overflow-hidden px-2">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="w-[240px] md:w-[280px] h-[340px] bg-white dark:bg-[#120c08] rounded-[2rem] animate-pulse shrink-0 ring-1 ring-gray-900/5"></div>
+                  ))}
+                </div>
+              </div>
+            }>
+              <HomepageCarouselSection />
+            </Suspense>
           </div>
 
           {/* 3. Core Content: The Bhajans */}
