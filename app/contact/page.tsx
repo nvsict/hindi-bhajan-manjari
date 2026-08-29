@@ -97,8 +97,8 @@ export default function ContactPage() {
               <p className="text-gray-500 mb-6 text-sm leading-relaxed font-medium">
                 For detailed feedback, copyright queries, or collaboration inquiries.
               </p>
-              <a href="mailto:nvsict06@gmail.com" className="inline-flex items-center gap-2 text-orange-600 font-bold hover:text-orange-700 transition-colors">
-                nvsict06@gmail.com <HiArrowRight />
+              <a href="mailto:support@hindibhajanmanjari.com" className="inline-flex items-center gap-2 text-orange-600 font-bold hover:text-orange-700 transition-colors">
+                support@hindibhajanmanjari.com <HiArrowRight />
               </a>
             </div>
 

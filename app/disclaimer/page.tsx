@@ -172,7 +172,7 @@ export default function DisclaimerPage() {
             
             <div className="flex flex-col sm:flex-row gap-4">
               <a 
-                href="mailto:nvsict06@gmail.com" 
+                href="mailto:support@hindibhajanmanjari.com" 
                 className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-black rounded-xl transition-colors shadow-md active:scale-95"
               >
                 Email Support

@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 };
 
 export default function DMCAPage() {
-  const adminEmail = "nvsict06@gmail.com";
+  const adminEmail = "support@hindibhajanmanjari.com";
   const lastUpdated = "June 2, 2026";
 
   return (

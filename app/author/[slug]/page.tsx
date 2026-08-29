@@ -32,7 +32,7 @@ export const AUTHORS: Record<string, any> = {
       facebook: "https://www.facebook.com/mohit.tarkar.7121/",
       instagram: "https://www.instagram.com/imp.erfecto",
       whatsapp: "https://wa.me/918384844353",
-      email: "mailto:nvsict06@gmail.com"
+      email: "mailto:support@hindibhajanmanjari.com"
     }
   }
 };

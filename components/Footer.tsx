@@ -219,10 +219,10 @@ export default function Footer() {
               साइटमैप (Sitemap)
             </Link>
             <a
-              href="mailto:nvsict06@gmail.com"
+              href="mailto:support@hindibhajanmanjari.com"
               className="hover:text-orange-400 transition-colors underline underline-offset-4 decoration-orange-500/30"
             >
-              nvsict06@gmail.com
+              support@hindibhajanmanjari.com
             </a>
           </div>
         </div>
