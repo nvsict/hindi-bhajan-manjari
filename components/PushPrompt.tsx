@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import Image from 'next/image'; // 🌟 THE NEW IMPORT FOR LOGO
+import Image from 'next/image';
 import { FaBell, FaTriangleExclamation, FaXmark, FaCheck, FaGear } from 'react-icons/fa6';
 
+// Helper to convert VAPID key for PushManager
 const urlBase64ToUint8Array = (base64String: string) => {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -27,6 +28,7 @@ export default function PushPrompt() {
   useEffect(() => {
     setMounted(true); 
 
+    // Check if push notifications are supported in this browser
     if (typeof window === "undefined" || !('serviceWorker' in navigator) || !('PushManager' in window)) {
       setPermissionStatus('unsupported');
       return;
@@ -34,7 +36,6 @@ export default function PushPrompt() {
 
     const init = async () => {
       setPermissionStatus(Notification.permission);
-
       const hasSeenThisSession = sessionStorage.getItem('has_seen_bell_session');
       
       if (Notification.permission !== 'granted' && !hasSeenThisSession) {
@@ -51,14 +52,25 @@ export default function PushPrompt() {
     sessionStorage.setItem('has_seen_bell_session', 'true');
   };
 
+  // 🌟 THE UPGRADED & BULLETPROOF SUBSCRIBE HANDLER
   const handleSubscribe = async () => {
     setIsSubscribing(true);
     try {
-      const permission = await Notification.requestPermission();
+      // 🌟 FIX 1: Cross-browser safe permission request (Handles both Promises and Callbacks for older Safari)
+      const permission = await new Promise<NotificationPermission>((resolve) => {
+        const permPromise = Notification.requestPermission((result) => resolve(result));
+        if (permPromise) {
+          permPromise.then(resolve);
+        }
+      });
+      
       setPermissionStatus(permission);
 
       if (permission === 'granted') {
-        const registration = await navigator.serviceWorker.ready;
+        // 🌟 FIX 2: Force register SW first. Prevents hanging on .ready if the mobile OS suspended the worker.
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.ready; // Now 100% safe to await
+        
         const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
         
         if (publicVapidKey) {
@@ -67,18 +79,28 @@ export default function PushPrompt() {
             applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
           });
 
-          await fetch('/api/push/subscribe', {
+          // Send to backend
+          const response = await fetch('/api/push/subscribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(subscription)
           });
+
+          if (!response.ok) {
+            throw new Error("Failed to save subscription on server");
+          }
+          
           setShowModal(false);
           setShowBell(false);
+        } else {
+          console.error("VAPID Key is missing in environment variables!");
         }
       }
     } catch (error) {
       console.error("Subscription failed:", error);
+      alert("कुछ तकनीकी समस्या आ रही है। कृपया पेज रीफ्रेश करके दोबारा प्रयास करें।");
     } finally {
+      // 🌟 Ensures the button ALWAYS resets, even if the user closes the prompt or an error occurs
       setIsSubscribing(false);
     }
   };
@@ -98,7 +120,7 @@ export default function PushPrompt() {
             <FaXmark size={20} />
           </button>
           
-          {/* 🌟 LOGO CONTAINER: White Box with shadow to make Logo pop out */}
+          {/* LOGO CONTAINER */}
           <div className="w-20 h-20 md:w-24 md:h-24 bg-white rounded-[1.25rem] md:rounded-[1.5rem] flex items-center justify-center text-white shadow-[0_8px_30px_rgba(0,0,0,0.15)] relative overflow-hidden p-1">
             {permissionStatus === 'denied' ? (
               <FaTriangleExclamation className="text-4xl md:text-5xl text-orange-500 animate-pulse" />
@@ -153,13 +175,21 @@ export default function PushPrompt() {
                 <button 
                   onClick={handleSubscribe}
                   disabled={isSubscribing}
-                  className="w-full py-3.5 md:py-4 bg-orange-600 text-white rounded-2xl font-black text-sm md:text-base shadow-[0_8px_20px_rgba(234,88,12,0.3)] hover:bg-orange-700 transition-all active:scale-95 flex items-center justify-center gap-2 outline-none"
+                  className="w-full py-3.5 md:py-4 bg-orange-600 text-white rounded-2xl font-black text-sm md:text-base shadow-[0_8px_20px_rgba(234,88,12,0.3)] hover:bg-orange-700 transition-all active:scale-95 flex items-center justify-center gap-2 outline-none disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  {isSubscribing ? "चालू हो रहा है..." : "🙏 हाँ, अपडेट्स चालू करें"} 
+                  {isSubscribing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      चालू हो रहा है...
+                    </>
+                  ) : (
+                    "🙏 हाँ, अपडेट्स चालू करें"
+                  )} 
                 </button>
                 <button 
                   onClick={() => setShowModal(false)}
-                  className="w-full py-2 md:py-3 text-gray-400 font-bold text-sm hover:text-gray-600 transition-colors outline-none"
+                  disabled={isSubscribing}
+                  className="w-full py-2 md:py-3 text-gray-400 font-bold text-sm hover:text-gray-600 transition-colors outline-none disabled:opacity-50"
                 >
                   अभी नहीं (Later)
                 </button>
