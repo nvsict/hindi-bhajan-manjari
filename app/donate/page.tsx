@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import { Hind } from 'next/font/google';
 import SuccessFlow from './SuccessFlow';
+import DonationCheckout from '@/components/DonationCheckout'; // 🌟 NEW: Imported our new Client Component
 
 // 🌟 1. FORCE DYNAMIC RENDERING: This tells Next.js NEVER to cache this page.
 // It will always read the live URL parameters.
@@ -19,7 +20,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// 🌟 3-Second Fast-Fail Helper (ताकि पेज 10 सेकंड तक न अटके)
+// 🌟 3-Second Fast-Fail Helper
 async function fetchAmountFast(paymentId: string, fallbackAmount: number): Promise<number> {
   try {
     const fetchPromise = supabase
@@ -28,7 +29,6 @@ async function fetchAmountFast(paymentId: string, fallbackAmount: number): Promi
       .eq('razorpay_payment_id', paymentId)
       .maybeSingle();
 
-    // 3000ms (3 सेकंड) की समय सीमा
     const timeoutPromise = new Promise<null>((_, reject) =>
       setTimeout(() => reject(new Error('Supabase request timeout (3s)')), 3000)
     );
@@ -52,22 +52,18 @@ export default async function DonatePage({
     | Promise<{ success?: string; error?: string; payment_id?: string; amount?: string }>
     | { success?: string; error?: string; payment_id?: string; amount?: string };
 }) {
-  // 🌟 2. AWAIT THE PARAMS: Safely unwrap the params for Next.js 15+
   const params = await searchParams;
   const isSuccess = params?.success === 'true';
   const hasError = !!params?.error;
   const paymentId = params?.payment_id;
 
-  // 🌟 3. Extract the amount directly from the URL to prevent the "101" race condition
   const urlAmount = params?.amount ? parseInt(params.amount, 10) : 0;
-
   let donatedAmount = 0;
 
   // ==========================================
   // 1. FETCH AMOUNT FROM SUPABASE (If Success)
   // ==========================================
   if (isSuccess && paymentId) {
-    // 🌟 3 सेकंड से ज्यादा कभी नहीं अटकेगा!
     donatedAmount = await fetchAmountFast(paymentId, urlAmount);
 
     return (
@@ -94,7 +90,7 @@ export default async function DonatePage({
             क्षमा करें, आपका पेमेंट पूरा नहीं हो पाया या हम इसे प्रमाणित नहीं कर सके। कृपया पुनः प्रयास करें।
           </p>
           <a
-            href="/pay.html"
+            href="#checkout-section"
             className="block w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition-all mb-3"
           >
             पुनः प्रयास करें
@@ -131,8 +127,8 @@ export default async function DonatePage({
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
-              href="/pay.html"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 bg-orange-600 hover:bg-orange-700 active:scale-95 text-white font-bold text-lg rounded-2xl shadow-lg shadow-orange-600/25 transition-all cursor-pointer"
+              href="#checkout-section"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 bg-orange-600 hover:bg-orange-700 active:scale-95 text-white font-bold text-lg rounded-2xl shadow-lg shadow-orange-600/25 transition-all cursor-pointer scroll-smooth"
             >
               <span>सहयोग राशि जमा करें</span>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -141,7 +137,7 @@ export default async function DonatePage({
             </a>
             <a
               href="#story-section"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-4 bg-white hover:bg-orange-50 border border-orange-200 text-gray-800 font-bold text-base rounded-2xl transition-all"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-4 bg-white hover:bg-orange-50 border border-orange-200 text-gray-800 font-bold text-base rounded-2xl transition-all scroll-smooth"
             >
               <span>पूरी कहानी पढ़ें ↓</span>
             </a>
@@ -156,8 +152,13 @@ export default async function DonatePage({
         </div>
       </section>
 
+      {/* 🌟 NEW: THE DONATION CHECKOUT COMPONENT */}
+      <section id="checkout-section" className="px-4 py-12 md:py-16 -mt-8 relative z-10 scroll-mt-24">
+        <DonationCheckout mode="donation" returnPath="/donate" />
+      </section>
+
       {/* --- SECTION 1: THE STORY (FATEHA TO THE WORLD) --- */}
-      <section id="story-section" className="max-w-4xl mx-auto px-4 py-16 md:py-24">
+      <section id="story-section" className="max-w-4xl mx-auto px-4 py-8 md:py-16 scroll-mt-24">
         <div className="bg-white rounded-3xl border border-orange-200/80 p-6 sm:p-10 md:p-14 shadow-sm space-y-8">
           
           <div className="border-l-4 border-orange-600 pl-4 md:pl-6">
@@ -270,8 +271,8 @@ export default async function DonatePage({
 
             <div className="pt-4">
               <a
-                href="/pay.html"
-                className="inline-flex items-center justify-center gap-3 px-10 py-5 bg-white text-orange-700 hover:bg-orange-50 active:scale-95 font-black text-lg sm:text-xl rounded-2xl shadow-lg transition-all cursor-pointer"
+                href="#checkout-section"
+                className="inline-flex items-center justify-center gap-3 px-10 py-5 bg-white text-orange-700 hover:bg-orange-50 active:scale-95 font-black text-lg sm:text-xl rounded-2xl shadow-lg transition-all cursor-pointer scroll-smooth"
               >
                 <span>सहयोग राशि जमा करें →</span>
               </a>

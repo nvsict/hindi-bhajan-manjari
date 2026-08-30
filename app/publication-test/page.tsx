@@ -12,8 +12,23 @@ import {
   FaFilePdf, FaSearch, FaSpinner, FaRedo, 
   FaExclamationTriangle, FaLayerGroup, FaArrowRight, 
   FaRupeeSign, FaShieldAlt, FaOm, FaWhatsapp, FaListUl,
-  FaCheckCircle, FaLanguage, FaBook, FaPalette
+  FaCheckCircle, FaLanguage, FaBook, FaPalette, FaUser, FaPhoneAlt
 } from 'react-icons/fa';
+
+// 🌟 RAZORPAY SCRIPT LOADER (Safe & Crash-Free)
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
 
 type WizardStep = 1 | 2;
 type FlowStatus = 'idle' | 'payment_pending' | 'building' | 'rendering' | 'ready' | 'error' | 'verifying';
@@ -43,6 +58,10 @@ export default function PublicationTestStudio() {
   const [script, setScript] = useState<ScriptLanguage>('devanagari');
   const [theme, setTheme] = useState<string>('default'); 
 
+  // 🌟 NEW: DROP-OFF KILLER (Prefill Details)
+  const [buyerName, setBuyerName] = useState("");
+  const [buyerPhone, setBuyerPhone] = useState("");
+
   // --- FLOW STATE ---
   const [generatedModel, setGeneratedModel] = useState<PublicationDocument | null>(null);
   const [flowStatus, setFlowStatus] = useState<FlowStatus>('idle');
@@ -62,22 +81,16 @@ export default function PublicationTestStudio() {
         if (recoveredState.bookTitle) setBookTitle(recoveredState.bookTitle);
         if (recoveredState.script) setScript(recoveredState.script);
         if (recoveredState.theme) setTheme(recoveredState.theme); 
+        if (recoveredState.buyerName) setBuyerName(recoveredState.buyerName);
+        if (recoveredState.buyerPhone) setBuyerPhone(recoveredState.buyerPhone);
         if (recoveredState.orderId) setSavedOrderId(recoveredState.orderId);
         if (recoveredState.isPaid) setIsPaid(recoveredState.isPaid);
         if (recoveredState.step) setStep(recoveredState.step);
       } catch (e) {}
     }
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const isSuccess = urlParams.get('success');
-
-    if (isSuccess === 'true' && recoveredState?.orderId) {
-      window.history.replaceState({}, document.title, window.location.pathname);
-      setStep(2);
-      verifyAndGeneratePDF(recoveredState.orderId, recoveredState);
-      try { localStorage.removeItem('bhajanPaymentAttempt'); } catch (e) {}
-    }
-    else if (recoveredState?.orderId && !recoveredState.isPaid) {
+    // Recover from webhooks/refresh if applicable
+    if (recoveredState?.orderId && !recoveredState.isPaid) {
       let hadAttempt = false;
       try {
         const lastAttempt = localStorage.getItem('bhajanPaymentAttempt');
@@ -99,10 +112,10 @@ export default function PublicationTestStudio() {
   useEffect(() => {
     if (isClient) {
       localStorage.setItem('bhajanPustikaStateSimple', JSON.stringify({
-        step, selectedSlugs, bookTitle, script, theme, orderId: savedOrderId, isPaid 
+        step, selectedSlugs, bookTitle, script, theme, buyerName, buyerPhone, orderId: savedOrderId, isPaid 
       }));
     }
-  }, [step, selectedSlugs, bookTitle, script, theme, savedOrderId, isPaid, isClient]);
+  }, [step, selectedSlugs, bookTitle, script, theme, buyerName, buyerPhone, savedOrderId, isPaid, isClient]);
 
   // 3. Fetch Bhajans
   useEffect(() => {
@@ -163,6 +176,8 @@ export default function PublicationTestStudio() {
     setSelectedSlugs([]);
     setBookTitle("मेरी भजन डायरी");
     setTheme("default");
+    setBuyerName("");
+    setBuyerPhone("");
     setSavedOrderId(null);
     setIsPaid(false);
     setFlowStatus('idle');
@@ -172,8 +187,20 @@ export default function PublicationTestStudio() {
     window.scrollTo(0,0);
   };
 
+  // 🌟 MAGIC: SECURE INLINE PAYMENT WITH PREFILL
   const handlePaymentAndGenerate = async () => {
     if (selectedSlugs.length === 0) return;
+    
+    // 🌟 VALIDATION BEFORE STARTING
+    if (!buyerName.trim()) {
+      setErrorMessage("कृपया अपना शुभ नाम दर्ज करें।");
+      return;
+    }
+    if (buyerPhone.length !== 10 || isNaN(Number(buyerPhone))) {
+      setErrorMessage("कृपया 10 अंकों का सही WhatsApp नंबर दर्ज करें।");
+      return;
+    }
+    
     setErrorMessage("");
 
     if (bookTitle.trim().toUpperCase() === "TEST") {
@@ -188,17 +215,51 @@ export default function PublicationTestStudio() {
 
     setFlowStatus('payment_pending');
     try {
+      const isScriptLoaded = await loadRazorpayScript();
+      if (!isScriptLoaded) throw new Error("इंटरनेट कनेक्शन जांचें। पेमेंट गेटवे लोड नहीं हो पाया।");
+
       const orderRes = await fetch('/api/razorpay/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ count: selectedSlugs.length })
+        body: JSON.stringify({ amount: currentPrice })
       });
 
       if (!orderRes.ok) throw new Error("ऑर्डर नहीं बन सका। कृपया इंटरनेट चेक करें।");
       const orderData = await orderRes.json();
       setSavedOrderId(orderData.id);
 
-      window.location.href = `/pay.html?mode=book_builder&amount=${currentPrice}&order_id=${orderData.id}&return_path=/publication-test`;
+      // Save crash-recovery flag
+      try {
+        localStorage.setItem('bhajanPaymentAttempt', JSON.stringify({ orderId: orderData.id, startedAt: Date.now() }));
+      } catch (e) {}
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_live_TEOLlRM13UTm1R",
+        amount: orderData.amount,
+        currency: "INR",
+        name: "Hindi Bhajan Manjari",
+        description: "ई-पुस्तिका संकलन शगुन",
+        order_id: orderData.id,
+        prefill: {
+          name: buyerName.trim(),
+          contact: buyerPhone.trim(), // 🌟 SKIPS RAZORPAY FORM & OPENS UPI APPS DIRECTLY!
+        },
+        theme: { color: "#ea580c" },
+        modal: {
+          ondismiss: function() { 
+            setFlowStatus('idle'); 
+          }
+        },
+        handler: async function(response: any) {
+          // 🌟 PAYMENT SUCCESS! Generate PDF directly without changing pages
+          setIsPaid(true);
+          await executePDFGeneration(selectedSlugs, bookTitle, script, theme);
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+
     } catch (error: any) {
       setFlowStatus('error');
       setErrorMessage(error.message || "पेमेंट शुरू करने में समस्या आई।");
@@ -211,7 +272,7 @@ export default function PublicationTestStudio() {
       const verifyRes = await fetch(`/api/razorpay/verify?order_id=${orderId}`);
       const verifyData = await verifyRes.json();
 
-      if (verifyData.paid && verifyData.orderType === 'book_builder') {
+      if (verifyData.paid) {
         setIsPaid(true);
         await executePDFGeneration(stateOptions.selectedSlugs, stateOptions.bookTitle, stateOptions.script, stateOptions.theme || 'default');
       } else {
@@ -223,13 +284,12 @@ export default function PublicationTestStudio() {
     }
   };
 
-  // 🌟 FIX: themeName की जगह सीधे 'theme: userTheme' पास किया गया है
   const executePDFGeneration = async (slugs: string[], title: string, userScript: ScriptLanguage, userTheme: string) => {
     setFlowStatus('building');
     try {
       const opts: any = {
         script: userScript,
-        theme: userTheme, // 👈 THE MAGIC FIX! अब यह 'sawan' या 'navratri' सीधा बैकएंड को पास करेगा
+        theme: userTheme,
         themeName: userTheme, 
         pageSize: 'A4', 
         includeMeaning: true, 
@@ -276,18 +336,18 @@ export default function PublicationTestStudio() {
 
   const handleSupportClick = () => {
     const text = encodeURIComponent(`हरि ॐ! मैंने ई-पुस्तिका के लिए पेमेंट किया था लेकिन PDF नहीं मिली।\nOrder ID: ${savedOrderId || 'N/A'}\nभजन संख्या: ${selectedSlugs.length}`);
-    window.open(`https://wa.me/91XXXXXXXXXX?text=${text}`, '_blank');
+    window.open(`https://wa.me/918384844353?text=${text}`, '_blank');
   };
 
   if (!isClient) return null;
 
-  const inputStyles = "w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-800 outline-none focus:border-orange-500 transition-colors shadow-sm";
+  const inputStyles = "w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-800 outline-none focus:border-orange-500 focus:bg-white transition-all shadow-sm";
 
   return (
     <div className="min-h-screen bg-[#fffaf5] text-gray-900 pb-48 md:pb-56 font-sans selection:bg-orange-200">
       
       {/* HEADER / STEPPER */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center text-white shadow-sm">
@@ -305,7 +365,7 @@ export default function PublicationTestStudio() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 relative z-10">
         
         {/* ==========================================
             STEP 1: SELECT BHAJANS
@@ -407,7 +467,7 @@ export default function PublicationTestStudio() {
             </div>
 
             {/* FLOATING ACTION BAR */}
-            <div className="fixed bottom-[95px] md:bottom-[110px] left-1/2 -translate-x-1/2 w-[95%] max-w-2xl z-[90]">
+            <div className="fixed bottom-[40px] md:bottom-[50px] left-1/2 -translate-x-1/2 w-[95%] max-w-2xl z-[90]">
               <div className="bg-gray-900/80 backdrop-blur-sm text-white text-[10px] sm:text-xs font-medium py-1.5 px-4 text-center rounded-t-2xl mx-4 mb-[-10px] pb-3">
                 2 भजनों तक शगुन ₹11, उसके बाद ₹2 प्रति भजन।
               </div>
@@ -438,7 +498,7 @@ export default function PublicationTestStudio() {
         )}
 
         {/* ==========================================
-            STEP 2: SIMPLE CHECKOUT & GENERATE
+            STEP 2: INLINE CHECKOUT & GENERATE
             ========================================== */}
         {step === 2 && (
           <div className="animate-in fade-in slide-in-from-right-8 duration-500 max-w-xl mx-auto">
@@ -452,13 +512,13 @@ export default function PublicationTestStudio() {
                 </p>
 
                 <div className="space-y-5 text-left mb-8">
+                  {/* BOOK SETTINGS */}
                   <div>
                     <label className="flex items-center gap-2 text-sm font-bold text-gray-600 mb-2 font-hindi">
                       <FaBook className="text-orange-500" /> डायरी का नाम
                     </label>
                     <input type="text" value={bookTitle} onChange={(e) => setBookTitle(e.target.value)}
-                      className={inputStyles}
-                      placeholder="उदा. शर्मा परिवार का भजन संग्रह"
+                      className={inputStyles} placeholder="उदा. शर्मा परिवार का भजन संग्रह"
                     />
                   </div>
                   
@@ -479,7 +539,7 @@ export default function PublicationTestStudio() {
 
                     <div>
                       <label className="flex items-center gap-2 text-sm font-bold text-gray-600 mb-2 font-hindi">
-                        <FaPalette className="text-orange-500" /> थीम (रंग/डिज़ाइन)
+                        <FaPalette className="text-orange-500" /> थीम (रंग/डिज़ाइन)
                       </label>
                       <select value={theme} onChange={(e) => setTheme(e.target.value)} className={inputStyles}>
                         <option value="default">क्लासिक (सफेद)</option>
@@ -488,6 +548,36 @@ export default function PublicationTestStudio() {
                       </select>
                     </div>
                   </div>
+
+                  <hr className="border-gray-100 my-6" />
+
+                  {/* 🌟 NEW: BUYER DETAILS (PREFILL) */}
+                  {!isPaid && (
+                    <div className="space-y-5">
+                      <div className="flex items-center gap-2 text-sm font-bold text-gray-600 mb-1 font-hindi">
+                        <span>ई-पुस्तिका प्राप्त करने वाले का विवरण</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div className="relative">
+                          <FaUser className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+                          <input type="text" placeholder="आपका शुभ नाम" value={buyerName} onChange={(e) => setBuyerName(e.target.value)}
+                            className={`pl-10 pr-3 ${inputStyles}`} 
+                          />
+                        </div>
+
+                        <div className="relative">
+                          <FaPhoneAlt className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+                          <input type="tel" maxLength={10} placeholder="WhatsApp नंबर" value={buyerPhone} onChange={(e) => setBuyerPhone(e.target.value.replace(/\D/g, ''))}
+                            className={`pl-10 pr-3 ${inputStyles}`} 
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-gray-400 font-medium leading-snug">
+                        यह नंबर सीधे आपके फ़ोन का UPI ऐप (GPay/PhonePe) खोलने के लिए उपयोग होगा।
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-orange-50 rounded-2xl p-5 mb-6 text-left border border-orange-100">
@@ -502,22 +592,35 @@ export default function PublicationTestStudio() {
                   </div>
                 </div>
 
+                {/* 🌟 ERROR MESSAGE */}
+                {errorMessage && (
+                  <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-600 text-sm font-bold rounded-xl text-center flex items-center justify-center gap-2">
+                    <FaExclamationTriangle className="shrink-0" /> {errorMessage}
+                  </div>
+                )}
+
                 {flowStatus === 'idle' || flowStatus === 'payment_pending' ? (
                   <div className="space-y-4">
                     <button
                       onClick={handlePaymentAndGenerate} disabled={flowStatus === 'payment_pending'}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white font-black text-base sm:text-lg py-4 rounded-2xl shadow-[0_8px_20px_rgba(22,163,74,0.25)] transition-all active:scale-95 flex items-center justify-center gap-2 sm:gap-3"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-black text-base sm:text-lg py-4 rounded-2xl shadow-[0_8px_20px_rgba(22,163,74,0.25)] transition-all active:scale-95 flex items-center justify-center gap-2 sm:gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                       {flowStatus === 'payment_pending' ? (
                         <><FaSpinner className="animate-spin" /> सुरक्षित भुगतान की तैयारी...</>
                       ) : isPaid ? (
                         <><FaFilePdf /> पुस्तिका बनाएँ (पेमेंट सफल)</>
                       ) : (
-                        <><FaShieldAlt /> ₹{currentPrice} का सहयोग करें</>
+                        <><FaShieldAlt /> ₹{currentPrice} का सुरक्षित भुगतान करें</>
                       )}
                     </button>
-                    {errorMessage && <p className="text-red-500 text-sm font-bold font-hindi">{errorMessage}</p>}
-                    <button onClick={prevStep} className="text-sm font-bold text-gray-500 hover:text-gray-800 pt-2">
+                    
+                    {!isPaid && (
+                      <div className="flex items-center justify-center gap-2 text-[10px] sm:text-xs font-bold text-green-600 uppercase tracking-widest">
+                        <FaCheckCircle /> 100% सुरक्षित • सीधा बैंक ट्रांसफर
+                      </div>
+                    )}
+                    
+                    <button onClick={prevStep} className="text-sm font-bold text-gray-500 hover:text-gray-800 pt-2 block w-full">
                       ← वापस जाएँ
                     </button>
                   </div>
@@ -534,8 +637,8 @@ export default function PublicationTestStudio() {
                       </>
                     )}
                     {flowStatus === 'ready' && (
-                      <>
-                        <FaCheckCircle className="text-5xl sm:text-6xl text-green-500 mb-4" />
+                      <div className="animate-in zoom-in duration-500">
+                        <FaCheckCircle className="text-5xl sm:text-6xl text-green-500 mb-4 mx-auto" />
                         <h3 className="text-xl sm:text-2xl font-black text-gray-900 mb-2 font-hindi">पुस्तिका तैयार है!</h3>
                         <p className="text-gray-500 mb-6 text-sm font-hindi">आपका डाउनलोड स्वतः शुरू हो गया होगा।</p>
                         
@@ -547,21 +650,21 @@ export default function PublicationTestStudio() {
                             + नई डायरी बनाएँ
                           </button>
                         </div>
-                      </>
+                      </div>
                     )}
                     {flowStatus === 'error' && (
-                      <>
-                        <FaExclamationTriangle className="text-4xl sm:text-5xl text-red-500 mb-4" />
+                      <div className="animate-in fade-in">
+                        <FaExclamationTriangle className="text-4xl sm:text-5xl text-red-500 mb-4 mx-auto" />
                         <p className="text-red-600 font-bold mb-4 font-hindi">{errorMessage}</p>
                         <div className="flex flex-col gap-3 w-full max-w-xs mx-auto">
-                          <button onClick={handlePaymentAndGenerate} className="bg-gray-900 text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
+                          <button onClick={handlePaymentAndGenerate} className="bg-gray-900 text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-800">
                             <FaRedo /> मुफ़्त में पुनः प्रयास करें
                           </button>
                           <button onClick={handleSupportClick} className="bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 px-6 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors">
                             <FaWhatsapp className="text-lg" /> सहायता प्राप्त करें
                           </button>
                         </div>
-                      </>
+                      </div>
                     )}
                   </div>
                 )}
