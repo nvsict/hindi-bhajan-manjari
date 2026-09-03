@@ -1,92 +1,110 @@
-"use client";
+'use client';
 
-import { useRef, useState } from "react";
-import { motion, useMotionValue, useTransform, useSpring } from "framer-motion";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 interface DivineTitleProps {
   children: React.ReactNode;
+  showMascot?: boolean;
 }
 
-export default function DivineTitle({ children }: DivineTitleProps) {
-  const targetRef = useRef<HTMLDivElement>(null);
-  const [isHovered, setIsHovered] = useState(false);
+// 🌟 बाल कृष्ण के जन्माष्टमी स्पेशल मैसेजेस
+const JANMASHTAMI_MESSAGES = [
+  "नंद के आनंद भयो, जय कन्हैया लाल की! 🐘",
+  "जन्माष्टमी की हार्दिक शुभकामनाएँ! 🌸",
+  "माखन चोर आयो रे! 🧈",
+  "राधे-राधे! आज तो मेरे जन्म का दिन है! ✨",
+  "हाथी घोड़ा पालकी, जय कन्हैया लाल की! 🦚",
+  "यशोदा के नंदन, ब्रज के दुलारे! 🙏",
+  "मटकी संभाल के रखना गोपियों! 🏺",
+  "भजन गाते रहो, मैं सुन रहा हूँ! 🎶",
+  "जय श्री कृष्णा! मुरली वाले की जय! 🪈"
+];
 
-  // Motion values tracking mouse position (-0.5 to 0.5)
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
+export default function DivineTitle({ children, showMascot = true }: DivineTitleProps) {
+  // 🌟 Message State
+  const [activeMessage, setActiveMessage] = useState<string | null>(null);
+  const messageTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Smooth springs for fluid physics (prevents jerky movements)
-  const springConfig = { damping: 20, stiffness: 120, mass: 0.4 };
-  const rotateXSpring = useSpring(y, springConfig);
-  const rotateYSpring = useSpring(x, springConfig);
+  // 🌟 Message Logic (Random message picker)
+  const showRandomMessage = useCallback(() => {
+    let newMessage;
+    do {
+      newMessage = JANMASHTAMI_MESSAGES[Math.floor(Math.random() * JANMASHTAMI_MESSAGES.length)];
+    } while (newMessage === activeMessage && JANMASHTAMI_MESSAGES.length > 1);
 
-  // Map position to degrees of rotation (Max 4 degrees for an elegant, subtle look)
-  const rotateX = useTransform(rotateXSpring, [-0.5, 0.5], ["6deg", "-6deg"]);
-  const rotateY = useTransform(rotateYSpring, [-0.5, 0.5], ["-6deg", "6deg"]);
+    setActiveMessage(newMessage);
 
-  // 🌟 BONUS: Metallic Sweep Translation (Shimmer moves slightly with mouse)
-  const shimmerX = useTransform(rotateYSpring, [-0.5, 0.5], ["30%", "70%"]);
+    // 4 सेकंड बाद मैसेज गायब हो जाएगा
+    if (messageTimerRef.current) clearTimeout(messageTimerRef.current);
+    messageTimerRef.current = setTimeout(() => {
+      setActiveMessage(null);
+    }, 4000);
+  }, [activeMessage]);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!targetRef.current) return;
+  // 🌟 Auto-Message: हर 8 सेकंड में अपने आप कुछ बोलेंगे
+  useEffect(() => {
+    if (!showMascot) return;
+    
+    // शुरुआत में 1 सेकंड बाद पहला मैसेज दिखाएं
+    const initialTimer = setTimeout(() => showRandomMessage(), 1000);
 
-    const rect = targetRef.current.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
+    const autoInterval = setInterval(() => {
+      showRandomMessage();
+    }, 8000); // 8 seconds
 
-    // Calculate normalized mouse coords from center of the text (-0.5 to 0.5)
-    const mouseX = (e.clientX - rect.left) / width - 0.5;
-    const mouseY = (e.clientY - rect.top) / height - 0.5;
-
-    x.set(mouseX);
-    y.set(mouseY);
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    x.set(0);
-    y.set(0);
-  };
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(autoInterval);
+      if (messageTimerRef.current) clearTimeout(messageTimerRef.current);
+    };
+  }, [showMascot, showRandomMessage]);
 
   return (
-    <div
-      ref={targetRef}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={handleMouseLeave}
-      className="inline-block relative overflow-visible select-none"
-      style={{ perspective: "1000px" }} // Enables 3D space depth
-    >
-      <motion.div
-        style={{
-          rotateX,
-          rotateY,
-          transformStyle: "preserve-3d",
-        }}
-        className="transition-all duration-100 ease-out"
-      >
-        {/* 🌟 METALLIC SHIMMER OVERLAY (Applies gradient clip-text to children if they are standard text) */}
-        {/* 🌟 METALLIC SHIMMER OVERLAY */}
-        <div 
-          className={`relative overflow-hidden transition-all duration-700 ${
-            isHovered ? 'brightness-125 saturate-110 drop-shadow-[0_10px_20px_rgba(245,158,11,0.15)]' : ''
-          }`}
-          style={{ transform: "translateZ(30px)" }}
-        >
-          {children}
+    // 🌟 w-fit लगाना सबसे ज़रूरी है! यह बॉक्स को सिर्फ टेक्स्ट जितना ही चौड़ा रखेगा
+    <div className="relative inline-block w-fit mt-16 select-none">
+      
+      {/* 🌟 LITTLE KRISHNA MASCOT & SPEECH BUBBLE */}
+      {showMascot && (
+        // 🌟 PERFECT SITTING: -top-[70px] और -right-[30px] उन्हें हमेशा टेक्स्ट के टॉप-राईट कोने पर चिपका कर रखेगा
+        <div className="absolute -top-[110px] -right-[10px] z-30 pointer-events-auto">
+          <div className="relative group cursor-pointer" onClick={showRandomMessage}>
+            
+            {/* 🌟 Speech Bubble (मैसेज बॉक्स) */}
+            <AnimatePresence>
+              {activeMessage && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
+                  // मैसेज बॉक्स बाल कृष्ण के सिर के पास बाईं ओर (Left) खुलेगा
+                  className="absolute bottom-[85%] right-[50%] mb-2 bg-white text-orange-600 px-4 py-2 rounded-2xl rounded-br-none shadow-xl border border-orange-200 text-xs sm:text-sm font-black whitespace-nowrap z-50 pointer-events-none"
+                >
+                  {activeMessage}
+                  {/* छोटी सी पूंछ (Tail) */}
+                  <div className="absolute top-full right-4 w-3 h-3 bg-white border-b border-r border-orange-200 transform rotate-45 -mt-1.5"></div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-          {/* Golden Shimmer Sheen Effect */}
-          <motion.div
-            className="pointer-events-none absolute inset-0 mix-blend-overlay opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-            style={{
-              background: `linear-gradient(90deg, transparent 0%, rgba(254,243,199,0.4) 50%, transparent 100%)`,
-              left: "-50%",
-              right: "-50%",
-              x: shimmerX,
-            }}
-          />
+            {/* 🌟 Mascot Image */}
+            <Image 
+              src="/images/mascot_title.webp" 
+              alt="Little Krishna Mascot" 
+              width={135} 
+              height={135} 
+              className="drop-shadow-[0_15px_25px_rgba(0,0,0,0.35)] transition-transform duration-300 origin-bottom"
+              unoptimized 
+            />
+          </div>
         </div>
-      </motion.div>
+      )}
+
+      {/* 🌟 THE TITLE TEXT */}
+      <div className="relative z-10">
+        {children}
+      </div>
     </div>
   );
-}
+} 
