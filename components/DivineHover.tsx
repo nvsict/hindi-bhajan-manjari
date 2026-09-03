@@ -27,32 +27,36 @@ export default function DivineTitle({ children, showMascot = true }: DivineTitle
   const [activeMessage, setActiveMessage] = useState<string | null>(null);
   const messageTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 🌟 Message Logic (Random message picker)
+  // 🌟 Message Logic (Random message picker बिना री-रेंडर लूप के)
   const showRandomMessage = useCallback(() => {
-    let newMessage;
-    do {
-      newMessage = JANMASHTAMI_MESSAGES[Math.floor(Math.random() * JANMASHTAMI_MESSAGES.length)];
-    } while (newMessage === activeMessage && JANMASHTAMI_MESSAGES.length > 1);
+    setActiveMessage((currentActive) => {
+      let newMessage;
+      do {
+        newMessage = JANMASHTAMI_MESSAGES[Math.floor(Math.random() * JANMASHTAMI_MESSAGES.length)];
+      } while (newMessage === currentActive && JANMASHTAMI_MESSAGES.length > 1);
+      return newMessage;
+    });
 
-    setActiveMessage(newMessage);
-
-    // 4 सेकंड बाद मैसेज गायब हो जाएगा
+    // 4 सेकंड बाद मैसेज स्वतः गायब हो जाएगा
     if (messageTimerRef.current) clearTimeout(messageTimerRef.current);
     messageTimerRef.current = setTimeout(() => {
       setActiveMessage(null);
     }, 4000);
-  }, [activeMessage]);
+  }, []);
 
-  // 🌟 Auto-Message: हर 8 सेकंड में अपने आप कुछ बोलेंगे
+  // 🌟 Auto-Message: ठीक अंतराल पर चलने वाला सुरक्षित लूप
   useEffect(() => {
     if (!showMascot) return;
     
-    // शुरुआत में 1 सेकंड बाद पहला मैसेज दिखाएं
-    const initialTimer = setTimeout(() => showRandomMessage(), 1000);
+    // शुरुआत में 1.5 सेकंड बाद पहला मैसेज दिखाएं
+    const initialTimer = setTimeout(() => {
+      showRandomMessage();
+    }, 1500);
 
+    // इसके बाद हर 8 सेकंड में रिपीट होगा
     const autoInterval = setInterval(() => {
       showRandomMessage();
-    }, 8000); // 8 seconds
+    }, 8000);
 
     return () => {
       clearTimeout(initialTimer);
@@ -62,13 +66,14 @@ export default function DivineTitle({ children, showMascot = true }: DivineTitle
   }, [showMascot, showRandomMessage]);
 
   return (
-    // 🌟 w-fit लगाना सबसे ज़रूरी है! यह बॉक्स को सिर्फ टेक्स्ट जितना ही चौड़ा रखेगा
-    <div className="relative inline-block w-fit mt-16 select-none">
+    // mt-14 sm:mt-16 मोबाइल और पीसी के लिए मार्जिन सेट किया है ताकि ऊपर जगह बनी रहे
+    <div className="relative inline-block w-fit mt-14 sm:mt-16 select-none">
       
       {/* 🌟 LITTLE KRISHNA MASCOT & SPEECH BUBBLE */}
       {showMascot && (
-        // 🌟 PERFECT SITTING: -top-[70px] और -right-[30px] उन्हें हमेशा टेक्स्ट के टॉप-राईट कोने पर चिपका कर रखेगा
-        <div className="absolute -top-[110px] -right-[10px] z-30 pointer-events-auto">
+        // 🌟 RESPONSIVE POSITIONING: 
+        // मोबाइल पर साइज़ और पोजीशन छोटी (-top-[85px]) है, PC (sm:) पर बड़ी (-top-[110px]) है
+        <div className="absolute -top-[55px] sm:-top-[98px] -right-[5px] sm:-right-[10px] z-30 pointer-events-auto">
           <div className="relative group cursor-pointer" onClick={showRandomMessage}>
             
             {/* 🌟 Speech Bubble (मैसेज बॉक्स) */}
@@ -78,25 +83,25 @@ export default function DivineTitle({ children, showMascot = true }: DivineTitle
                   initial={{ opacity: 0, y: 10, scale: 0.8 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
-                  // मैसेज बॉक्स बाल कृष्ण के सिर के पास बाईं ओर (Left) खुलेगा
-                  className="absolute bottom-[85%] right-[50%] mb-2 bg-white text-orange-600 px-4 py-2 rounded-2xl rounded-br-none shadow-xl border border-orange-200 text-xs sm:text-sm font-black whitespace-nowrap z-50 pointer-events-none"
+                  className="absolute bottom-[85%] right-[50%] mb-2 bg-white text-orange-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl rounded-br-none shadow-xl border border-orange-200 text-[11px] sm:text-sm font-black whitespace-nowrap z-50 pointer-events-none"
                 >
                   {activeMessage}
-                  {/* छोटी सी पूंछ (Tail) */}
                   <div className="absolute top-full right-4 w-3 h-3 bg-white border-b border-r border-orange-200 transform rotate-45 -mt-1.5"></div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* 🌟 Mascot Image */}
-            <Image 
-              src="/images/mascot_title.webp" 
-              alt="Little Krishna Mascot" 
-              width={135} 
-              height={135} 
-              className="drop-shadow-[0_15px_25px_rgba(0,0,0,0.35)] transition-transform duration-300 origin-bottom"
-              unoptimized 
-            />
+            {/* 🌟 Mascot Image (Responsive width: mobile par 105px, PC par 135px) */}
+            <div className="w-[105px] h-[105px] sm:w-[170px] sm:h-[180px] relative">
+              <Image 
+                src="/images/mascot_title.webp" 
+                alt="Little Krishna Mascot" 
+                fill
+                style={{ objectFit: "contain" }}
+                className="drop-shadow-[0_15px_25px_rgba(0,0,0,0.35)] origin-bottom"
+                unoptimized 
+              />
+            </div>
           </div>
         </div>
       )}
