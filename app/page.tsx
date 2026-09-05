@@ -22,7 +22,7 @@ import VicharBanner from '../components/VicharBanner';
 export const revalidate = 300; 
 
 // ==========================================
-// 🌟 ADVANCED HOMEPAGE METADATA
+// 🌟 ADVANCED HOMEPAGE METADATA (Language Targeted)
 // ==========================================
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
 const seoDescription = "हिंदी भजन मंजरी पर आपका हार्दिक स्वागत है। यहाँ आप सभी देवी-देवताओं के प्रामाणिक भजन, आरती, चालीसा और मंत्रों के लिरिक्स (Lyrics) और उनके भावार्थ हिंदी में पढ़ सकते हैं।";
@@ -41,6 +41,8 @@ export const metadata: Metadata = {
     url: siteUrl,
     siteName: 'Hindi Bhajan Manjari',
     type: 'website',
+    locale: 'hi_IN', // 👈 STEP 2: Tells Google/Facebook the primary language is Hindi (India)
+    alternateLocale: 'en_IN', // 👈 Lets them know English/Hinglish UI exists
     images: [
       {
         url: `${siteUrl}/og-image.jpg`, 
@@ -149,7 +151,8 @@ async function LatestGyanSection() {
     <div className="mt-16 mb-12">
       <ScrollReveal yOffset={20}>
         <div className="flex flex-row items-center justify-between border-b border-orange-100 dark:border-[#2a1d12] pb-3 md:pb-4 mb-6">
-          <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2 md:gap-3 transition-colors">
+          {/* 👈 STEP 3: Content-Level Language Tagging for Pure Hindi text */}
+          <h2 lang="hi" className="text-2xl md:text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-2 md:gap-3 transition-colors">
             सनातन <span className="text-orange-600">ज्ञान</span>
           </h2>
           <Link href="/gyan" className="text-sm font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 group outline-none focus-visible:ring-2 focus-visible:ring-orange-400 rounded px-1">
@@ -180,7 +183,8 @@ async function LatestGyanSection() {
                       <span>&bull;</span>
                       <span>{publishDate}</span>
                     </div>
-                    <h3 className="text-xl font-black text-gray-900 dark:text-gray-100 font-hindi leading-tight mb-1 group-hover:text-orange-600 dark:group-hover:text-orange-500 transition-colors line-clamp-1">
+                    {/* 👈 STEP 3: Content-Level Language Tagging */}
+                    <h3 lang="hi" className="text-xl font-black text-gray-900 dark:text-gray-100 font-hindi leading-tight mb-1 group-hover:text-orange-600 dark:group-hover:text-orange-500 transition-colors line-clamp-1">
                       {article.title_hindi}
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 transition-colors">
@@ -219,30 +223,77 @@ async function LatestBhajansSection() {
     console.error("[Homepage] Failed to fetch latest bhajans after retries:", error.message);
     return (
       <div className="p-8 text-center bg-orange-50 dark:bg-orange-950/20 rounded-2xl border border-orange-100 dark:border-orange-900/30">
-        <p className="text-orange-800 dark:text-orange-400 font-medium">संग्रह लोड हो रहा है, कृपया कुछ समय बाद पुनः प्रयास करें।</p> 
+        {/* 👈 STEP 3: Content-Level Language Tagging */}
+        <p lang="hi" className="text-orange-800 dark:text-orange-400 font-medium">संग्रह लोड हो रहा है, कृपया कुछ समय बाद पुनः प्रयास करें।</p> 
       </div>
     );
   }
 }
 
 // ==========================================
-// 🌟 SERVER-SIDE SUPPORTERS WALL FETCH
+// 🌟 SERVER-SIDE SUPPORTERS WALL FETCH (SMART SORTING)
 // ==========================================
+
+// Helper function to detect Hindi characters
+const hasHindiCharacters = (str: string | null) => {
+  if (!str) return false;
+  return /[\u0900-\u097F]/.test(str);
+};
+
+// Strict anonymous checker
+const isStrictlyAnonymous = (supporter: any) => {
+  if (supporter.is_anonymous) return true;
+  if (!supporter.name) return true;
+  
+  const nameCleaned = supporter.name.trim().toLowerCase();
+  if (nameCleaned === "एक गुप्त भक्त" || nameCleaned === "anonymous" || nameCleaned === "gupt bhakt") {
+    return true;
+  }
+  
+  return false;
+};
+
 async function SupportersWallSection() {
   let supporters = [];
   let total = 0;
 
   try {
+    // 1. Fetch more records to give our algorithm a good pool to sort from
     const { data, count, error } = await supabase
       .from('mv_active_supporters')
       .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .limit(8);
+      .order('is_anonymous', { ascending: true }) // Get named people first
+      .order('amount', { ascending: false }) // Then by highest amount
+      .order('created_at', { ascending: false }) // Tie breaker: recent first
+      .limit(30); // Fetch top 30 to process
 
     if (error) throw error;
     
-    supporters = data || [];
     total = count || 0;
+    const rawData = data || [];
+
+    // 2. Apply our Smart 3-Tier Algorithm on the Server
+    const sortedSupporters = rawData.sort((a, b) => {
+      const aIsAnon = isStrictlyAnonymous(a);
+      const bIsAnon = isStrictlyAnonymous(b);
+
+      // Rule A: Named supporters ALWAYS go above anonymous ones
+      if (aIsAnon !== bIsAnon) return aIsAnon ? 1 : -1; 
+      
+      // Rule B: Hindi names go above English names
+      if (!aIsAnon && !bIsAnon) {
+        const aIsHindi = hasHindiCharacters(a.name);
+        const bIsHindi = hasHindiCharacters(b.name);
+        if (aIsHindi !== bIsHindi) return aIsHindi ? -1 : 1; 
+      }
+
+      // Rule C: Higher amount wins
+      return b.amount - a.amount;
+    });
+
+    // 3. Slice exactly 8 for the homepage showcase
+    supporters = sortedSupporters.slice(0, 8);
+
   } catch (err: any) {
     console.error("[Homepage] Failed to load supporters wall on server:", err.message);
   }

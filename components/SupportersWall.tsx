@@ -1,8 +1,10 @@
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, Variants } from 'framer-motion';
 import { FaHeart, FaOm, FaCrown, FaStar, FaArrowRight } from 'react-icons/fa6';
+import { useMemo } from 'react';
 
 const HOMEPAGE_SHOWCASE_LIMIT = 8; // 🌟 fixed forever — homepage never grows past this
 
@@ -26,11 +28,29 @@ export type Supporter = {
   created_at: string;
 };
 
-// 🌟 NEW: Component now accepts data instantly as PROPS from the Server Component
 interface SupportersWallProps {
   supporters: Supporter[];
   total: number;
 }
+
+// 🌟 Helper function to detect Hindi (Devanagari) characters
+const hasHindiCharacters = (str: string | null) => {
+  if (!str) return false;
+  return /[\u0900-\u097F]/.test(str);
+};
+
+// 🌟 STRICT Anonymous Checker: Catches both the boolean flag AND default names
+const isStrictlyAnonymous = (supporter: Supporter) => {
+  if (supporter.is_anonymous) return true;
+  if (!supporter.name) return true;
+  
+  const nameCleaned = supporter.name.trim().toLowerCase();
+  if (nameCleaned === "एक गुप्त भक्त" || nameCleaned === "anonymous" || nameCleaned === "gupt bhakt") {
+    return true;
+  }
+  
+  return false;
+};
 
 export default function SupportersWall({ supporters = [], total = 0 }: SupportersWallProps) {
   const containerVariants: Variants = {
@@ -42,6 +62,32 @@ export default function SupportersWall({ supporters = [], total = 0 }: Supporter
     hidden: { opacity: 0, y: 15, scale: 0.96 },
     show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 70, damping: 15 } }
   };
+
+  // 🌟 SMART 3-TIER SORTING ALGORITHM
+  const displaySupporters = useMemo(() => {
+    return [...supporters].sort((a, b) => {
+      const aIsAnon = isStrictlyAnonymous(a);
+      const bIsAnon = isStrictlyAnonymous(b);
+
+      // 1. Strict Anonymous Check (Named supporters ALWAYS go above anonymous/default ones)
+      if (aIsAnon !== bIsAnon) {
+        return aIsAnon ? 1 : -1; 
+      }
+      
+      // 2. Language Check (Only runs for actual named people: Hindi names go above English names)
+      if (!aIsAnon && !bIsAnon) {
+        const aIsHindi = hasHindiCharacters(a.name);
+        const bIsHindi = hasHindiCharacters(b.name);
+        
+        if (aIsHindi !== bIsHindi) {
+          return aIsHindi ? -1 : 1; 
+        }
+      }
+
+      // 3. Amount Check (Higher donation amounts appear first among equals)
+      return b.amount - a.amount;
+    });
+  }, [supporters]);
 
   return (
     <section className="relative py-8 md:py-10 overflow-hidden rounded-3xl md:rounded-[2.5rem] bg-gradient-to-b from-orange-50/50 to-transparent dark:from-[#110c08]/80 dark:to-transparent border border-orange-100/50 dark:border-[#2a1d12]/50 my-4 md:my-6">
@@ -74,7 +120,7 @@ export default function SupportersWall({ supporters = [], total = 0 }: Supporter
           <DiamondDivider />
         </div>
 
-        {supporters.length > 0 ? (
+        {displaySupporters.length > 0 ? (
           <motion.div
             variants={containerVariants}
             initial="hidden"
@@ -82,49 +128,60 @@ export default function SupportersWall({ supporters = [], total = 0 }: Supporter
             viewport={{ once: true, margin: "-50px" }}
             className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8"
           >
-            {supporters.map((s) => (
-              <motion.div
-                key={s.id}
-                variants={cardVariants}
-                whileHover={{ y: -3, scale: 1.02 }}
-                className="group relative bg-white/70 dark:bg-white/[0.03] backdrop-blur-md border border-orange-200/60 dark:border-[#2a1d12] p-3 md:p-4 rounded-[1.25rem] flex flex-col items-center text-center shadow-sm hover:shadow-[0_8px_20px_rgba(234,88,12,0.12)] dark:hover:shadow-[0_8px_20px_rgba(234,88,12,0.06)] hover:border-orange-400 dark:hover:border-orange-500/50 transition-all duration-300"
-              >
-                <div className="absolute inset-0 rounded-[1.25rem] bg-gradient-to-b from-orange-400/0 to-orange-400/0 group-hover:from-orange-400/5 dark:group-hover:from-orange-400/10 transition-colors duration-300 pointer-events-none" />
-                <div className="relative mb-3 z-10">
-                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-full border-[2px] border-white dark:border-[#1a120b] shadow-md overflow-hidden bg-orange-50 dark:bg-gray-800 flex items-center justify-center">
-                    {s.is_anonymous ? (
-                      <div className="w-full h-full bg-gradient-to-br from-orange-100 to-orange-200 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center text-orange-500 dark:text-orange-400">
-                        <FaOm size={24} className="md:w-6 md:h-6" />
-                      </div>
-                    ) : s.photo_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={s.photo_url} alt={s.name ?? 'Supporter'} style={{ imageRendering: '-webkit-optimize-contrast' }} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white font-black text-xl md:text-2xl font-serif">
-                        {(s.name ?? '?').charAt(0).toUpperCase()}
-                      </div>
-                    )}
+            {displaySupporters.map((s) => {
+              // Decide display name based on our strict checker
+              const isAnon = isStrictlyAnonymous(s);
+              const displayName = isAnon ? "एक गुप्त भक्त" : s.name;
+
+              return (
+                <motion.div
+                  key={s.id}
+                  variants={cardVariants}
+                  whileHover={{ y: -3, scale: 1.02 }}
+                  className="group relative bg-white/70 dark:bg-white/[0.03] backdrop-blur-md border border-orange-200/60 dark:border-[#2a1d12] p-3 md:p-4 rounded-[1.25rem] flex flex-col items-center text-center shadow-sm hover:shadow-[0_8px_20px_rgba(234,88,12,0.12)] dark:hover:shadow-[0_8px_20px_rgba(234,88,12,0.06)] hover:border-orange-400 dark:hover:border-orange-500/50 transition-all duration-300"
+                >
+                  <div className="absolute inset-0 rounded-[1.25rem] bg-gradient-to-b from-orange-400/0 to-orange-400/0 group-hover:from-orange-400/5 dark:group-hover:from-orange-400/10 transition-colors duration-300 pointer-events-none" />
+                  <div className="relative mb-3 z-10">
+                    <div className="relative w-14 h-14 md:w-16 md:h-16 rounded-full border-[2px] border-white dark:border-[#1a120b] shadow-md overflow-hidden bg-orange-50 dark:bg-gray-800 flex items-center justify-center">
+                      {isAnon ? (
+                        <div className="w-full h-full bg-gradient-to-br from-orange-100 to-orange-200 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center text-orange-500 dark:text-orange-400">
+                          <FaOm size={24} className="md:w-6 md:h-6" />
+                        </div>
+                      ) : s.photo_url ? (
+                        <Image 
+                          src={s.photo_url} 
+                          alt={displayName ?? 'Supporter'} 
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 56px, 64px"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white font-black text-xl md:text-2xl font-serif">
+                          {(displayName ?? '?').charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div className="absolute bottom-0 right-0 z-20 bg-green-500 border-[2px] border-white dark:border-[#1a120b] w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center shadow-sm translate-x-0.5 translate-y-0.5">
+                      <FaStar className="text-white text-[7px] md:text-[8px]" />
+                    </div>
                   </div>
-                  <div className="absolute bottom-0 right-0 z-20 bg-green-500 border-[2px] border-white dark:border-[#1a120b] w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center shadow-sm translate-x-0.5 translate-y-0.5">
-                    <FaStar className="text-white text-[7px] md:text-[8px]" />
+                  <h3 className="font-bold font-hindi text-gray-900 dark:text-gray-100 text-xs md:text-sm mb-1.5 w-full px-1 truncate relative z-10">
+                    {displayName}
+                  </h3>
+                  <div className="bg-orange-100/80 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 px-2.5 py-0.5 md:py-1 rounded-full font-black text-[9px] md:text-[10px] mb-2 border border-orange-200/60 dark:border-orange-800/50 relative z-10 font-hindi truncate max-w-full">
+                    सहयोग: ₹{s.amount}
                   </div>
-                </div>
-                <h3 className="font-bold font-hindi text-gray-900 dark:text-gray-100 text-xs md:text-sm mb-1.5 w-full px-1 truncate relative z-10">
-                  {s.is_anonymous ? "एक गुप्त भक्त" : s.name}
-                </h3>
-                <div className="bg-orange-100/80 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 px-2.5 py-0.5 md:py-1 rounded-full font-black text-[9px] md:text-[10px] mb-2 border border-orange-200/60 dark:border-orange-800/50 relative z-10 font-hindi truncate max-w-full">
-                  सहयोग: ₹{s.amount}
-                </div>
-                {s.message && (
-                  <div className="mt-auto relative z-10 w-full pt-1">
-                    <div className="w-6 h-px bg-orange-200/60 dark:bg-orange-900/40 mx-auto mb-1.5" />
-                    <p className="text-[10px] md:text-[11px] font-hindi text-gray-600 dark:text-gray-400 italic line-clamp-2 leading-snug px-1">
-                      "{s.message}"
-                    </p>
-                  </div>
-                )}
-              </motion.div>
-            ))}
+                  {s.message && (
+                    <div className="mt-auto relative z-10 w-full pt-1">
+                      <div className="w-6 h-px bg-orange-200/60 dark:bg-orange-900/40 mx-auto mb-1.5" />
+                      <p className="text-[10px] md:text-[11px] font-hindi text-gray-600 dark:text-gray-400 italic line-clamp-2 leading-snug px-1">
+                        "{s.message}"
+                      </p>
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
           </motion.div>
         ) : (
           <div className="text-center py-6 mb-6">
