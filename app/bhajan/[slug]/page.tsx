@@ -29,14 +29,25 @@ const getYouTubeId = (url?: string) => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
-// 🌟 METADATA GENERATION (Optimized with Materialized View)
+// 🌟 METADATA GENERATION (Protected against false 404s on timeout)
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
-  const { data: bhajan } = await supabase
+  const { data: bhajan, error } = await supabase
     .from('mv_bhajan_details') // 👈 THE SPEED HACK
     .select('*')
     .eq('slug', resolvedParams.slug)
     .single();
+
+  // 👇 NEW: Smart Error Handling for SEO
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // PGRST116 means exactly 0 rows found -> Genuine 404
+      return { title: 'Bhajan Not Found' };
+    }
+    // Any other error (Timeout, CPU limit) -> Throw 500 error to protect SEO
+    console.error("Supabase Error in generateMetadata:", error);
+    throw new Error("Internal Server Error: Database unavailable");
+  }
 
   if (!bhajan) return { title: 'Bhajan Not Found' };
 
@@ -104,7 +115,18 @@ export default async function BhajanDetails({ params }: Props) {
     .eq('slug', slug)
     .single();
 
-  if (error || !bhajan) notFound();
+  // 👇 NEW: Smart Error Handling to prevent false 404s
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // 0 rows returned = Actual Missing Bhajan -> trigger 404 page
+      notFound();
+    }
+    // Database Timeout / CPU Overload -> Throw 500 error
+    console.error("Supabase Database Error in BhajanDetails:", error);
+    throw new Error("Internal Server Error: Database connection failed.");
+  }
+
+  if (!bhajan) notFound();
 
   // Parsing the JSON data from our view
   const categories = bhajan.categories || [];
