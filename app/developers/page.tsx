@@ -115,7 +115,16 @@ export default function DevelopersPage() {
       
       {/* 🌟 HERO SECTION */}
       <div className="bg-gradient-to-br from-[#1a0a00] via-[#2c1200] to-[#1a0a00] text-white py-16 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay"></div>
+        
+        {/* 🌟 Pure CSS Pattern Overlay (Replaced noise.png) */}
+        <div 
+          className="absolute inset-0 opacity-[0.05]" 
+          style={{ 
+            backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', 
+            backgroundSize: '16px 16px' 
+          }}
+        ></div>
+
         <div className="max-w-7xl mx-auto relative z-10 text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-orange-500/20 text-orange-400 mb-6 border border-orange-500/30">
             <FaLaptopCode size={30} />

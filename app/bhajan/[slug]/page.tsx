@@ -143,8 +143,12 @@ export default async function BhajanDetails({ params }: Props) {
   const displayPhone = primaryArtist?.phone || bhajan.singer_details?.phone;
   const displayAddress = primaryArtist?.address || bhajan.singer_details?.address;
 
+  // 👇 FIXED BREADCRUMB LOGIC: Check for slug, otherwise default to '/bhajan'
   const breadcrumbItems = [
-    { label: bhajan.deity?.name_hinglish || 'Bhajans', href: `/deity/${bhajan.deity?.slug}` },
+    { 
+      label: bhajan.deity?.name_hinglish || 'Bhajans', 
+      href: bhajan.deity?.slug ? `/deity/${bhajan.deity.slug}` : `/bhajan` 
+    },
     { label: bhajan.title_hindi }
   ];
 
@@ -179,7 +183,7 @@ export default async function BhajanDetails({ params }: Props) {
     "@id": `${pageUrl}#breadcrumb`,
     "itemListElement": [
       { "@type": "ListItem", "position": 1, "name": "Home", "item": baseUrl },
-      { "@type": "ListItem", "position": 2, "name": bhajan.deity?.name_hinglish || "Deities", "item": `${baseUrl}/deity/${bhajan.deity?.slug}` },
+      { "@type": "ListItem", "position": 2, "name": bhajan.deity?.name_hinglish || "Deities", "item": `${baseUrl}/deity/${bhajan.deity?.slug || 'all'}` },
       { "@type": "ListItem", "position": 3, "name": bhajan.title_hindi, "item": pageUrl }
     ]
   });

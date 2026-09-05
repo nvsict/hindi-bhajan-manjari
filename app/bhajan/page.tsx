@@ -18,12 +18,12 @@ export const metadata: Metadata = {
   description: 'Browse our complete A to Z directory of authentic Hindu devotional songs. Find lyrics, meanings, and PDFs of your favorite Bhajans, Aartis, and Chalisa by alphabetical order.',
   keywords: 'A to Z Bhajan, Bhajan Directory, All Bhajans List, Hindi Bhajan Lyrics, Devotional Songs A-Z, Aarti Sangrah, Chalisa Collection',
   alternates: {
-    canonical: `${siteUrl}/bhajans`,
+    canonical: `${siteUrl}/bhajan`,
   },
   openGraph: {
     title: 'A to Z Bhajan Directory - Ultimate Collection',
     description: 'Explore the complete alphabetical collection of authentic Sanatan Dharma Bhajans and Aartis.',
-    url: `${siteUrl}/bhajans`,
+    url: `${siteUrl}/bhajan`,
     type: 'website',
   },
 };
@@ -85,7 +85,7 @@ export default async function AToZBhajansPage() {
     "@type": "CollectionPage",
     "name": "A to Z Bhajan Directory",
     "description": "Complete alphabetical index of all bhajans on Hindi Bhajan Manjari.",
-    "url": `${siteUrl}/bhajans`,
+    "url": `${siteUrl}/bhajan`,
     "mainEntity": {
       "@type": "ItemList",
       "itemListElement": bhajans.map((bhajan, index) => ({

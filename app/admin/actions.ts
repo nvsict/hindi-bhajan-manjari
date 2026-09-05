@@ -77,8 +77,7 @@ export async function deleteBhajanAction(slug: string) {
     // ==========================================
     revalidatePath('/admin');
     revalidatePath('/'); 
-    // अगर आपका कोई और भजन लिस्टिंग पेज है (जैसे /bhajans), तो उसे भी यहाँ डाल सकते हैं
-    // revalidatePath('/bhajans'); 
+  
 
     return { success: true, message: "Bhajan & its relations deleted successfully!" };
 

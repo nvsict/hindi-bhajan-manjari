@@ -97,7 +97,7 @@ export default function PushBroadcaster() {
             type="text" 
             value={url} 
             onChange={(e) => setUrl(e.target.value)} 
-            placeholder="e.g., https://www.hindibhajanmanjari.com/bhajans/hanuman-chalisa"
+            placeholder="e.g., https://www.hindibhajanmanjari.com/bhajan/hanuman-chalisa"
             className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-400 outline-none transition-all font-mono text-sm text-gray-600" 
           />
         </div>

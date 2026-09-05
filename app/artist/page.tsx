@@ -50,7 +50,16 @@ export default async function ArtistsDirectory() {
       
       {/* 🌟 HERO SECTION */}
       <div className="relative overflow-hidden bg-gradient-to-b from-orange-600 to-orange-500 py-20 px-4 mb-12 shadow-sm">
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay"></div>
+        
+        {/* 🌟 Pure CSS Pattern Overlay (Replaced noise.png) */}
+        <div 
+          className="absolute inset-0 opacity-[0.15]" 
+          style={{ 
+            backgroundImage: 'radial-gradient(#ffffff 1.5px, transparent 1.5px)', 
+            backgroundSize: '24px 24px' 
+          }}
+        ></div>
+
         <div className="relative max-w-5xl mx-auto text-center">
           
           {/* 🌟 Reveal Title First */}

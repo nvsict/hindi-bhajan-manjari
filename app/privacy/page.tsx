@@ -42,8 +42,15 @@ export default function PrivacyPolicy() {
               Last Updated: {lastUpdated}
             </div>
           </div>
-          {/* Decorative Pattern */}
-          <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/mandala.png')]"></div>
+          
+          {/* 🌟 Decorative CSS Pattern (Replaced dead image link) */}
+          <div 
+            className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none" 
+            style={{ 
+              backgroundImage: 'radial-gradient(#ffffff 2px, transparent 2px)', 
+              backgroundSize: '30px 30px' 
+            }}
+          ></div>
         </div>
 
         <div className="p-8 md:p-16">
@@ -215,4 +222,4 @@ export default function PrivacyPolicy() {
       </article>
     </div>
   );
-} 
+}
