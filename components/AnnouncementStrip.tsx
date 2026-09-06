@@ -1,11 +1,11 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation'; // 🌟 1. usePathname इम्पोर्ट किया
-import { FaHandsPraying, FaStar, FaBook } from 'react-icons/fa6';
+import { usePathname } from 'next/navigation'; 
+import { FaStar, FaBook, FaBullhorn } from 'react-icons/fa6'; // Icons updated
 
 export default function AnnouncementStrip() {
-  const pathname = usePathname(); // 🌟 2. वर्तमान पाथ (URL) निकाला
+  const pathname = usePathname(); 
 
   // 🌟 3. अगर पाथ /admin से शुरू होता है, तो कुछ भी रिटर्न (रेंडर) मत करो
   if (pathname.startsWith('/admin')) {
@@ -20,19 +20,19 @@ export default function AnnouncementStrip() {
       href: "/publication-test",
       icon: <FaBook className="text-orange-100" size={10} />
     },
-    // 2. डोनेशन (Donation) मैसेज
+    // 🌟 2. NEW: Sponsorship / App Launch Partner
     {
-      text: "सनातन धर्म के प्रचार-प्रसार में अपना अमूल्य योगदान दें",
-      ctaText: "सहयोग करें",
-      href: "/donate",
-      icon: <FaHandsPraying className="text-orange-100" size={10} />
+      text: "Become a Founding Partner for the Hindi Bhajan Manjari App",
+      ctaText: "Partner With Us",
+      href: "/advertise",
+      icon: <FaStar className="text-orange-100" size={10} />
     },
-    // 3. शब्दकोश (Dictionary) मैसेज
+    // 🌟 3. NEW: Advertising (Hindi version)
     {
-      text: "Explore our new Sanatan Shabdkosh (Spiritual Dictionary)",
-      ctaText: "Explore",
-      href: "/shabdkosh",
-      icon: <FaStar className="text-orange-100" size={10} /> 
+      text: "हमारी वेबसाइट पर अपने आध्यात्मिक ब्रांड का प्रचार करें",
+      ctaText: "Sponsor",
+      href: "/advertise",
+      icon: <FaBullhorn className="text-orange-100" size={10} />
     }
   ];
 
