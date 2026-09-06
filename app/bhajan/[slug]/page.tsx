@@ -5,7 +5,8 @@ import Link from 'next/link';
 import Sidebar from '../../../components/Sidebar';
 import Breadcrumbs from '../../../components/Breadcrumbs';
 import LyricsViewer from '../../../components/LyricsViewer'; 
-import { FaMicrophoneAlt, FaPhoneAlt, FaQuestionCircle, FaCheckCircle, FaLanguage, FaFilePdf } from 'react-icons/fa';
+// Removed unused icons (FaCheckCircle, FaLanguage, FaFilePdf) to keep code clean
+import { FaMicrophoneAlt, FaPhoneAlt, FaQuestionCircle } from 'react-icons/fa';
 import ViewCounter from '../../../components/ViewCounter';
 import CommentsSection from '@/components/CommentsSection';
 import AuthorBox from '@/components/AuthorBox';
@@ -383,7 +384,7 @@ export default async function BhajanDetails({ params }: Props) {
               
               <BhaktiStudio bhajanId={bhajan.id} bhajanSlug={bhajan.slug} />
 
-              {/* 🌟 NEW: Background Reading Tracker (History & Auto-Scroll) */}
+              {/* 🌟 Background Reading Tracker (History & Auto-Scroll) */}
               <ReadingTracker slug={bhajan.slug} />
 
               <LyricsViewer 
@@ -395,7 +396,19 @@ export default async function BhajanDetails({ params }: Props) {
                 tarz={bhajan.tarj_parody}
               />
 
-              <div className="mt-10 mb-8">
+              {/* 🌟 ORIGINAL CONTENT FIRST (AdSense Priority) - Moved Bhavarth up right after Lyrics */}
+              {bhajan.explanation && (
+                <div className="mt-10 mb-8 bg-gradient-to-br from-orange-50 dark:from-orange-900/10 to-orange-100/50 dark:to-orange-900/5 p-6 md:p-8 rounded-2xl border border-orange-200 dark:border-orange-900/30 shadow-sm">
+                  <h3 className="text-2xl font-black font-hindi text-gray-900 dark:text-orange-50 mb-4 flex items-center gap-2">
+                    <span className="text-orange-600 dark:text-orange-500">अर्थ</span> (Bhavarth)
+                  </h3>
+                  <div className="text-gray-700 dark:text-gray-300 text-lg md:text-xl leading-[1.8] font-hindi whitespace-pre-wrap">
+                    {bhajan.explanation}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-8 mb-8">
                 <AffiliateSlot deityId={bhajan.deity_id?.toString()} layout="inline" />
               </div>
 
@@ -407,42 +420,7 @@ export default async function BhajanDetails({ params }: Props) {
                 <CommunityWall bhajanId={bhajan.id} />
               </div>
               
-              {bhajan.explanation && (
-                <div className="mt-12 bg-gradient-to-br from-orange-50 dark:from-orange-900/10 to-orange-100/50 dark:to-orange-900/5 p-6 md:p-8 rounded-2xl border border-orange-200 dark:border-orange-900/30 shadow-sm">
-                  <h3 className="text-2xl font-black font-hindi text-gray-900 dark:text-orange-50 mb-4 flex items-center gap-2">
-                    <span className="text-orange-600 dark:text-orange-500">अर्थ</span> (Bhavarth)
-                  </h3>
-                  <div className="text-gray-700 dark:text-gray-300 text-lg md:text-xl leading-[1.8] font-hindi whitespace-pre-wrap">
-                    {bhajan.explanation}
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="flex flex-col items-center text-center p-5 bg-gray-50/50 dark:bg-white/[0.02] rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
-                  <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-500 mb-3 border border-orange-100 dark:border-orange-900/30">
-                    <FaCheckCircle size={20} />
-                  </div>
-                  <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-1.5">Authentic Lyrics</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Pristine Devanagari & Romanized scripts with Bhavarth.</p>
-                </div>
-                
-                <div className="flex flex-col items-center text-center p-5 bg-gray-50/50 dark:bg-white/[0.02] rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
-                  <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-500 mb-3 border border-orange-100 dark:border-orange-900/30">
-                    <FaLanguage size={20} />
-                  </div>
-                  <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-1.5">8+ Indian Languages</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Instantly transliterate to Gujarati, Bengali, Telugu & more.</p>
-                </div>
-
-                <div className="flex flex-col items-center text-center p-5 bg-gray-50/50 dark:bg-white/[0.02] rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
-                  <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-500 mb-3 border border-orange-100 dark:border-orange-900/30">
-                    <FaFilePdf size={20} />
-                  </div>
-                  <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-1.5">Free PDF Download</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Save offline for daily Puja, Aarti, and Satsang.</p>
-                </div>
-              </div>
+              {/* Note: Boilerplate repeated icon boxes have been removed here to improve Content Quality for AdSense */}
 
               {bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0 && (
                 <div className="mt-12">

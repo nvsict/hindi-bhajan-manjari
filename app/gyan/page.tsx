@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     siteName: 'Hindi Bhajan Manjari',
     images: [
       {
-        url: `${SITE_URL}/default-og-gyan.jpg`, // Replace with your actual default OG image path
+        url: `${SITE_URL}/og-image.jpg`, // Replace with your actual default OG image path
         width: 1200,
         height: 630,
         alt: 'Sanatan Gyan - Hindi Bhajan Manjari',
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'सनातन ज्ञान (Sanatan Gyan) - Articles & Deep Meanings',
     description: 'सनातन धर्म के रहस्यों, भजनों के वास्तविक अर्थ (Bhavarth), और पूजा पद्धति के नियमों को गहराई से समझें।',
-    images: [`${SITE_URL}/default-og-gyan.jpg`], // Replace with your actual default OG image path
+    images: [`${SITE_URL}/og-image.jpg`], // Replace with your actual default OG image path
   },
 };
 
