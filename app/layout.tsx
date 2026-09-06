@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import AnnouncementStrip from '@/components/AnnouncementStrip';
+import Script from 'next/script'; // 🌟 IMPORT NEXT/SCRIPT
 
 // 🌟 1. PERF FIX: Removed the 4 extra fonts. Only loading default 'Hind' and Base fonts upfront.
 import { 
@@ -117,6 +118,14 @@ export default async function RootLayout({
         {/* Supabase & Media API Preconnects */}
         <link rel="preconnect" href="https://vjylssvpxjhzjkmqzvjz.supabase.co" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://img.youtube.com" crossOrigin="anonymous" />
+        
+        {/* 🌟 GOOGLE ADSENSE SNIPPET */}
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4495207216155623"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </head>
 
       <body 
