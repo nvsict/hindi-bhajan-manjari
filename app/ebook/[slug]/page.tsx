@@ -12,7 +12,7 @@ import {
   FaFilePdf, FaSpinner, FaRedo, FaExclamationTriangle,
   FaRupeeSign, FaShieldAlt, FaWhatsapp, FaCheckCircle, 
   FaLanguage, FaBook, FaPalette, FaUser, FaPhoneAlt, 
-  FaArrowLeft, FaCheckSquare, FaRegSquare
+  FaArrowLeft, FaCheckSquare, FaRegSquare, FaLock
 } from 'react-icons/fa';
 import { HiSparkles } from 'react-icons/hi';
 
@@ -36,7 +36,7 @@ type FlowStatus = 'idle' | 'payment_pending' | 'building' | 'rendering' | 'ready
 export default function EbookProductCheckout() {
   const params = useParams();
   const router = useRouter();
-  const slug = params?.slug as string; // URL से ई-बुक का स्लग मिलेगा
+  const slug = params?.slug as string;
 
   // --- DATA STATE ---
   const [loading, setLoading] = useState(true);
@@ -64,8 +64,6 @@ export default function EbookProductCheckout() {
       setLoading(true);
 
       try {
-        // A. Fetch E-Book Rules from Database
-        // (Assuming you made a table 'ebook_templates' with the structure we discussed)
         const { data: ebook, error: ebookErr } = await supabase
           .from('ebook_templates')
           .select('*')
@@ -75,18 +73,15 @@ export default function EbookProductCheckout() {
         if (ebookErr || !ebook) throw new Error("ई-बुक नहीं मिली!");
         setEbookDetails(ebook);
 
-        // B. Fetch Bhajans based on Rules (Dynamic Rule Execution)
         let query = supabase.from('mv_bhajan_details').select('slug, title_hindi, title_hinglish');
         
         if (ebook.filter_deity_name) {
           query = query.eq('deity->>name_hindi', ebook.filter_deity_name);
         }
-       if (ebook.filter_category_name) {
-          // 🌟 FIX: JSON.stringify का इस्तेमाल करें ताकि [object Object] वाला 400 Error ना आए
+        if (ebook.filter_category_name) {
           query = query.contains('categories', JSON.stringify([{ name_hindi: ebook.filter_category_name }]));
         }
 
-        // Limit the results to the target count (e.g., Top 51)
         query = query.limit(ebook.target_count);
 
         const { data: bhajanList, error: bhajanErr } = await query;
@@ -94,7 +89,6 @@ export default function EbookProductCheckout() {
         if (bhajanErr) throw new Error("भजन सूची लोड नहीं हो सकी।");
         
         setBhajans(bhajanList || []);
-        // By default, select all fetched bhajans for the book
         setSelectedSlugs(bhajanList?.map(b => b.slug) || []);
 
       } catch (err: any) {
@@ -107,7 +101,7 @@ export default function EbookProductCheckout() {
     fetchEbookData();
   }, [slug]);
 
-  // 🌟 TOGGLE SPECIFIC BHAJANS (Customization)
+  // 🌟 TOGGLE SPECIFIC BHAJANS
   const toggleBhajan = (bhajanSlug: string) => {
     setSelectedSlugs(prev => 
       prev.includes(bhajanSlug) 
@@ -116,12 +110,19 @@ export default function EbookProductCheckout() {
     );
   };
 
-  // 🌟 RAZORPAY PAYMENT & PDF GENERATION (All-in-one flow)
+  // 🌟 WHATSAPP SUPPORT HANDLER
+  const handleSupportClick = () => {
+    const text = encodeURIComponent(`हरि ॐ! मैंने "${ebookDetails?.title || 'E-Book'}" के लिए पेमेंट किया था लेकिन मुझे PDF नहीं मिली। कृपया सहायता करें।\n\nOrder ID: ${savedOrderId || 'N/A'}\nनाम: ${buyerName || 'N/A'}`);
+    window.open(`https://wa.me/918384844353?text=${text}`, '_blank');
+  };
+
+  // 🌟 RAZORPAY PAYMENT & PDF GENERATION
   const handleCheckoutAndDownload = async () => {
     if (selectedSlugs.length === 0) return alert("कृपया कम से कम 1 भजन चुनें।");
     if (!buyerName.trim()) return setErrorMessage("कृपया अपना नाम दर्ज करें।");
     if (buyerPhone.length !== 10 || isNaN(Number(buyerPhone))) return setErrorMessage("कृपया 10 अंकों का सही WhatsApp नंबर दर्ज करें।");
     
+    // 🌟 Reset errors when starting a new payment attempt
     setErrorMessage("");
     setFlowStatus('payment_pending');
 
@@ -129,18 +130,16 @@ export default function EbookProductCheckout() {
       const isScriptLoaded = await loadRazorpayScript();
       if (!isScriptLoaded) throw new Error("पेमेंट गेटवे लोड नहीं हो पाया। इंटरनेट चेक करें।");
 
-      // 1. Create Order
       const orderRes = await fetch('/api/razorpay/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: ebookDetails.price }) // 🌟 Fixed bundle price!
+        body: JSON.stringify({ amount: ebookDetails.price })
       });
 
       if (!orderRes.ok) throw new Error("ऑर्डर नहीं बन सका।");
       const orderData = await orderRes.json();
       setSavedOrderId(orderData.id);
 
-      // 2. Open Razorpay
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: orderData.amount,
@@ -154,21 +153,31 @@ export default function EbookProductCheckout() {
         },
         theme: { color: "#ea580c" },
         modal: {
-          ondismiss: () => setFlowStatus('idle')
+          // 🌟 FIX: Handle when user manually closes the Razorpay modal
+          ondismiss: () => {
+            setFlowStatus('error');
+            setErrorMessage("आपने भुगतान रद्द कर दिया है। अगर आपके पैसे कट गए हैं, तो कृपया नीचे दिए गए बटन से सहायता लें।");
+          }
         },
         handler: async function(response: any) {
-          // PAYMENT SUCCESS -> DIRECTLY GENERATE PDF
           setIsPaid(true);
           await generateEbookPDF(selectedSlugs, ebookDetails.title, script, theme);
         }
       };
 
       const rzp = new window.Razorpay(options);
+      
+      // 🌟 FIX: Handle technical payment failures
+      rzp.on('payment.failed', function (response: any) {
+        setFlowStatus('error');
+        setErrorMessage("भुगतान विफल रहा। अगर पैसे कट गए हैं, तो कृपया नीचे दिए गए बटन से संपर्क करें।");
+      });
+
       rzp.open();
 
     } catch (error: any) {
       setFlowStatus('error');
-      setErrorMessage(error.message || "भुगतान में समस्या आई।");
+      setErrorMessage(error.message || "भुगतान शुरू करने में समस्या आई।");
     }
   };
 
@@ -183,10 +192,9 @@ export default function EbookProductCheckout() {
         pageSize: 'A4', 
         includeMeaning: true, 
         fontSizeScale: 1.0, 
-        customTitle: title // Using the Bundle Title!
+        customTitle: title
       };
 
-      // Create multi-bhajan document
       const model = await createMultiBhajanDocument(title, slugs, opts);
       if (!model) throw new Error("डेटा तैयार नहीं हो सका।");
 
@@ -208,7 +216,7 @@ export default function EbookProductCheckout() {
 
     } catch (err: any) {
       setFlowStatus('error');
-      setErrorMessage(err.message || "PDF बनाने में समस्या आई।");
+      setErrorMessage(err.message || "PDF बनाने में समस्या आई। अगर आपके पैसे कट गए हैं, तो कृपया नीचे दिए गए बटन से सहायता लें।");
     }
   };
 
@@ -282,11 +290,10 @@ export default function EbookProductCheckout() {
                 <p className="text-gray-500 font-medium mb-6">{ebookDetails.subtitle}</p>
                 
                 <div className="flex flex-wrap gap-4 justify-center sm:justify-start">
-                 <div className="bg-orange-50 border border-orange-100 rounded-xl px-4 py-2 flex items-center gap-2">
-    <FaBook className="text-orange-500" />
-    {/* 🌟 FIX: यहाँ असल भजनों की गिनती (bhajans.length) दिखाई जा रही है */}
-    <span className="text-sm font-bold text-gray-800">{bhajans.length} भजन</span>
-  </div>
+                  <div className="bg-orange-50 border border-orange-100 rounded-xl px-4 py-2 flex items-center gap-2">
+                    <FaBook className="text-orange-500" />
+                    <span className="text-sm font-bold text-gray-800">{bhajans.length} भजन</span>
+                  </div>
                   <div className="bg-orange-50 border border-orange-100 rounded-xl px-4 py-2 flex items-center gap-2">
                     <FaFilePdf className="text-orange-500" />
                     <span className="text-sm font-bold text-gray-800">हाई-क्वालिटी PDF</span>
@@ -410,27 +417,65 @@ export default function EbookProductCheckout() {
 
                     {/* ERROR ALERTS */}
                     {errorMessage && (
-                      <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm font-bold rounded-xl flex items-center gap-2">
-                        <FaExclamationTriangle className="shrink-0" /> {errorMessage}
+                      <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm font-bold rounded-xl flex items-start gap-2 leading-snug">
+                        <FaExclamationTriangle className="shrink-0 mt-0.5" /> 
+                        <span>{errorMessage}</span>
                       </div>
                     )}
 
-                    {/* CTA BUTTON */}
-                    <button
-                      onClick={handleCheckoutAndDownload} 
-                      disabled={flowStatus === 'payment_pending' || selectedSlugs.length === 0}
-                      className="w-full mt-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-black text-lg py-4 rounded-xl shadow-[0_8px_20px_rgba(234,88,12,0.3)] transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
-                    >
-                      {flowStatus === 'payment_pending' ? (
-                        <><FaSpinner className="animate-spin" /> भुगतान विंडो खुल रही है...</>
-                      ) : (
-                        <><FaShieldAlt /> ₹{ebookDetails.price} सुरक्षित भुगतान करें</>
-                      )}
-                    </button>
+                    {/* CTA BUTTON LOGIC (Dynamic based on Error State) */}
+                    {flowStatus === 'error' || errorMessage ? (
+                      <div className="mt-4 space-y-3">
+                        <button
+                          onClick={handleCheckoutAndDownload} 
+                          disabled={selectedSlugs.length === 0}
+                          className="w-full bg-gray-900 hover:bg-black text-white font-black text-lg py-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                          <FaRedo /> पुनः प्रयास करें
+                        </button>
+                        <button
+                          onClick={handleSupportClick}
+                          className="w-full bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 font-bold text-[15px] py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm"
+                        >
+                          <FaWhatsapp className="text-xl" /> पैसे कट गए? सहायता लें
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={handleCheckoutAndDownload} 
+                        disabled={flowStatus === 'payment_pending' || selectedSlugs.length === 0}
+                        className="w-full mt-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-black text-lg py-4 rounded-xl shadow-[0_8px_20px_rgba(234,88,12,0.3)] transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
+                      >
+                        {flowStatus === 'payment_pending' ? (
+                          <><FaSpinner className="animate-spin" /> भुगतान विंडो खुल रही है...</>
+                        ) : (
+                          <><FaShieldAlt /> ₹{ebookDetails.price} सुरक्षित भुगतान करें</>
+                        )}
+                      </button>
+                    )}
                     
-                    <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-4">
-                      <FaCheckCircle className="text-green-500" /> इंस्टेंट PDF डाउनलोड • लाइफटाइम एक्सेस
+                    {/* 🌟 TRUST BADGES SECTION */}
+                    <div className="mt-6 pt-5 border-t border-gray-100">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500">
+                          <FaLock className="text-green-600" /> 100% Secure Payments
+                        </div>
+                        
+                        {/* Supported Payment Methods (Clean UI Badges) */}
+                        <div className="flex flex-wrap justify-center gap-2 opacity-70 grayscale">
+                          <span className="bg-gray-100 border border-gray-200 text-gray-700 px-2 py-1 rounded text-[10px] font-black tracking-wider">UPI</span>
+                          <span className="bg-gray-100 border border-gray-200 text-gray-700 px-2 py-1 rounded text-[10px] font-black tracking-wider">GPay</span>
+                          <span className="bg-gray-100 border border-gray-200 text-gray-700 px-2 py-1 rounded text-[10px] font-black tracking-wider">PhonePe</span>
+                          <span className="bg-gray-100 border border-gray-200 text-gray-700 px-2 py-1 rounded text-[10px] font-black tracking-wider">Paytm</span>
+                          <span className="bg-gray-100 border border-gray-200 text-gray-700 px-2 py-1 rounded text-[10px] font-black tracking-wider">CARDS</span>
+                        </div>
+                        
+                        <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                          <FaCheckCircle className="text-green-500" /> इंस्टेंट PDF डाउनलोड • लाइफटाइम एक्सेस
+                        </div>
+                      </div>
                     </div>
+
                   </div>
                 )}
 
