@@ -18,7 +18,8 @@ import NextTopLoader from 'nextjs-toploader';
 import dynamic from 'next/dynamic';
 import ScrollToTop from '@/components/ScrollToTop';
 import ScrollRecovery from '@/components/ScrollRecovery';
-
+import EngagementTracker from '@/components/EngagementTracker';
+import ExitFeedbackManager from '@/components/ExitFeedbackManager';
 // 🌟 MICROSOFT CLARITY
 import ClarityAnalytics from '@/components/ClarityAnalytics';
 
@@ -151,7 +152,7 @@ export default async function RootLayout({
           <SmoothScrolling>
             <AnnouncementStrip />
             <ConditionalHeader /> 
-            
+            <EngagementTracker />
             <main className="flex-1 relative z-10">
               {children}
             </main>
@@ -164,6 +165,7 @@ export default async function RootLayout({
           {/* 🌟 PWA Registration */}
           <PwaRegistration />
 
+<ExitFeedbackManager />
           {/* 🌟 GLOBAL MODAL */}
           <CampaignModal />
           <DivinePeek />
