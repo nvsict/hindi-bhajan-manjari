@@ -14,8 +14,8 @@ import { FaBookOpen, FaClock, FaArrowRight, FaMusic } from 'react-icons/fa';
 import ScrollReveal from '../components/ScrollReveal';
 import SupportersWall from '@/components/SupportersWall';
 
-// 🌟 NEW: Affiliate Slot & Vichar Banner
-import AffiliateSlot from '../components/AffiliateSlot';
+// 🌟 NEW: Ebook Bundle Slot & Vichar Banner
+import EbookBundleSlot from '../components/EbookBundleSlot';
 import VicharBanner from '../components/VicharBanner';
 
 // VPS Native ISR (Incremental Static Regeneration)
@@ -113,23 +113,24 @@ async function LatestVicharSection() {
 }
 
 // ==========================================
-// 🌟 SERVER-SIDE AFFILIATE CAROUSEL FETCH
+// 🌟 SERVER-SIDE EBOOK CAROUSEL FETCH
 // ==========================================
-async function HomepageCarouselSection() {
+async function EbookCarouselSection() {
   try {
-    const { data: products, error } = await supabase
-      .from('affiliate_products')
+    const { data: ebooks, error } = await supabase
+      .from('ebook_templates')
       .select('*')
       .eq('is_active', true)
-      .order('clicks', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(8);
 
     if (error) throw error;
-    if (!products || products.length === 0) return null;
+    if (!ebooks || ebooks.length === 0) return null;
 
-    return <AffiliateSlot layout="homepage-carousel" products={products} />;
+    // 🌟 Pass the data to the newly created EbookBundleSlot
+    return <EbookBundleSlot layout="homepage-carousel" ebooks={ebooks} />;
   } catch (err: any) {
-    console.error("[Homepage] Failed to fetch affiliate products:", err.message);
+    console.error("[Homepage] Failed to fetch ebook templates:", err.message);
     return null;
   }
 }
@@ -373,7 +374,8 @@ export default function Home() {
                 </div>
               </div>
             }>
-              <HomepageCarouselSection />
+              {/* 🌟 Now loading the new E-Book Carousel */}
+              <EbookCarouselSection />
             </Suspense>
           </div>
 

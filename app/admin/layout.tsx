@@ -31,12 +31,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navItems = [
     { name: 'Dashboard', href: '/admin', icon: FaChartBar },
     { name: 'Add New Bhajan', href: '/admin/add-bhajan', icon: FaPlus },
+    { name: 'Site Metadata', href: '/admin/manage', icon: FaTags },
     { name: 'Mere Vichar', href: '/admin/mere-vichar', icon: FaPenNib },
     { name: 'Gyan Articles', href: '/admin/articles', icon: FaNewspaper },
     { name: 'Dictionary', href: '/admin/dictionary', icon: FaBookOpen },
     { name: 'Campaigns', href: '/admin/campaign', icon: FaBullhorn }, 
     { name: 'Affiliates', href: '/admin/affiliates', icon: FaShoppingBag }, 
-    { name: 'Site Metadata', href: '/admin/manage', icon: FaTags },
+    { name: 'E-Book Generator', href: '/admin/ebooks', icon: FaBookOpen },
     { name: 'Broadcast Push', href: '/admin/broadcast', icon: FaBell },
     { name: 'Newsletter', href: '/admin/newsletter', icon: FaEnvelope },
   ];
