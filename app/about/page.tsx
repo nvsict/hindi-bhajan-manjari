@@ -38,7 +38,9 @@ export default function AboutPage() {
             Preserving Devotion <br /> For the <span className="text-orange-200">Digital Age</span>
           </h1>
           <p className="text-orange-50 max-w-2xl mx-auto text-lg md:text-xl leading-relaxed opacity-95 font-medium">
-            Hindi Bhajan Manjari is a carefully curated digital temple. We focus on quality, accurate meanings (Bhavarth), and a distraction-free environment for devotees worldwide.
+           Hindi Bhajan Manjari is a carefully curated digital space for devotees. 
+We focus on clear devotional lyrics, thoughtful Bhavarth (meanings), useful 
+context, and a respectful, distraction-free reading experience.
           </p>
         </div>
       </section>
@@ -47,10 +49,22 @@ export default function AboutPage() {
       <div className="max-w-6xl mx-auto px-6 -mt-12 relative z-20">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { icon: <GiTempleGate />, label: "Hand-Curated Library", text: "Over 200+ meticulously verified bhajans with accurate lyrics." },
-            { icon: <FaPenNib />, label: "Deep Spiritual Meanings", text: "Providing 'Bhavarth' to help you understand the true essence." },
-            { icon: <FaShieldAlt />, label: "100% Original Content", text: "Thoughtfully written blog posts and verified spiritual facts." }
-          ].map((item, i) => (
+  {
+    icon: <GiTempleGate />,
+    label: "Hand-Curated Library",
+    text: "A carefully curated collection of devotional lyrics, meanings, and spiritual resources."
+  },
+  {
+    icon: <FaPenNib />,
+    label: "Deep Spiritual Meanings",
+    text: "Providing 'Bhavarth' to help you understand the deeper essence of each composition."
+  },
+  {
+    icon: <FaShieldAlt />,
+    label: "Original Editorial Work",
+    text: "Original explanations, meanings, translations, and editorial notes prepared with care."
+  }
+].map((item, i) => (
             <div key={i} className="bg-white p-8 rounded-[2rem] shadow-xl shadow-orange-900/5 border border-orange-50 flex flex-col items-center text-center hover:-translate-y-1 transition-transform duration-300">
               <div className="text-4xl text-orange-500 mb-4 bg-orange-50 w-16 h-16 rounded-2xl flex items-center justify-center shadow-inner">{item.icon}</div>
               <h3 className="text-xl font-black text-gray-900 mb-2 tracking-tight">{item.label}</h3>
@@ -74,8 +88,14 @@ export default function AboutPage() {
               In an era where the internet is flooded with auto-generated content and poorly formatted lyrics, I noticed a huge gap: devotees were struggling to find a clean, respectful, and accurate digital space for their daily prayers.
             </p>
             <p>
-              I didn't want to build just another website with thousands of copied songs. Instead, I chose <strong>quality over quantity</strong>. Currently, our library hosts <strong>over 200+ carefully selected bhajans</strong> and a growing collection of spiritual blog posts. Every single entry is manually verified for spelling accuracy and paired with its authentic 'Bhavarth' (meaning).
-            </p>
+  I didn't want to build just another website that simply reproduces devotional lyrics. 
+  Instead, I chose <strong>quality over quantity</strong> — with careful curation, 
+  readable formatting, helpful explanations, and meaningful context. Our growing 
+  library brings together devotional compositions along with original editorial 
+  contributions such as <strong>Bhavarth (meaning), translations, word explanations, 
+  and contextual notes</strong>. Each entry is reviewed with attention to spelling, 
+  presentation, and cultural context.
+</p>
             
             {/* 🌟 THE HINDI CONNECTION: Shows cultural authenticity & emotional connect */}
             <div className="bg-orange-50/50 border-l-4 border-orange-500 p-6 rounded-r-2xl my-8">
