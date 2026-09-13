@@ -5,9 +5,10 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 
 export async function updateCampaignSettings(payload: any) {
   try {
-    const cookieStore = cookies();
+    // 🌟 Fix: Await the cookies() promise before accessing its methods
+    const cookieStore = await cookies();
 
-    // 1. Create an authenticated Supabase client using Next.js cookies
+    // 1. Create an authenticated Supabase client
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
