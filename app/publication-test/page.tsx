@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/utils/supabase';
+import { load } from '@cashfreepayments/cashfree-js';
 import {
   createSingleBhajanDocument,
   createMultiBhajanDocument,
@@ -14,21 +15,6 @@ import {
   FaRupeeSign, FaShieldAlt, FaOm, FaWhatsapp, FaListUl,
   FaCheckCircle, FaLanguage, FaBook, FaPalette, FaUser, FaPhoneAlt
 } from 'react-icons/fa';
-
-// 🌟 RAZORPAY SCRIPT LOADER (Safe & Crash-Free)
-const loadRazorpayScript = () => {
-  return new Promise((resolve) => {
-    if (window.Razorpay) {
-      resolve(true);
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-};
 
 type WizardStep = 1 | 2;
 type FlowStatus = 'idle' | 'payment_pending' | 'building' | 'rendering' | 'ready' | 'error' | 'verifying';
@@ -58,7 +44,7 @@ export default function PublicationTestStudio() {
   const [script, setScript] = useState<ScriptLanguage>('devanagari');
   const [theme, setTheme] = useState<string>('default'); 
 
-  // 🌟 NEW: DROP-OFF KILLER (Prefill Details)
+  // --- DROP-OFF KILLER (Prefill Details) ---
   const [buyerName, setBuyerName] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
 
@@ -170,6 +156,7 @@ export default function PublicationTestStudio() {
     setStep(2);
     window.scrollTo(0,0);
   };
+  
   const prevStep = () => setStep(1);
 
   const handleStartNew = () => {
@@ -187,7 +174,7 @@ export default function PublicationTestStudio() {
     window.scrollTo(0,0);
   };
 
-  // 🌟 MAGIC: SECURE INLINE PAYMENT WITH PREFILL
+  // 🌟 MAGIC: SECURE INLINE PAYMENT WITH CASHFREE
   const handlePaymentAndGenerate = async () => {
     if (selectedSlugs.length === 0) return;
     
@@ -215,64 +202,82 @@ export default function PublicationTestStudio() {
 
     setFlowStatus('payment_pending');
     try {
-      const isScriptLoaded = await loadRazorpayScript();
-      if (!isScriptLoaded) throw new Error("इंटरनेट कनेक्शन जांचें। पेमेंट गेटवे लोड नहीं हो पाया।");
-
-      const orderRes = await fetch('/api/razorpay/order', {
+      // 1. Create Order via Cashfree API
+      const orderRes = await fetch('/api/cashfree/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: currentPrice })
+        body: JSON.stringify({ 
+          amount: currentPrice, 
+          count: selectedSlugs.length,
+          name: buyerName.trim(),     // Pass to backend if you wish to use it in Cashfree Customer Details
+          phone: buyerPhone.trim(),
+          returnPath: '/publication-test'
+        })
       });
 
-      if (!orderRes.ok) throw new Error("ऑर्डर नहीं बन सका। कृपया इंटरनेट चेक करें।");
+      if (!orderRes.ok) {
+        const errData = await orderRes.json();
+        throw new Error(errData.error || "ऑर्डर नहीं बन सका। कृपया इंटरनेट चेक करें।");
+      }
+      
       const orderData = await orderRes.json();
-      setSavedOrderId(orderData.id);
+      setSavedOrderId(orderData.orderId);
 
       // Save crash-recovery flag
       try {
-        localStorage.setItem('bhajanPaymentAttempt', JSON.stringify({ orderId: orderData.id, startedAt: Date.now() }));
+        localStorage.setItem('bhajanPaymentAttempt', JSON.stringify({ orderId: orderData.orderId, startedAt: Date.now() }));
       } catch (e) {}
 
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_live_TEOLlRM13UTm1R",
-        amount: orderData.amount,
-        currency: "INR",
-        name: "Hindi Bhajan Manjari",
-        description: "ई-पुस्तिका संकलन शगुन",
-        order_id: orderData.id,
-        prefill: {
-          name: buyerName.trim(),
-          contact: buyerPhone.trim(), // 🌟 SKIPS RAZORPAY FORM & OPENS UPI APPS DIRECTLY!
-        },
-        theme: { color: "#ea580c" },
-        modal: {
-          ondismiss: function() { 
-            setFlowStatus('idle'); 
-          }
-        },
-        handler: async function(response: any) {
+      // ========================================================
+      // 🌟 FIX: Cashfree 'btoa' Hindi Title Crash Bug Bypass
+      // ========================================================
+      const originalBtoa = window.btoa;
+      window.btoa = function (str) {
+        try {
+          return originalBtoa(str);
+        } catch (e) {
+          return originalBtoa(unescape(encodeURIComponent(str)));
+        }
+      };
+
+      const cashfree = await load({ mode: process.env.NEXT_PUBLIC_CASHFREE_MODE || 'sandbox' });
+
+      // 3. Open Cashfree Checkout Modal
+      cashfree.checkout({
+        paymentSessionId: orderData.paymentSessionId,
+        redirectTarget: '_modal'
+      }).then(async (result: any) => {
+        // Restore original btoa
+        window.btoa = originalBtoa;
+
+        if (result.error) {
+          setFlowStatus('idle');
+          setErrorMessage(result.error.message || "पेमेंट रद्द कर दिया गया या विफल रहा।");
+        } else if (result.paymentDetails) {
           // 🌟 PAYMENT SUCCESS! Generate PDF directly without changing pages
           setIsPaid(true);
           await executePDFGeneration(selectedSlugs, bookTitle, script, theme);
         }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      });
 
     } catch (error: any) {
+      console.error(error);
       setFlowStatus('error');
       setErrorMessage(error.message || "पेमेंट शुरू करने में समस्या आई।");
     }
   };
 
+  // 🌟 RECOVERY: Verify Order Status Directly via Supabase
   const verifyAndGeneratePDF = async (orderId: string, stateOptions: any) => {
     setFlowStatus('verifying');
     try {
-      const verifyRes = await fetch(`/api/razorpay/verify?order_id=${orderId}`);
-      const verifyData = await verifyRes.json();
+      const { data, error } = await supabase
+        .from('supporters')
+        .select('status')
+        .eq('cf_order_id', orderId)
+        .maybeSingle();
 
-      if (verifyData.paid) {
+      if (data && data.status === 'completed') {
         setIsPaid(true);
         await executePDFGeneration(stateOptions.selectedSlugs, stateOptions.bookTitle, stateOptions.script, stateOptions.theme || 'default');
       } else {
@@ -441,7 +446,7 @@ export default function PublicationTestStudio() {
                     {explicitlySelectedBhajans.length === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center text-gray-500 font-hindi text-sm">
                         <FaLayerGroup className="text-5xl mb-4 text-gray-200" />
-                        <p className="mb-4">आपने अभी तक कोई भजन नहीं चुना है।</p>
+                        <p className="mb-4">आपने अभी तक कोई भजन नहीं चुना है。</p>
                         <button onClick={() => setActiveTab('all')} className="bg-orange-100 hover:bg-orange-200 text-orange-700 px-5 py-2.5 rounded-xl font-bold transition-colors">
                            भजन खोजना शुरू करें
                         </button>
@@ -551,7 +556,7 @@ export default function PublicationTestStudio() {
 
                   <hr className="border-gray-100 my-6" />
 
-                  {/* 🌟 NEW: BUYER DETAILS (PREFILL) */}
+                  {/* 🌟 BUYER DETAILS (PREFILL) */}
                   {!isPaid && (
                     <div className="space-y-5">
                       <div className="flex items-center gap-2 text-sm font-bold text-gray-600 mb-1 font-hindi">

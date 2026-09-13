@@ -4,7 +4,9 @@ import { supabase } from '@/utils/supabase';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { amount, count, returnPath } = body;
+    
+    // 🌟 नया बदलाव: body से name और phone भी निकालें
+    const { amount, count, returnPath, name, phone } = body;
 
     let finalAmount = 0;
     let orderType = 'donation';
@@ -43,9 +45,10 @@ export async function POST(req: Request) {
         order_amount: finalAmount,
         order_currency: 'INR',
         customer_details: {
-          customer_id: 'cust_anon_1',
-          customer_phone: '9999999999',
-          customer_name: 'Bhakt',
+          // 🌟 HYBRID APPROACH: अगर फोन/नाम आया है तो उसे उपयोग करें, नहीं तो डिफ़ॉल्ट (Anon) सेट करें
+          customer_id: phone ? `cust_${phone}` : `cust_anon_${Date.now()}`,
+          customer_phone: phone || '9999999999',
+          customer_name: name || 'Bhakt',
         },
         order_meta: {
           return_url: redirectUrl, 
