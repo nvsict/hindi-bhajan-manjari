@@ -285,11 +285,14 @@ export default function TermsPage() {
                 </p>
 
                 <p className="text-gray-600 leading-relaxed mt-4 text-[16px]">
-                  By submitting material, you confirm that you have the right to
-                  submit it or are otherwise permitted to do so. You also allow
-                  Hindi Bhajan Manjari to review, edit, format, and publish the
-                  submission when appropriate for the website.
-                </p>
+  By submitting material, you confirm that you have the right or permission
+  to submit it or are otherwise permitted to do so. You grant Hindi Bhajan
+  Manjari permission to review, edit, format, reproduce, publish, and
+  display the submitted material as reasonably necessary for editorial
+  review and operation of the website. This permission does not by itself
+  transfer ownership of copyright in the underlying work to Hindi Bhajan
+  Manjari.
+</p>
 
                 <p className="text-gray-600 leading-relaxed mt-4 mb-0 text-[16px]">
                   We may review submissions for accuracy, relevance, copyright,
@@ -411,7 +414,7 @@ export default function TermsPage() {
                 <p className="text-gray-600 leading-relaxed mt-4 mb-0 text-[16px]">
                   Please use our{' '}
                   <Link
-                    href="/copyright"
+                    href="/dmca"
                     className="text-orange-600 font-semibold hover:underline"
                   >
                     Copyright / DMCA page
