@@ -75,8 +75,8 @@ export default function SubmitBhajan() {
                 Become a <br/><span className="text-yellow-300">Contributor.</span>
               </h1>
               <p className="text-white/90 text-lg leading-relaxed font-medium mb-10">
-                Help us preserve Sanatan Dharma. Your submitted Bhajans, Aartis, and Chalisas will be read by thousands of devotees worldwide.
-              </p>
+  Help us preserve and share devotional traditions. Your submitted Bhajans, Aartis, and Chalisas may help other devotees discover and understand these sacred compositions.
+</p>
 
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
@@ -84,8 +84,10 @@ export default function SubmitBhajan() {
                     <FaGlobe className="text-xl text-yellow-300" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg">Reach Millions</h3>
-                    <p className="text-white/80 text-sm mt-1">Your lyrics will be available in multiple languages instantly.</p>
+                    <h3 className="font-bold text-lg">Share with Devotees</h3>
+<p className="text-white/80 text-sm mt-1">
+  Approved submissions may be made available to readers in supported languages and scripts.
+</p>
                   </div>
                 </div>
                 
@@ -94,8 +96,10 @@ export default function SubmitBhajan() {
                     <FaPenFancy className="text-xl text-yellow-300" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg">Get Credited</h3>
-                    <p className="text-white/80 text-sm mt-1">Your name will be proudly displayed as the original contributor.</p>
+                   <h3 className="font-bold text-lg">Get Credited</h3>
+<p className="text-white/80 text-sm mt-1">
+  If you provide your name, we may credit you as the contributor or submitter where appropriate.
+</p>
                   </div>
                 </div>
 
@@ -197,7 +201,7 @@ export default function SubmitBhajan() {
                         rows={6}
                         value={lyrics}
                         onChange={(e) => setLyrics(e.target.value)}
-                        placeholder="Paste the full lyrics here. Don't worry about formatting, we'll clean it up! ✨"
+                        placeholder="Enter the lyrics or text you have permission to submit. Don't worry about formatting, we'll clean it up! ✨"
                         className="w-full px-5 py-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-[#0c0804] focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 outline-none transition-all duration-300 shadow-sm placeholder:text-gray-400 font-medium resize-y"
                       />
                     </div>
@@ -221,7 +225,7 @@ export default function SubmitBhajan() {
                       {/* 🌟 NEW: Smart Contact Field */}
                       <div className="space-y-2 relative group bg-orange-50/50 dark:bg-orange-900/10 p-3 rounded-2xl border border-orange-100 dark:border-orange-500/20">
                         <label className="flex items-center gap-2 text-sm font-bold text-orange-800 dark:text-orange-300 transition-colors">
-                          <FaBell className="animate-pulse" /> Notification Alert <span className="text-[10px] text-orange-600/70 dark:text-orange-400/70 font-normal uppercase tracking-wider bg-orange-100 dark:bg-orange-950 px-2 py-0.5 rounded-full">Optional</span>
+                          <FaBell className="animate-pulse" /> Publication Updates <span className="text-[10px] text-orange-600/70 dark:text-orange-400/70 font-normal uppercase tracking-wider bg-orange-100 dark:bg-orange-950 px-2 py-0.5 rounded-full">Optional</span>
                         </label>
                         <input 
                           type="text" 
@@ -265,9 +269,16 @@ export default function SubmitBhajan() {
                         )}
                       </button>
                       
-                      <p className="text-center text-xs text-gray-500 dark:text-gray-500 font-medium mt-4">
-                        By submitting, you agree to our Terms of Service.
-                      </p>
+                     <p className="text-center text-xs text-gray-500 dark:text-gray-500 font-medium mt-4">
+  By submitting, you confirm that you have the right or permission to submit this content and agree to our{' '}
+  <Link href="/terms" className="text-orange-600 hover:underline">
+    Terms of Service
+  </Link>{' '}
+  and{' '}
+  <Link href="/privacy" className="text-orange-600 hover:underline">
+    Privacy Policy
+  </Link>.
+</p>
                     </div>
                   </form>
                 </div>
