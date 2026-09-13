@@ -5,7 +5,6 @@ import SuccessFlow from './SuccessFlow';
 import DonationCheckout from '@/components/DonationCheckout'; // 🌟 NEW: Imported our new Client Component
 
 // 🌟 1. FORCE DYNAMIC RENDERING: This tells Next.js NEVER to cache this page.
-// It will always read the live URL parameters.
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -20,13 +19,13 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// 🌟 3-Second Fast-Fail Helper
+// 🌟 3-Second Fast-Fail Helper (Updated for Cashfree)
 async function fetchAmountFast(paymentId: string, fallbackAmount: number): Promise<number> {
   try {
     const fetchPromise = supabase
       .from('supporters')
       .select('amount')
-      .eq('razorpay_payment_id', paymentId)
+      .eq('cf_order_id', paymentId) // 🌟 CHANGED: Now checking Cashfree Order ID
       .maybeSingle();
 
     const timeoutPromise = new Promise<null>((_, reject) =>
@@ -78,23 +77,25 @@ export default async function DonatePage({
   // ==========================================
   if (hasError) {
     return (
-      <div className={`min-h-[70vh] flex flex-col items-center justify-center p-4 ${hind.className}`}>
-        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-red-100 p-8 text-center">
+      <div className={`min-h-[70vh] flex flex-col items-center justify-center p-4 bg-[#fffaf5] ${hind.className}`}>
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl shadow-red-900/5 border border-red-100 p-8 text-center">
           <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
             <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">भुगतान विफल</h1>
-          <p className="text-gray-600 mb-8 font-medium">
+          <h1 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">भुगतान विफल</h1>
+          <p className="text-gray-600 mb-8 font-medium text-lg leading-relaxed">
             क्षमा करें, आपका पेमेंट पूरा नहीं हो पाया या हम इसे प्रमाणित नहीं कर सके। कृपया पुनः प्रयास करें।
           </p>
-          <a
-            href="#checkout-section"
-            className="block w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition-all mb-3"
+          
+          {/* 🌟 FIX: URL से '?error' हटाने के लिए href को "/donate" कर दिया गया है */}
+          <Link
+            href="/donate"
+            className="block w-full py-4 bg-orange-600 hover:bg-orange-700 text-white font-black text-lg rounded-2xl shadow-md transition-all mb-3 active:scale-95"
           >
             पुनः प्रयास करें
-          </a>
+          </Link>
           <Link href="/" className="block w-full py-3.5 text-gray-500 hover:text-gray-800 font-bold transition-all">
             मुख्य पृष्ठ पर लौटें
           </Link>
@@ -102,7 +103,6 @@ export default async function DonatePage({
       </div>
     );
   }
-
   // ==========================================
   // 3. DEFAULT STATE (World-Class Storytelling & Appeal Page)
   // ==========================================
@@ -147,7 +147,7 @@ export default async function DonatePage({
             <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
-            100% सुरक्षित एवं ऐच्छिक सहयोग (Powered by Razorpay)
+            100% सुरक्षित एवं ऐच्छिक सहयोग (Powered by Cashfree)
           </div>
         </div>
       </section>
@@ -307,7 +307,7 @@ export default async function DonatePage({
               मैं किस माध्यम से सहयोग राशि भेज सकता हूँ?
             </h3>
             <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-              हम Razorpay गेटवे का उपयोग करते हैं। आप किसी भी UPI ऐप (Google Pay, PhonePe, Paytm), डेबिट/क्रेडिट कार्ड या नेट बैंकिंग के माध्यम से सुरक्षित भुगतान कर सकते हैं।
+              हम Cashfree सिक्योर गेटवे का उपयोग करते हैं। आप किसी भी UPI ऐप (Google Pay, PhonePe, Paytm), डेबिट/क्रेडिट कार्ड या नेट बैंकिंग के माध्यम से सुरक्षित भुगतान कर सकते हैं।
             </p>
           </div>
 
@@ -316,7 +316,7 @@ export default async function DonatePage({
               क्या मुझे सहयोग के बाद कोई रसीद मिलेगी?
             </h3>
             <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-              हाँ, भुगतान सफल होते ही आपको स्क्रीन पर पेमेंट पावती (Payment ID) प्राप्त होगी और साथ ही Razorpay द्वारा आपके ईमेल पर एक डिजिटल पावती भेज दी जाएगी।
+              हाँ, भुगतान सफल होते ही आपको स्क्रीन पर पेमेंट पावती (Payment ID) प्राप्त होगी और साथ ही Cashfree द्वारा आपके ईमेल/मोबाइल पर एक डिजिटल पावती भेज दी जाएगी।
             </p>
           </div>
         </div>

@@ -1,278 +1,223 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from 'react';
-import { FaShieldAlt, FaPhoneAlt, FaUser, FaCheckCircle } from 'react-icons/fa';
-
-// Razorpay Script को सुरक्षित तरीके से लोड करने का फंक्शन (ताकि React क्रैश न हो)
-const loadRazorpayScript = () => {
-  return new Promise((resolve) => {
-    if (window.Razorpay) {
-      resolve(true);
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-};
+import { useSearchParams } from 'next/navigation';
+import { FaSpinner, FaWhatsapp, FaExclamationTriangle, FaLock } from 'react-icons/fa';
+import { load } from '@cashfreepayments/cashfree-js';
 
 interface DonationCheckoutProps {
   mode?: 'donation' | 'book_builder';
-  prefilledAmount?: number;
-  prefilledOrderId?: string;
   returnPath?: string;
 }
 
-export default function DonationCheckout({
-  mode = 'donation',
-  prefilledAmount,
-  prefilledOrderId,
-  returnPath = '/donate'
-}: DonationCheckoutProps) {
-  
-  const [amount, setAmount] = useState<number>(prefilledAmount || 101);
+export default function DonationCheckout({ mode = 'donation', returnPath = '/donate' }: DonationCheckoutProps) {
+  const searchParams = useSearchParams();
+  const urlAmount = searchParams.get('amount');
+
+  const [selectedAmount, setSelectedAmount] = useState<number>(101);
   const [customAmount, setCustomAmount] = useState<string>('');
-  
-  // 🌟 Drop-off Killer: Prefill Data
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isErrorState, setIsErrorState] = useState(false);
 
-  // शगुन राशियाँ
-  const shagunAmounts = [21, 51, 101, 251, 501, 1100];
+  useEffect(() => {
+    if (mode === 'book_builder' && urlAmount) {
+      setSelectedAmount(parseInt(urlAmount));
+    }
+  }, [mode, urlAmount]);
 
-  const handleAmountClick = (val: number) => {
-    setAmount(val);
+  const handleAmountClick = (amt: number) => {
+    setSelectedAmount(amt);
     setCustomAmount('');
-    setError(null);
+    setIsErrorState(false);
   };
 
-  const handleCustomAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCustomInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setCustomAmount(val);
-    const numVal = parseInt(val, 10);
-    if (numVal && numVal > 0) {
-      setAmount(numVal > 100000 ? 100000 : numVal);
+    const parsed = parseInt(val);
+    if (parsed && parsed > 0) {
+      setSelectedAmount(parsed > 100000 ? 100000 : parsed);
     } else {
-      setAmount(0);
+      setSelectedAmount(0);
     }
-    setError(null);
+    setIsErrorState(false);
   };
 
-  const handlePayment = async () => {
-    // 1. Validation
-    if (amount < 1) {
-      setError('कृपया सही सहयोग राशि चुनें।');
-      return;
-    }
-    if (!name.trim()) {
-      setError('कृपया अपना शुभ नाम दर्ज करें।');
-      return;
-    }
-    if (phone.length !== 10 || isNaN(Number(phone))) {
-      setError('कृपया 10 अंकों का सही WhatsApp / फ़ोन नंबर दर्ज करें।');
+  const handleSupportClick = () => {
+    const text = encodeURIComponent(`हरि ॐ! मैंने सहयोग/ई-बुक के लिए पेमेंट किया था लेकिन प्रक्रिया पूरी नहीं हुई। कृपया सहायता करें।`);
+    window.open(`https://wa.me/918384844353?text=${text}`, '_blank');
+  };
+
+ const handlePayment = async () => {
+    if (selectedAmount < 1) {
+      setErrorMessage("कृपया सही सहयोग राशि चुनें।");
+      setIsErrorState(true);
       return;
     }
 
-    setError(null);
     setIsLoading(true);
+    setErrorMessage('');
+    setIsErrorState(false);
 
     try {
-      // 2. Load Razorpay securely
-      const res = await loadRazorpayScript();
-      if (!res) {
-        throw new Error('इंटरनेट कनेक्शन जांचें। पेमेंट गेटवे लोड नहीं हो पाया।');
-      }
+      // 1. Create Order
+      const res = await fetch('/api/cashfree/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          amount: selectedAmount,
+          count: mode === 'book_builder' ? urlAmount : null,
+          returnPath: returnPath 
+        })
+      });
 
-      let orderData: any = {};
+      const orderData = await res.json();
+      if (!res.ok) throw new Error(orderData.error || "Order creation failed");
 
-      // 3. Create or Use Order ID
-      if (mode === 'book_builder' && prefilledOrderId) {
-        orderData = { id: prefilledOrderId, amount: amount * 100, currency: 'INR' };
-      } else {
-        const orderRes = await fetch('/api/razorpay/order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ amount: amount })
-        });
-        orderData = await orderRes.json();
-        if (!orderData.id) throw new Error("ऑर्डर जनरेट नहीं हो सका।");
-      }
-
-      // 🌟 4. Razorpay Config (WITH PREFILL TO SKIP THEIR SCREEN)
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_live_TEOLlRM13UTm1R",
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: "Hindi Bhajan Manjari",
-        description: mode === 'book_builder' ? "ई-पुस्तिका संकलन शगुन" : "सनातन धर्म के लिए सहयोग राशि",
-        order_id: orderData.id,
-        prefill: {
-          name: name.trim(),
-          contact: phone.trim(), // 10 digit number skips the Razorpay collection screen directly to UPI!
-        },
-        theme: { color: "#ea580c" },
-        modal: {
-          ondismiss: function() { 
-            setIsLoading(false); 
-          }
-        },
-        handler: function(response: any) {
-          // 5. Success Hand-off to Server Component (SuccessFlow handles DB save)
-          window.location.href = `${returnPath}?success=true&payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}&amount=${amount}`;
+      // ========================================================
+      // 🌟 FIX: BTOA HACK (To prevent Hindi Font Crash in Cashfree)
+      // ========================================================
+      const originalBtoa = window.btoa;
+      window.btoa = function (str) {
+        try {
+          return originalBtoa(str);
+        } catch (e) {
+          return originalBtoa(unescape(encodeURIComponent(str)));
         }
       };
 
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      const cashfree = await load({ mode: process.env.NEXT_PUBLIC_CASHFREE_MODE || 'sandbox' });
+      
+      // 3. Open Checkout with Promise Handling
+      cashfree.checkout({
+        paymentSessionId: orderData.paymentSessionId,
+        redirectTarget: '_modal'
+      }).then((result: any) => {
+        
+        // पॉपअप बंद होने के बाद btoa को वापस नॉर्मल कर दें
+        window.btoa = originalBtoa;
+
+        if (result.error) {
+          // 🚨 अगर यूज़र ने पॉपअप काट दिया या कार्ड फेल हो गया
+          setIsLoading(false);
+          setErrorMessage(result.error.message || "पेमेंट रद्द कर दिया गया या विफल रहा।");
+          setIsErrorState(true);
+        } else if (result.paymentDetails) {
+          // ✅ पेमेंट की प्रक्रिया पूरी हो गई! अब हम खुद यूज़र को Verify API पर भेजेंगे
+          setIsLoading(true); // रीडायरेक्ट होने तक लोडिंग चालू रखें
+          window.location.href = `/api/cashfree/redirect?order_id=${orderData.orderId}&return_path=${returnPath}`;
+        }
+      });
 
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'पेमेंट सर्वर से संपर्क नहीं हो पाया। पुनः प्रयास करें।');
+      setErrorMessage("पेमेंट सर्वर से संपर्क नहीं हो पाया। पुनः प्रयास करें।");
+      setIsErrorState(true);
       setIsLoading(false);
     }
   };
-
+  
   return (
-    <div className="w-full max-w-[480px] mx-auto bg-white rounded-[2rem] shadow-[0_20px_40px_rgba(234,88,12,0.08)] border border-orange-100 overflow-hidden relative">
-      
-      {/* Top Gradient Bar */}
+    <div 
+      className="w-full max-w-[500px] mx-auto bg-white rounded-3xl shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1)] border border-orange-50 overflow-hidden relative font-hind tracking-wide"
+      style={{ fontFamily: 'var(--font-hind), sans-serif' }}
+    >
       <div className="h-2 w-full bg-gradient-to-r from-orange-400 via-red-500 to-orange-400"></div>
 
-      <div className="p-6 md:p-8">
-        
-        {/* Header Title */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4 border border-orange-100">
-            <span className="text-3xl font-black">ॐ</span>
-          </div>
-          <h2 className="text-2xl md:text-3xl font-black text-gray-900 mb-2">
-            {mode === 'book_builder' ? 'ई-पुस्तिका संकलन शगुन' : 'श्रद्धा भेंट करें'}
-          </h2>
-          <p className="text-sm font-medium text-gray-500">
-            इस सनातन मंच को विज्ञापन-मुक्त रखने के लिए आपका सहयोग अमूल्य है।
-          </p>
+      <div className="p-8 text-center">
+        <div className="w-16 h-16 mx-auto mb-6 text-orange-600 font-black text-4xl flex items-center justify-center bg-orange-50 rounded-full border border-orange-100 pb-1">
+          ॐ
         </div>
 
-        {/* 🌟 Error Message Box */}
-        {error && (
-          <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-600 text-sm font-bold rounded-xl text-center flex items-center justify-center gap-2">
-            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            {error}
-          </div>
-        )}
+        <p className="text-xs font-bold uppercase tracking-widest text-orange-700 mb-2">हिंदी भजन मंजरी</p>
+        <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2 leading-tight">
+          {mode === 'book_builder' ? "ई-पुस्तिका संकलन शगुन" : "धर्म कार्य में अमूल्य सहयोग दें"}
+        </h1>
+        <p className="text-gray-500 font-medium mb-8 text-sm sm:text-base">
+          {mode === 'book_builder' ? "मंच को विज्ञापन-मुक्त रखने में आपका यह सहयोग अमूल्य है।" : "इस मंच को विज्ञापन-मुक्त और सुचारु रखने के लिए आपकी दक्षिणा महत्वपूर्ण है।"}
+        </p>
 
-        {/* 🌟 Amount Selection (Hidden in Book Builder Mode if fixed) */}
+        {/* 🌟 DONATION AMOUNT SELECTOR (Only if NOT book_builder) */}
         {mode === 'donation' && (
-          <div className="mb-8">
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 text-center">
-              सहयोग राशि चुनें
-            </label>
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              {shagunAmounts.map((amt) => (
+          <div className="mb-6">
+            <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">सहयोग राशि चुनें</span>
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              {[21, 51, 101, 251, 501, 1100].map(amt => (
                 <button
                   key={amt}
-                  type="button"
                   onClick={() => handleAmountClick(amt)}
-                  className={`py-3 rounded-xl font-black text-lg transition-all ${
-                    amount === amt && !customAmount
-                      ? 'bg-orange-600 text-white shadow-md border border-orange-600'
-                      : 'bg-white text-gray-700 border border-gray-200 hover:border-orange-300 hover:bg-orange-50'
-                  }`}
+                  className={`py-3 rounded-xl border font-black text-lg transition-all ${selectedAmount === amt && !customAmount ? 'border-orange-600 bg-orange-600 text-white shadow-md scale-[1.02]' : 'border-gray-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50'}`}
                 >
                   ₹{amt}
                 </button>
               ))}
             </div>
-            
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black">₹</span>
+
+            <div className="relative max-w-[250px] mx-auto">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
               <input
                 type="number"
                 placeholder="अन्य राशि दर्ज करें"
                 value={customAmount}
-                onChange={handleCustomAmountChange}
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-bold focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-center"
+                onChange={handleCustomInput}
+                className="w-full py-3.5 pl-10 pr-4 bg-gray-50 border border-gray-200 rounded-xl font-bold text-lg text-gray-900 outline-none focus:border-orange-500 focus:bg-white transition-all text-center placeholder:font-medium placeholder:text-sm"
               />
             </div>
           </div>
         )}
 
+        {/* 🌟 BOOK BUILDER FIXED AMOUNT */}
         {mode === 'book_builder' && (
-          <div className="mb-8 bg-orange-50 border border-dashed border-orange-300 rounded-2xl p-6 text-center">
-            <span className="text-xs font-bold text-orange-800 uppercase tracking-widest block mb-2">शगुन राशि</span>
-            <span className="text-4xl font-black text-orange-600">₹{amount}</span>
+          <div className="bg-orange-50 border border-dashed border-orange-300 rounded-2xl p-6 inline-block w-full max-w-[280px] mb-8">
+            <div className="text-sm text-orange-800 font-bold uppercase tracking-wider mb-2">शगुन राशि</div>
+            <div className="text-4xl font-black text-orange-600 leading-none">₹{selectedAmount}</div>
           </div>
         )}
 
-        {/* 🌟 Prefill Form (Drop-off Killer) */}
-        <div className="space-y-4 mb-8">
-          <div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <FaUser className="text-gray-400 text-sm" />
-              </div>
-              <input
-                type="text"
-                placeholder="आपका शुभ नाम"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full pl-10 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
-              />
+        {/* ERROR BOX & SUPPORT */}
+        {isErrorState && (
+          <div className="mb-6 space-y-3 animate-in fade-in zoom-in duration-300">
+            <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm font-bold rounded-xl flex items-start gap-2 leading-snug text-left">
+              <FaExclamationTriangle className="shrink-0 mt-0.5" /> 
+              <span>{errorMessage}</span>
             </div>
+            <button
+              onClick={handleSupportClick}
+              className="w-full bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 font-bold text-[15px] py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95"
+            >
+              <FaWhatsapp className="text-xl" /> पैसे कट गए? सहायता लें
+            </button>
           </div>
-          <div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <FaPhoneAlt className="text-gray-400 text-sm" />
-              </div>
-              <input
-                type="tel"
-                maxLength={10}
-                placeholder="WhatsApp / फ़ोन नंबर"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))} // Only numbers allowed
-                className="w-full pl-10 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
-              />
-            </div>
-            <p className="text-[10px] text-gray-400 mt-1.5 ml-2 font-medium">
-              यह नंबर सीधे UPI ऐप (GPay/PhonePe) खोलने के लिए उपयोग होगा।
-            </p>
-          </div>
-        </div>
+        )}
 
-        {/* 🌟 Payment Button */}
+        {/* PAY BUTTON */}
         <button
           onClick={handlePayment}
-          disabled={isLoading || amount < 1}
-          className="w-full py-4 bg-orange-600 hover:bg-orange-700 active:scale-[0.98] text-white font-black text-lg rounded-xl shadow-[0_8px_20px_rgba(234,88,12,0.3)] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          disabled={isLoading || selectedAmount <= 0}
+          className="w-full py-4 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white font-black text-xl rounded-2xl shadow-[0_10px_20px_-5px_rgba(234,88,12,0.4)] transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isLoading ? (
-            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <><FaSpinner className="animate-spin" /> प्रोसेस हो रहा है...</>
           ) : (
-            <>
-              <FaShieldAlt className="mb-0.5 opacity-80" /> 
-              {amount > 0 ? `₹${amount} सुरक्षित भुगतान करें` : 'सुरक्षित भुगतान करें'}
-            </>
+            <>{mode === 'book_builder' ? 'सुरक्षित भुगतान करें' : 'ॐ श्रद्धा भेंट करें'} <span className="opacity-90 ml-1 font-bold">(₹{selectedAmount})</span></>
           )}
         </button>
 
-        {/* 🌟 Trust Signals */}
-        <div className="mt-6 flex flex-col items-center justify-center gap-3">
-          <div className="flex items-center gap-1.5 text-[11px] font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-full uppercase tracking-widest border border-green-100">
-            <FaCheckCircle size={10} /> 100% सुरक्षित • सीधा बैंक ट्रांसफर
-          </div>
-          <div className="flex gap-2 opacity-50 grayscale hover:grayscale-0 transition-all">
-            {/* Tiny text indicating supported methods instead of images to keep it lightweight */}
-            <span className="text-[10px] font-black text-gray-600 bg-gray-100 px-2 py-1 rounded">UPI</span>
-            <span className="text-[10px] font-black text-gray-600 bg-gray-100 px-2 py-1 rounded">GPay</span>
-            <span className="text-[10px] font-black text-gray-600 bg-gray-100 px-2 py-1 rounded">PhonePe</span>
-            <span className="text-[10px] font-black text-gray-600 bg-gray-100 px-2 py-1 rounded">Paytm</span>
-            <span className="text-[10px] font-black text-gray-600 bg-gray-100 px-2 py-1 rounded">Cards</span>
+        {/* 🌟 TRUST BADGES SECTION */}
+        <div className="mt-8 pt-6 border-t border-gray-100">
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-widest">
+              <FaLock className="text-green-600" /> 100% Secure Cashfree Payments
+            </div>
+            
+            <div className="flex flex-wrap justify-center gap-2 opacity-70 grayscale">
+              <span className="bg-gray-100 border border-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-[10px] font-black tracking-wider">UPI</span>
+              <span className="bg-gray-100 border border-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-[10px] font-black tracking-wider">GPay</span>
+              <span className="bg-gray-100 border border-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-[10px] font-black tracking-wider">PhonePe</span>
+              <span className="bg-gray-100 border border-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-[10px] font-black tracking-wider">Paytm</span>
+              <span className="bg-gray-100 border border-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-[10px] font-black tracking-wider">CARDS</span>
+            </div>
           </div>
         </div>
 
