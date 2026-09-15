@@ -118,13 +118,6 @@ export default async function RootLayout({
         {/* Supabase & Media API Preconnects */}
         <link rel="preconnect" href="https://vjylssvpxjhzjkmqzvjz.supabase.co" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://img.youtube.com" crossOrigin="anonymous" />
-        
-        {/* 🌟 GOOGLE ADSENSE SNIPPET */}
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4495207216155623"
-          crossOrigin="anonymous"
-        ></script>
       </head>
 
       <body 
