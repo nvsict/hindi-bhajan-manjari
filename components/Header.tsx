@@ -39,6 +39,14 @@ const hind = Hind({
   display: "swap",
 });
 
+// ─── MOBILE ICON BUTTON SYSTEM ──────────────────────────────────────────────
+// Every mobile action button (search, saved, donate, menu) shares this exact
+// footprint so nothing looks mismatched at small viewports. 44px is the
+// minimum comfortable touch target (iOS HIG / Material both recommend it).
+const MOBILE_ICON_BTN_SIZE = "w-11 h-11"; // 44px × 44px, uniform across all actions
+const MOBILE_ICON_SIZE = 18; // uniform glyph weight for ghost-style buttons
+const MOBILE_ICON_SIZE_STRONG = 20; // slightly larger only for the solid CTA (menu)
+
 // ─── BASE STRUCTURE ─────────────────────────────────────────────────────────
 // Fixed links remain here; Deities and Categories are populated from Supabase.
 const BASE_NAV_STRUCTURE = [
@@ -202,7 +210,7 @@ export default function Header() {
     useState<string | null>(null);
 
   const mobileMenuRef = useRef<HTMLElement | null>(null);
-const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const [scrolled, setScrolled] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
@@ -468,15 +476,15 @@ const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   );
 
   const closeMenu = useCallback(() => {
-  // Move focus out of the drawer before hiding it from assistive technology.
-  if (
-    mobileMenuRef.current?.contains(document.activeElement)
-  ) {
-    mobileMenuButtonRef.current?.focus();
-  }
+    // Move focus out of the drawer before hiding it from assistive technology.
+    if (
+      mobileMenuRef.current?.contains(document.activeElement)
+    ) {
+      mobileMenuButtonRef.current?.focus();
+    }
 
-  setIsMenuOpen(false);
-}, []);
+    setIsMenuOpen(false);
+  }, []);
 
   // ──────────────────────────────────────────────────────────────────────────
   // ACTIVE ROUTE
@@ -593,8 +601,12 @@ const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
             : "bg-white border-b border-orange-100/80"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-[80px]">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          {/* Header height is intentionally responsive: mobile headers this
+              tall (80px) waste vertical space and look oversized. 64px on
+              mobile, 72px on sm, full 80px only from xl where the desktop
+              nav / mega menu need the extra room. */}
+          <div className="flex items-center justify-between h-16 sm:h-[72px] xl:h-[80px]">
 
             {/* ───────────────────────────────────────────────────────────── */}
             {/* LOGO                                                          */}
@@ -603,10 +615,10 @@ const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
             <Link
               href="/"
               title="Hindi Bhajan Manjari Home"
-              className="flex items-center gap-2.5 xl:gap-3 group shrink-0 outline-none rounded-lg z-10 relative py-2"
+              className="flex items-center gap-2 sm:gap-2.5 xl:gap-3 group shrink-0 outline-none rounded-lg z-10 relative py-2 min-w-0"
             >
               <div
-                className={`relative flex items-center justify-center origin-left transition-transform duration-400 ease-out group-hover:-rotate-6 w-10 h-10 xl:w-12 xl:h-12 ${
+                className={`relative flex items-center justify-center shrink-0 origin-left transition-transform duration-400 ease-out group-hover:-rotate-6 w-9 h-9 sm:w-10 sm:h-10 xl:w-12 xl:h-12 ${
                   scrolled
                     ? "scale-[0.85]"
                     : "scale-100"
@@ -615,15 +627,15 @@ const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
                 <Image
                   src="/favicon.ico"
                   alt="Hindi Bhajan Manjari"
-                  width={32}
-                  height={32}
-                  className="object-contain drop-shadow-md brightness-110 xl:w-[36px] xl:h-[36px]"
+                  width={28}
+                  height={28}
+                  className="object-contain drop-shadow-md brightness-110 sm:w-8 sm:h-8 xl:w-[36px] xl:h-[36px]"
                 />
               </div>
 
-              <div className="flex flex-col leading-none justify-center">
+              <div className="flex flex-col leading-none justify-center min-w-0">
                 <span
-                  className={`font-black tracking-tight text-gray-900 text-lg xl:text-[24px] origin-left inline-block transition-all duration-400 ${
+                  className={`font-black tracking-tight text-gray-900 text-base sm:text-lg xl:text-[24px] origin-left inline-block transition-all duration-400 truncate ${
                     scrolled
                       ? "scale-[0.9]"
                       : "scale-100"
@@ -635,7 +647,9 @@ const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
                   </span>
                 </span>
 
-                <span className="text-[8px] xl:text-[10px] font-extrabold text-gray-500 tracking-[0.35em] uppercase mt-1">
+                {/* Subtitle drops below 375px so the logo never crowds the
+                    action icons on the smallest phones (iPhone SE etc). */}
+                <span className="hidden min-[375px]:block text-[8px] xl:text-[10px] font-extrabold text-gray-500 tracking-[0.35em] uppercase mt-1">
                   Manjari
                 </span>
               </div>
@@ -939,35 +953,40 @@ const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
             {/* ───────────────────────────────────────────────────────────── */}
             {/* MOBILE / TABLET ACTIONS                                       */}
             {/* ───────────────────────────────────────────────────────────── */}
+            {/* All four buttons below share MOBILE_ICON_BTN_SIZE (44×44px)
+                and near-identical icon weight — this is the fix for the
+                "icons not consistent on mobile" issue. Only the menu
+                button uses the solid/filled treatment, since it's the
+                single primary action; the rest are ghost-style siblings. */}
 
-            <div className="xl:hidden flex items-center gap-1.5 z-10 relative">
+            <div className="xl:hidden flex items-center gap-1 sm:gap-1.5 z-10 relative">
 
-              {/* My Sangrah remains here because UtilityBar is hidden
-                  below md and therefore isn't available on mobile. */}
-              <Link
-                href="/saved"
-                aria-label="My Sangrah"
-                title="View Saved Bhajans"
-                className="w-11 h-11 flex items-center justify-center rounded-full text-gray-600 hover:text-red-500 hover:bg-red-50 transition-colors"
-              >
-                <FaHeart
-                  size={19}
-                  aria-hidden="true"
-                />
-              </Link>
+  {/* Support */}
+  <Link
+    href="/donate"
+    aria-label="Support Us"
+    title="Support Us"
+    className={`${MOBILE_ICON_BTN_SIZE} flex items-center justify-center rounded-full text-orange-600 hover:bg-orange-50 active:scale-95 transition-colors`}
+  >
+    <FaHandHoldingHeart
+      size={MOBILE_ICON_SIZE}
+      aria-hidden="true"
+    />
+  </Link>
 
-              {/* Support */}
-              <Link
-                href="/donate"
-                className="w-11 h-11 flex items-center justify-center rounded-full text-orange-600 hover:bg-orange-50 transition-colors relative"
-                aria-label="Support Us"
-                title="Support Us"
-              >
-                <FaHandHoldingHeart
-                  size={22}
-                  aria-hidden="true"
-                />
-              </Link>
+  {/* My Sangrah remains here because UtilityBar is hidden
+      below md and therefore isn't available on mobile. */}
+  <Link
+    href="/saved"
+    aria-label="My Sangrah"
+    title="View Saved Bhajans"
+    className={`${MOBILE_ICON_BTN_SIZE} flex items-center justify-center rounded-full text-gray-600 hover:text-red-500 hover:bg-red-50 active:scale-95 transition-colors`}
+  >
+    <FaHeart
+      size={MOBILE_ICON_SIZE}
+      aria-hidden="true"
+    />
+  </Link>
 
               {/* Search */}
               <button
@@ -975,25 +994,26 @@ const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
                 onClick={openSearch}
                 aria-label="Open search"
                 title="Search"
-                className="w-11 h-11 flex items-center justify-center rounded-full text-gray-600 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                className={`${MOBILE_ICON_BTN_SIZE} flex items-center justify-center rounded-full text-gray-600 hover:bg-orange-50 hover:text-orange-600 active:scale-95 transition-colors`}
               >
                 <FaSearch
-                  size={20}
+                  size={MOBILE_ICON_SIZE}
                   aria-hidden="true"
                 />
               </button>
 
-              {/* Menu */}
+              {/* Menu — the one deliberately "louder" button, same 44px
+                  footprint as its siblings so it doesn't visually clash. */}
               <button
-  ref={mobileMenuButtonRef}
-  type="button"
-  onClick={openMenu}
-  aria-label="Open mobile menu"
-  title="Open Menu"
-                className="w-12 h-12 flex items-center justify-center rounded-2xl bg-orange-600 text-white hover:bg-orange-700 transition-all shadow-md shadow-orange-600/20 ml-2 active:scale-95"
+                ref={mobileMenuButtonRef}
+                type="button"
+                onClick={openMenu}
+                aria-label="Open mobile menu"
+                title="Open Menu"
+                className={`${MOBILE_ICON_BTN_SIZE} flex items-center justify-center rounded-full bg-orange-600 text-white hover:bg-orange-700 active:scale-95 transition-all shadow-md shadow-orange-600/20 ml-0.5`}
               >
                 <HiMenuAlt3
-                  size={26}
+                  size={MOBILE_ICON_SIZE_STRONG}
                   aria-hidden="true"
                 />
               </button>
@@ -1060,25 +1080,25 @@ const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
       {/* ─────────────────────────────────────────────────────────────────── */}
 
       <aside
-  ref={mobileMenuRef}
-  className={`fixed top-0 right-0 h-full w-[88%] max-w-[400px] z-[120] xl:hidden flex flex-col bg-white shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+        ref={mobileMenuRef}
+        className={`fixed top-0 right-0 h-full w-[88%] max-w-[400px] z-[120] xl:hidden flex flex-col bg-white shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
           isMenuOpen
             ? "translate-x-0"
             : "translate-x-full"
         }`}
         aria-hidden={!isMenuOpen}
       >
-        <div className="flex items-center justify-between px-7 py-6 border-b border-gray-100 bg-white z-10">
-          <div className="flex items-center gap-3.5">
+        <div className="flex items-center justify-between px-5 sm:px-7 py-5 sm:py-6 border-b border-gray-100 bg-white z-10">
+          <div className="flex items-center gap-3 sm:gap-3.5">
             <Image
               src="/favicon.ico"
               alt="Hindi Bhajan Manjari"
-              width={40}
-              height={40}
+              width={36}
+              height={36}
               className="object-contain drop-shadow-sm brightness-110"
             />
 
-            <span className="font-black text-gray-900 tracking-widest text-[15px] uppercase">
+            <span className="font-black text-gray-900 tracking-widest text-[14px] sm:text-[15px] uppercase">
               Menu
             </span>
           </div>
@@ -1088,10 +1108,10 @@ const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
             onClick={closeMenu}
             aria-label="Close menu"
             title="Close Menu"
-            className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 transition-colors active:scale-95"
+            className={`${MOBILE_ICON_BTN_SIZE} flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 active:scale-95 transition-colors`}
           >
             <HiX
-              size={22}
+              size={MOBILE_ICON_SIZE_STRONG}
               aria-hidden="true"
             />
           </button>
@@ -1100,7 +1120,7 @@ const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
         <nav
           data-lenis-prevent="true"
           aria-label="Mobile navigation"
-          className="flex-1 overflow-y-auto px-5 pt-6 pb-24 flex flex-col gap-3 bg-gray-50/50"
+          className="flex-1 overflow-y-auto px-4 sm:px-5 pt-6 pb-24 flex flex-col gap-3 bg-gray-50/50"
         >
           {navItems.map((item) => (
             <div key={item.name}>
@@ -1167,7 +1187,7 @@ const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
                               }`}
                             >
                               <span
-                                className={`w-10 h-10 flex items-center justify-center rounded-xl text-xl ${
+                                className={`w-10 h-10 flex items-center justify-center rounded-xl text-xl shrink-0 ${
                                   isActive(
                                     subItem.href
                                   )
@@ -1180,7 +1200,9 @@ const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
                                 }
                               </span>
 
-                              {subItem.name}
+                              <span className="truncate">
+                                {subItem.name}
+                              </span>
                             </Link>
                           )
                         )}
@@ -1259,7 +1281,7 @@ const mobileMenuButtonRef = useRef<HTMLButtonElement | null>(null);
             title="View Saved Items"
             className="flex items-center gap-4 px-6 py-4 rounded-3xl text-gray-800 font-black bg-white shadow-sm hover:shadow-md transition-all border border-gray-100"
           >
-            <span className="w-11 h-11 flex items-center justify-center rounded-2xl bg-red-50 text-red-500">
+            <span className="w-11 h-11 flex items-center justify-center rounded-2xl bg-red-50 text-red-500 shrink-0">
               <FaHeart
                 size={18}
                 aria-hidden="true"
