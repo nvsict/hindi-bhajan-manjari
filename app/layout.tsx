@@ -20,6 +20,7 @@ import ScrollToTop from '@/components/ScrollToTop';
 import ScrollRecovery from '@/components/ScrollRecovery';
 import EngagementTracker from '@/components/EngagementTracker';
 import ExitFeedbackManager from '@/components/ExitFeedbackManager';
+
 // 🌟 MICROSOFT CLARITY
 import ClarityAnalytics from '@/components/ClarityAnalytics';
 
@@ -29,6 +30,9 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 
 // 🌟 NEW: CAMPAIGN MODAL (GLOBAL POPUP)
 import CampaignModal from '@/components/CampaignModal';
+
+// 🌟 NEW: CLICKADU GLOBAL ADS (Popunder / In-Page Push)
+import ClickaduGlobalAd from '@/components/ClickaduGlobalAd';
 
 // 🌟 FIX: Removed { ssr: false } because layout.tsx is a Server Component.
 // The component itself has "use client" so it's perfectly safe and dynamic.
@@ -126,6 +130,9 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${hindFont.variable} antialiased bg-orange-50/30 dark:bg-[#0c0804] flex flex-col min-h-screen selection:bg-orange-500 selection:text-white transition-colors duration-300`}
       >
         <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false}>
+          {/* 🌟 CLICKADU GLOBAL ADS INTEGRATION */}
+          <ClickaduGlobalAd />
+
           <ScrollRecovery />
           <ClarityAnalytics />
 
@@ -158,7 +165,8 @@ export default async function RootLayout({
           {/* 🌟 PWA Registration */}
           <PwaRegistration />
 
-<ExitFeedbackManager />
+          <ExitFeedbackManager />
+          
           {/* 🌟 GLOBAL MODAL */}
           <CampaignModal />
           <DivinePeek />
