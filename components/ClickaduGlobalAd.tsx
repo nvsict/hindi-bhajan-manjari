@@ -1,8 +1,19 @@
 "use client";
 
 import Script from 'next/script';
+import { usePathname } from 'next/navigation';
 
 export default function ClickaduGlobalAd() {
+  const pathname = usePathname();
+
+  // 🌟 Check if the current URL starts with '/admin'
+  const isAdminRoute = pathname?.startsWith('/admin');
+
+  // 🌟 If it's an admin route, do not load the ad scripts at all
+  if (isAdminRoute) {
+    return null;
+  }
+
   return (
     <>
       {/* Part 1: The obfuscated inline script that initializes WebAssembly & the lemcii function */}
