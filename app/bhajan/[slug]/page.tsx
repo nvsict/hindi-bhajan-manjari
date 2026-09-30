@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Sidebar from '../../../components/Sidebar';
 import Breadcrumbs from '../../../components/Breadcrumbs';
 import LyricsViewer from '../../../components/LyricsViewer'; 
-// Removed unused icons (FaCheckCircle, FaLanguage, FaFilePdf) to keep code clean
 import { FaMicrophoneAlt, FaPhoneAlt, FaQuestionCircle } from 'react-icons/fa';
 import ViewCounter from '../../../components/ViewCounter';
 import CommentsSection from '@/components/CommentsSection';
@@ -16,6 +15,9 @@ import DivineHover from '@/components/DivineHover';
 import ReadingTracker from '@/components/ReadingTracker';
 import BhaktiStudio from '@/components/BhaktiStudio';
 import CommunityWall from '@/components/CommunityWall';
+
+// 🌟 IMPORT NEW CLICKADU BANNER
+import ClickaduBanner from '@/components/ClickaduBanner';
 
 export const revalidate = 3600;
 
@@ -379,6 +381,7 @@ export default async function BhajanDetails({ params }: Props) {
                 </div>
               )}
             </div>
+            <ClickaduBanner/>
 
            <div className="pt-0 px-4 md:px-8 pb-8">
               
@@ -459,6 +462,11 @@ export default async function BhajanDetails({ params }: Props) {
                 </div>
               )}
 
+              {/* 🌟 NEW CLICKADU AD SPOT 1: Highly visible location before comments */}
+              <div className="mt-12">
+                <ClickaduBanner />
+              </div>
+
               <div className="mt-8">
                 <CommentsSection bhajanSlug={slug} />
               </div>
@@ -476,7 +484,11 @@ export default async function BhajanDetails({ params }: Props) {
             </div>
           </main>
 
-          <aside className="hidden lg:block w-[320px] shrink-0">
+          {/* 🌟 Updated Sidebar Wrapper with flexbox to fit the Ad properly */}
+          <aside className="hidden lg:flex flex-col gap-8 w-[320px] shrink-0">
+            {/* 🌟 NEW CLICKADU AD SPOT 2: Perfect location for desktop sidebar (300x250) */}
+            <ClickaduBanner />
+            
             <Sidebar 
               topicName={bhajan.deity?.name_hinglish}
               filterColumn="deity_id"
