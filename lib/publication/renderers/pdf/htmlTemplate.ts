@@ -5,7 +5,7 @@ import { PublicationDocument, ScriptLanguage } from '../../types';
 import { printThemes, layoutConfig } from './theme';
 
 /**
- * भाषा के अनुसार सही Google Font URL और Font Family नेम लौटाता है
+ * Bhasha ke anusaar sahi Google Font URL aur Font Family name lautata hai
  */
 function getScriptFontConfig(script: ScriptLanguage) {
   const fontConfigs: Record<ScriptLanguage, { name: string; url: string }> = {
@@ -36,23 +36,26 @@ function getScriptFontConfig(script: ScriptLanguage) {
 export function generatePrintHTML(doc: PublicationDocument): string {
   const { config, metadata, chapters } = doc;
   
-  // 1. फॉन्ट सेट करें
+  // 1. Font setup
   const fontConfig = getScriptFontConfig(config.script);
   
   // 2. 🌟 SMART THEME SWITCHER
   const activeThemeKey = config.theme || config.themeName || 'default';
   const selectedTheme = printThemes[activeThemeKey as keyof typeof printThemes] || printThemes.default;
   
-  // थीम वेरिएबल्स
+  // Theme Variables
   const t = selectedTheme.colors;
   const l = layoutConfig;
   const fontSizeBase = `${17 * (config.fontSizeScale || 1.0)}px`;
+
+  // Logo URL: Puppeteer needs an absolute path to load images correctly. 
+  const logoUrl = 'https://www.hindibhajanmanjari.com/logo.png'; 
 
   return `<!DOCTYPE html>
 <html lang="hi">
 <head>
   <meta charset="UTF-8">
-  <title>${metadata.title}</title>
+  <title>${metadata.title || 'Bhajan Sangrah'}</title>
 
   <!-- 🌟 Dynamic Google Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -85,7 +88,7 @@ export function generatePrintHTML(doc: PublicationDocument): string {
       -webkit-font-smoothing: antialiased; 
     }
 
-    /* 🌟 ग्लोबल बैकग्राउंड और पेज फ्रेम */
+    /* 🌟 Global Background & Page Frame */
     .global-background { 
       position: fixed; 
       top: ${l.globalOffsetTB}; bottom: ${l.globalOffsetTB}; 
@@ -123,6 +126,116 @@ export function generatePrintHTML(doc: PublicationDocument): string {
       font-size: 8.5pt; 
       font-weight: 600; 
       color: ${t.accentDark}; 
+    }
+
+    /* =======================================
+       🌟 UPGRADED: COVER PAGE STYLES (WITH LOGO)
+       ======================================= */
+    .cover-page {
+      position: relative;
+      height: 95vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      page-break-after: always;
+      break-after: page;
+      text-align: center;
+      padding: 40px;
+    }
+    .cover-border {
+      border: 4px double ${t.accentGold};
+      padding: 60px 40px;
+      border-radius: 16px;
+      width: 90%;
+      background: rgba(255, 255, 255, 0.45);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .cover-logo {
+      width: 130px;
+      height: auto;
+      margin-bottom: 24px;
+      border-radius: 50%;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      border: 3px solid ${t.accentGold};
+    }
+    .cover-title {
+      font-family: 'Rozha One', '${fontConfig.name}', serif;
+      font-size: 3.8em;
+      font-weight: 800;
+      color: ${t.accentDark};
+      margin-bottom: 16px;
+      line-height: 1.2;
+      text-shadow: 2px 2px 0px ${t.shadowLight};
+    }
+    .cover-subtitle {
+      font-size: 1.4em;
+      color: ${t.accentDark};
+      font-weight: 600;
+      margin-bottom: 40px;
+    }
+    .cover-branding {
+      font-size: 1.1em;
+      color: ${t.textMain};
+      font-weight: 700;
+      opacity: 0.85;
+      margin-top: 20px;
+    }
+
+    /* =======================================
+       🌟 UPGRADED: RESPONSIVE INDEX PAGE STYLES 
+       ======================================= */
+    .index-page {
+      page-break-after: always;
+      break-after: page;
+      padding: 40px 60px;
+    }
+    .index-heading {
+      font-family: 'Rozha One', '${fontConfig.name}', serif;
+      font-size: 2.8em;
+      font-weight: 800;
+      color: ${t.accentDark};
+      text-align: center;
+      margin-bottom: 40px;
+      border-bottom: 2px solid ${t.accentGold};
+      padding-bottom: 15px;
+    }
+    /* 🌟 MAGIC: Multi-column Index for 200+ Bhajans */
+    .index-list {
+      column-count: 2; /* Splits list into 2 columns automatically */
+      column-gap: 50px;
+      column-rule: 1px dashed ${t.borderLight};
+    }
+    .index-item {
+      display: flex;
+      align-items: baseline; /* Aligns dots perfectly with text */
+      text-decoration: none; 
+      color: ${t.textMain};
+      font-size: 1.1em;
+      font-weight: 600;
+      margin-bottom: 14px;
+      page-break-inside: avoid; /* Prevents an item from splitting across columns/pages */
+      break-inside: avoid;
+    }
+    .index-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 75%;
+    }
+    .index-dots {
+      flex-grow: 1;
+      border-bottom: 2px dotted ${t.borderLight};
+      margin: 0 10px;
+    }
+    .index-click-hint {
+      font-size: 0.75em;
+      color: ${t.accentGold};
+      font-weight: 700;
+      white-space: nowrap;
     }
 
     /* --- CONTENT BASE STYLES --- */
@@ -219,7 +332,7 @@ export function generatePrintHTML(doc: PublicationDocument): string {
 </head>
 <body>
 
-  <!-- ग्लोबल बैकग्राउंड -->
+  <!-- Global Background -->
   <div class="global-background">
     <div class="page-frame"></div>
     <div class="page-frame-inner"></div>
@@ -227,15 +340,59 @@ export function generatePrintHTML(doc: PublicationDocument): string {
     <div class="running-footer">॥ हिंदी भजन मंजरी • hindibhajanmanjari.com ॥</div>
   </div>
 
-  <!-- 🌟 PER-CHAPTER DYNAMIC WRAPPERS -->
-  <!-- पपेटियर हर एक '.dynamic-chapter' की हाइट नापेगा और उसके लेआउट को एडजस्ट करेगा -->
+  <!-- =======================================
+       🌟 1. BEAUTIFUL COVER PAGE (WITH LOGO)
+       ======================================= -->
+  <div class="cover-page">
+    <div class="cover-border">
+      
+      <!-- 🌟 Aapki website ka Logo yahan load hoga -->
+      <img src="${logoUrl}" alt="Hindi Bhajan Manjari" class="cover-logo" />
+
+      <div class="cover-title">${metadata.title || 'भजन संग्रह'}</div>
+      <div class="cover-subtitle">दिव्य भजनों और आरतियों का पावन संग्रह</div>
+      
+      <div class="ornamental-line" style="width: 50%;">
+        <div class="line-dash"></div>
+        <div class="line-diamond"></div>
+        <div class="line-dash"></div>
+      </div>
+      
+      <div class="cover-branding">
+        संकलनकर्ता<br/>
+        <b>Hindi Bhajan Manjari</b>
+      </div>
+    </div>
+  </div>
+
+  <!-- =======================================
+       🌟 2. CLICKABLE & RESPONSIVE INDEX
+       ======================================= -->
+  <div class="index-page">
+    <div class="index-heading">अनुक्रमणिका (Index)</div>
+    
+    <!-- 🌟 .index-list ab 2-column layout use karegi. Agar 400 bhajans hue toh apne aap pages bante jayenge -->
+    <div class="index-list">
+      ${chapters.map((chapter, index) => `
+        <a href="#chapter-${index}" class="index-item">
+          <span class="index-text">${index + 1}.${chapter.titleMain}</span>
+          <span class="index-dots"></span>
+          <span class="index-click-hint">पढ़ें 🔗</span>
+        </a>
+      `).join('')}
+    </div>
+  </div>
+
+  <!-- =======================================
+       🌟 3. PER-CHAPTER DYNAMIC WRAPPERS (BHAJANS)
+       ======================================= -->
   ${chapters.map((chapter, index) => {
     return `
+      <!-- 🌟 ID For Clickable Navigation -->
       <div id="chapter-${index}" class="chapter dynamic-chapter layout-single-standard">
         
         <div class="header-branding">
-          <div class="logo-title">${chapter.titleMain}</div>
-          ${chapter.titleSecondary ? `<div class="sub-title">${chapter.titleSecondary}</div>` : ''}
+          <div class="logo-title">${chapter.titleMain}</div>${chapter.titleSecondary ? `<div class="sub-title">${chapter.titleSecondary}</div>` : ''}
           <div class="ornamental-line">
             <div class="line-dash"></div>
             <div class="line-diamond"></div>

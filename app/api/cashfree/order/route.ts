@@ -5,27 +5,42 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    // 🌟 नया बदलाव: body से name और phone भी निकालें
-    const { amount, count, returnPath, name, phone } = body;
+    // 🌟 1. Added 'type' parameter to explicitly know what the user is buying
+    const { amount, count, returnPath, name, phone, type } = body;
 
     let finalAmount = 0;
-    let orderType = 'donation';
-    let bhajanCount = 0;
+    // Default to 'donation' if type is not provided
+    let orderType = type || 'donation'; 
+    let bhajanCount = count ? Number(count) : 0;
 
-    if (count !== undefined && count !== null) {
-      orderType = 'book_builder';
-      bhajanCount = Number(count);
-      if (bhajanCount <= 0) return NextResponse.json({ error: 'कम से कम 1 भजन चुनें।' }, { status: 400 });
+    // 🌟 2. PERFECT ROUTING LOGIC FOR DIFFERENT PRODUCTS
+    if (orderType === 'prebuilt_ebook') {
+      // For fixed-price ebooks (Admin created)
+      if (!amount || Number(amount) <= 0) {
+        return NextResponse.json({ error: 'अमान्य ई-बुक मूल्य' }, { status: 400 });
+      }
+      finalAmount = Number(amount);
+
+    } else if (orderType === 'book_builder' || (count !== undefined && type === undefined)) {
+      // For Custom Book Builder (Per bhajan pricing logic)
+      if (bhajanCount <= 0) {
+        return NextResponse.json({ error: 'कम से कम 1 भजन चुनें।' }, { status: 400 });
+      }
       finalAmount = bhajanCount <= 2 ? 11 : 11 + ((bhajanCount - 2) * 2);
-    } else if (amount !== undefined && amount !== null) {
+      orderType = 'book_builder'; // Enforce type
+
+    } else if (orderType === 'donation' && amount !== undefined) {
+      // Standard donation
       finalAmount = Number(amount);
     }
 
-    if (finalAmount <= 0) return NextResponse.json({ error: 'अमान्य राशि' }, { status: 400 });
+    // Safety check
+    if (finalAmount <= 0) {
+      return NextResponse.json({ error: 'अमान्य राशि' }, { status: 400 });
+    }
 
     const orderId = `cf_order_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     
-    // 🌟 FIX: Bulletproof Localhost vs Production Check
     const baseUrl = process.env.NODE_ENV === 'development' 
       ? 'http://localhost:3000' 
       : (process.env.NEXT_PUBLIC_SITE_URL || 'https://hindibhajanmanjari.com');
@@ -45,7 +60,6 @@ export async function POST(req: Request) {
         order_amount: finalAmount,
         order_currency: 'INR',
         customer_details: {
-          // 🌟 HYBRID APPROACH: अगर फोन/नाम आया है तो उसे उपयोग करें, नहीं तो डिफ़ॉल्ट (Anon) सेट करें
           customer_id: phone ? `cust_${phone}` : `cust_anon_${Date.now()}`,
           customer_phone: phone || '9999999999',
           customer_name: name || 'Bhakt',
@@ -69,7 +83,9 @@ export async function POST(req: Request) {
       order_type: orderType,
       bhajan_count: bhajanCount,
       status: 'pending',
-      is_anonymous: true
+      // If name/phone is provided, it's not strictly anonymous
+      is_anonymous: !(name && phone), 
+      name: name || 'A Gupt Bhakt' // Save the name in the DB
     }]);
 
     if (dbError) console.error("⚠️ DB Insert Warning:", dbError.message);
