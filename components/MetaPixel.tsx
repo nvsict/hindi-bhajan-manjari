@@ -1,21 +1,30 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import Script from 'next/script';
 import * as fbq from '@/lib/fbpixel';
 
-export default function MetaPixel() {
+// 🌟 1. जिस हिस्से में useSearchParams है, उसे अलग कर दिया
+function PixelEvents() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // This fires a PageView on initial load and every route change
     fbq.pageview();
   }, [pathname, searchParams]);
 
+  return null;
+}
+
+// 🌟 2. उसे Suspense के अंदर Wrap कर दिया (जिससे 404 Build Error नहीं आएगा)
+export default function MetaPixel() {
   return (
     <>
+      <Suspense fallback={null}>
+        <PixelEvents />
+      </Suspense>
+      
       <Script
         id="fb-pixel"
         strategy="afterInteractive"
