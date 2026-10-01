@@ -22,13 +22,13 @@ export default function ClickaduGlobalAd() {
         }} 
       />
       
-      {/* 🌟 Part 2: The external script that fetches the banner logic */}
+      {/* 🌟 FIXED: Moved the comment completely outside of the Script tag properties */}
       <Script 
         id="clickadu-banner-external"
         strategy="afterInteractive"
         data-cfasync="false" 
         data-clbaid="" 
-        src="//earmuffpostnasalrisotto.com/bn.js"
+        src="https://earmuffpostnasalrisotto.com/bn.js"
         onError={(e) => {
           if (typeof window !== 'undefined' && typeof window.qfqvba === 'function') {
             window.qfqvba(16);
