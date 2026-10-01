@@ -18,9 +18,6 @@ import SupportersWall from '@/components/SupportersWall';
 import EbookBundleSlot from '../components/EbookBundleSlot';
 import VicharBanner from '../components/VicharBanner';
 
-// 🌟 IMPORT NEW CLICKADU BANNER
-import ClickaduBanner from '@/components/ClickaduBanner';
-
 // VPS Native ISR (Incremental Static Regeneration)
 export const revalidate = 300; 
 
@@ -350,11 +347,6 @@ export default function Home() {
           {/* 2. Visual Hook: Who to pray to? */}
           <DeityBrowse /> 
 
-          {/* 🌟 AD PLACEMENT 1: Mid-Fold Mobile (High Visibility immediately after primary navigation) */}
-          <div className="my-8">
-            <ClickaduBanner />
-          </div>
-
           {/* ==========================================
               🌟 2.5 PREMIUM HOMEPAGE CAROUSEL (0ms Server Load)
               ========================================== */}
@@ -389,11 +381,6 @@ export default function Home() {
             </Suspense>
           </div>
 
-          {/* 🌟 AD PLACEMENT 2: Deep Scroll Mobile (After reading latest bhajans) */}
-          <div className="my-10">
-            <ClickaduBanner />
-          </div>
-
           {/* 4. Secondary Discovery */}
           <div className="mt-10">
             <PopularCategories />
@@ -423,8 +410,6 @@ export default function Home() {
         }>
           <div className="hidden lg:flex lg:flex-col lg:gap-8 lg:sticky lg:top-28 h-fit w-[300px] shrink-0 pb-8">
             
-            {/* 🌟 AD PLACEMENT 3: Desktop Sidebar Only (Perfect for 300x250 format) */}
-            <ClickaduBanner />
 
             <Sidebar />
           </div>
