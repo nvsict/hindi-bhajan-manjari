@@ -21,8 +21,9 @@ import ScrollRecovery from '@/components/ScrollRecovery';
 import EngagementTracker from '@/components/EngagementTracker';
 import ExitFeedbackManager from '@/components/ExitFeedbackManager';
 
-// 🌟 MICROSOFT CLARITY
+// 🌟 MICROSOFT CLARITY & META PIXEL
 import ClarityAnalytics from '@/components/ClarityAnalytics';
+import MetaPixel from '@/components/MetaPixel'; // 🌟 NEW: META PIXEL IMPORT
 
 // 🌟 PWA & GLOBAL FEATURE IMPORTS
 import PwaRegistration from '@/components/PwaRegistration';
@@ -126,6 +127,9 @@ export default async function RootLayout({
         /* 🌟 PERF FIX: Removed heavy font variables from the body string */
         className={`${geistSans.variable} ${geistMono.variable} ${hindFont.variable} antialiased bg-orange-50/30 dark:bg-[#0c0804] flex flex-col min-h-screen selection:bg-orange-500 selection:text-white transition-colors duration-300`}
       >
+        {/* 🌟 NEW: META PIXEL COMPONENT INJECTED HERE */}
+        <MetaPixel />
+
         <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false}>
 
           <ScrollRecovery />
