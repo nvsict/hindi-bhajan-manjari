@@ -7,6 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { load } from '@cashfreepayments/cashfree-js';
 import { createMultiBhajanDocument } from '@/lib/publication/content/selector';
 import { ScriptLanguage } from '@/lib/publication/types';
+import * as fbq from '@/lib/fbpixel'; // 🌟 IMPORTED META PIXEL HELPER
 import {
   FaFilePdf, FaSpinner, FaRedo, FaExclamationTriangle,
   FaRupeeSign, FaShieldAlt, FaWhatsapp, FaCheckCircle,
@@ -97,6 +98,20 @@ export default function EbookProductCheckout() {
     fetchEbookData();
   }, [slug]);
 
+  // 🌟 META PIXEL: Fire ViewContent when the ebook loads
+  useEffect(() => {
+    if (ebookDetails && bhajans.length > 0) {
+      fbq.event('ViewContent', {
+        content_name: ebookDetails.title,
+        content_category: 'Ebook',
+        content_ids: [slug],
+        content_type: 'product',
+        value: ebookDetails.price,
+        currency: 'INR'
+      });
+    }
+  }, [ebookDetails, bhajans.length, slug]);
+
   // 2. 📱 Watch the checkout card: hide the sticky bar while the card is on screen
   useEffect(() => {
     const el = checkoutRef.current;
@@ -140,7 +155,7 @@ export default function EbookProductCheckout() {
 
     if (selectedSlugs.length === 0) return alert("कृपया कम से कम 1 भजन चुनें।");
 
-    // 🌟 FORM VALIDATION (सिर्फ टेक्स्ट मैसेज दिखाएगा, बटन नहीं बदलेगा)
+    // 🌟 FORM VALIDATION
     if (!buyerName.trim()) {
       setErrorMessage("कृपया अपना शुभ नाम दर्ज करें।");
       scrollToCheckout();
@@ -155,16 +170,24 @@ export default function EbookProductCheckout() {
     setErrorMessage("");
     setFlowStatus('payment_pending');
 
+    // 🌟 META PIXEL: Fire InitiateCheckout when they click buy and pass validation
+    fbq.event('InitiateCheckout', {
+      content_name: ebookDetails.title,
+      content_ids: [slug],
+      value: ebookDetails.price,
+      currency: 'INR',
+      num_items: 1
+    });
+
     const originalBtoa = window.btoa;
 
     try {
-      // 1. Create Order via Cashfree
       // 1. Create Order via Cashfree
       const orderRes = await fetch('/api/cashfree/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          type: 'prebuilt_ebook', // 🌟 NEW: Tells backend to use FIXED pricing
+          type: 'prebuilt_ebook', // Tells backend to use FIXED pricing
           amount: ebookDetails.price,
           count: selectedSlugs.length,
           name: buyerName.trim(), 
@@ -199,12 +222,21 @@ export default function EbookProductCheckout() {
       window.btoa = originalBtoa;
 
       if (result?.error) {
-        // 🚨 पेमेंट विफल/रद्द — पैसे नहीं कटे, इसलिए Retry Payment सही है
+        // 🚨 पेमेंट विफल/रद्द
         setFlowStatus('error');
         setErrorMessage(result.error.message || "भुगतान रद्द कर दिया गया या विफल रहा।");
       } else if (result?.paymentDetails) {
         // 🌟 PAYMENT SUCCESS! PDF सीधे बनाओ
         setIsPaid(true);
+
+        // 🌟 META PIXEL: Fire Purchase when payment is successful
+        fbq.event('Purchase', {
+          content_name: ebookDetails.title,
+          content_ids: [slug],
+          value: ebookDetails.price,
+          currency: 'INR'
+        }, { eventID: orderId });
+
         await generateEbookPDF(selectedSlugs, ebookDetails.title, script, theme);
       } else {
         // यूज़र ने बिना किसी नतीजे के विंडो बंद कर दी
@@ -347,7 +379,7 @@ export default function EbookProductCheckout() {
                     {ebookDetails.subtitle}
                   </p>
 
-                  {/* ⭐ SOCIAL PROOF (सिर्फ तब दिखेगा जब download_count > 0) */}
+                  {/* ⭐ SOCIAL PROOF */}
                   {downloadCount > 0 && (
                     <div className="inline-flex items-center gap-2 mb-5 px-4 py-2 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-sm font-black shadow-sm">
                       <FaFire className="text-orange-500" />
@@ -453,9 +485,10 @@ export default function EbookProductCheckout() {
                   </div>
                   {hasDiscount && (
                     <div className="text-right">
-                      <div className="inline-flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 text-green-700 px-4 py-2 rounded-xl shadow-sm">
-                        <span className="text-xl font-black leading-none">{discountPct}% OFF</span>
-                        <span className="text-[11px] font-bold mt-1 opacity-80">₹{savings} की बचत</span>
+                      <div className="inline-flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 text-green-700 px-4 py-2 rounded-xl shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
+                        <span className="text-xl font-black leading-none mt-2">{discountPct}% OFF</span>
+                        <span className="text-[11px] font-bold mt-1 opacity-80 mb-1">₹{savings} की बचत</span>
                       </div>
                     </div>
                   )}
@@ -556,7 +589,7 @@ export default function EbookProductCheckout() {
                         className="w-full mt-6 bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-700 hover:to-amber-600 text-white font-black text-xl py-4.5 rounded-2xl shadow-[0_10px_30px_-5px_rgba(234,88,12,0.4)] transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed h-16"
                       >
                         {flowStatus === 'payment_pending' ? (
-                          <><FaSpinner className="animate-spin text-2xl" /> भुगतान विंडो खुल रही है...</>
+                          <><FaSpinner className="animate-spin text-2xl" /> सुरक्षित कनेक्शन...</>
                         ) : (
                           <><FaDownload className="text-2xl" /> ₹{ebookDetails.price} में डाउनलोड करें</>
                         )}
@@ -630,8 +663,7 @@ export default function EbookProductCheckout() {
       </div>
 
       {/* ==========================================
-          📱 MOBILE STICKY BUY BAR (lg से छोटी स्क्रीन पर)
-          चेकआउट कार्ड दिखते ही अपने-आप छिप जाती है
+          📱 MOBILE STICKY BUY BAR
           ========================================== */}
       <div
         className={`lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white/95 backdrop-blur-xl border-t border-orange-100 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] transition-transform duration-300 ${showStickyBar ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}
