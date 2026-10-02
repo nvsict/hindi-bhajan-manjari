@@ -51,6 +51,40 @@ export function generatePrintHTML(doc: PublicationDocument): string {
   // Logo URL: Puppeteer needs an absolute path to load images correctly. 
   const logoUrl = 'https://www.hindibhajanmanjari.com/logo.png'; 
 
+  // ==========================================
+  // 🌟 SMART GROUPING ENGINE (By Deity)
+  // ==========================================
+  const groupsMap = new Map<string, any[]>();
+
+  chapters.forEach((chapter: any) => {
+    let deityName = 'विविध भजन (Miscellaneous)';
+    
+    if (chapter.deity) {
+      deityName = typeof chapter.deity === 'string' ? chapter.deity : (chapter.deity.name_hindi || chapter.deity.name || deityName);
+    } else if (chapter.metadata && chapter.metadata.deity) {
+      deityName = typeof chapter.metadata.deity === 'string' ? chapter.metadata.deity : (chapter.metadata.deity.name_hindi || chapter.metadata.deity.name || deityName);
+    } else if (chapter.categories && chapter.categories.length > 0) {
+      deityName = chapter.categories[0].name_hindi || chapter.categories[0].name || deityName;
+    }
+
+    if (!groupsMap.has(deityName)) {
+      groupsMap.set(deityName, []);
+    }
+    groupsMap.get(deityName)!.push(chapter);
+  });
+
+  const groupedIndex: { deity: string, chapters: any[] }[] = [];
+  let globalCounter = 0;
+
+  groupsMap.forEach((bhajans, deity) => {
+    const processedBhajans = bhajans.map(bhajan => ({
+      ...bhajan,
+      globalIndex: globalCounter++,
+      extractedDeity: deity
+    }));
+    groupedIndex.push({ deity, chapters: processedBhajans });
+  });
+
   return `<!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -66,6 +100,14 @@ export function generatePrintHTML(doc: PublicationDocument): string {
     @page { 
       size: ${config.pageSize || 'A4'} portrait; 
       margin: ${l.pageMargin}; 
+      
+      /* 🌟 UX Fix 1: Page Numbers (Standard Paged Media CSS) */
+      @bottom-right {
+        content: "Page " counter(page);
+        font-family: '${fontConfig.name}', sans-serif;
+        font-size: 9pt;
+        color: ${t.accentDark};
+      }
     }
 
     * { 
@@ -123,13 +165,19 @@ export function generatePrintHTML(doc: PublicationDocument): string {
       bottom: ${l.footerBottom}; 
       left: 0; right: 0; 
       text-align: center; 
-      font-size: 8.5pt; 
+      font-size: 9pt; 
       font-weight: 600; 
       color: ${t.accentDark}; 
     }
+    /* 🌟 UX Fix 5: Footer Clickable styling */
+    .running-footer a {
+      color: inherit;
+      text-decoration: none;
+      border-bottom: 1px dotted ${t.accentDark};
+    }
 
     /* =======================================
-       🌟 UPGRADED: COVER PAGE STYLES (WITH LOGO)
+       🌟 COVER PAGE STYLES
        ======================================= */
     .cover-page {
       position: relative;
@@ -186,7 +234,7 @@ export function generatePrintHTML(doc: PublicationDocument): string {
     }
 
     /* =======================================
-       🌟 UPGRADED: RESPONSIVE INDEX PAGE STYLES 
+       🌟 INDEX PAGE STYLES
        ======================================= */
     .index-page {
       page-break-after: always;
@@ -203,21 +251,37 @@ export function generatePrintHTML(doc: PublicationDocument): string {
       border-bottom: 2px solid ${t.accentGold};
       padding-bottom: 15px;
     }
-    /* 🌟 MAGIC: Multi-column Index for 200+ Bhajans */
+    
+    .index-deity-section {
+      margin-bottom: 32px;
+      page-break-inside: avoid;
+    }
+    .index-deity-header {
+      font-family: 'Rozha One', '${fontConfig.name}', serif;
+      font-size: 1.6em;
+      font-weight: 700;
+      color: ${t.accentGold};
+      text-align: center;
+      margin-bottom: 16px;
+      background: linear-gradient(90deg, transparent, ${t.accentGold}20, transparent);
+      padding: 6px 0;
+      border-radius: 8px;
+    }
+
     .index-list {
-      column-count: 2; /* Splits list into 2 columns automatically */
+      column-count: 2;
       column-gap: 50px;
       column-rule: 1px dashed ${t.borderLight};
     }
     .index-item {
       display: flex;
-      align-items: baseline; /* Aligns dots perfectly with text */
+      align-items: baseline;
       text-decoration: none; 
       color: ${t.textMain};
       font-size: 1.1em;
       font-weight: 600;
       margin-bottom: 14px;
-      page-break-inside: avoid; /* Prevents an item from splitting across columns/pages */
+      page-break-inside: avoid;
       break-inside: avoid;
     }
     .index-text {
@@ -238,6 +302,36 @@ export function generatePrintHTML(doc: PublicationDocument): string {
       white-space: nowrap;
     }
 
+    /* =======================================
+       🌟 UX Fix 3: DEITY DIVIDER PAGE STYLES 
+       ======================================= */
+    .deity-divider-page {
+      position: relative;
+      height: 95vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      page-break-after: always;
+      break-after: page;
+      text-align: center;
+    }
+    .deity-divider-border {
+      border: 2px dashed ${t.accentGold};
+      padding: 50px 80px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.7);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    }
+    .deity-divider-title {
+      font-family: 'Rozha One', '${fontConfig.name}', serif;
+      font-size: 3.5em;
+      font-weight: 800;
+      color: ${t.accentDark};
+      margin: 10px 0;
+      text-shadow: 2px 2px 0px ${t.shadowLight};
+    }
+
     /* --- CONTENT BASE STYLES --- */
     .chapter { 
       position: relative; 
@@ -256,6 +350,14 @@ export function generatePrintHTML(doc: PublicationDocument): string {
       column-span: all; 
     }
 
+    .deity-tag {
+      font-size: 1.1em;
+      font-weight: 700;
+      color: ${t.accentGold};
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+    }
+
     .logo-title { 
       font-family: 'Rozha One', '${fontConfig.name}', serif; 
       font-size: 2.4em; 
@@ -268,8 +370,9 @@ export function generatePrintHTML(doc: PublicationDocument): string {
     .sub-title { 
       font-size: 1.1em; 
       font-weight: 700; 
-      color: ${t.accentGold}; 
+      color: ${t.accentDark}; 
       margin-top: 4px; 
+      opacity: 0.8;
     }
 
     .ornamental-line { 
@@ -290,8 +393,22 @@ export function generatePrintHTML(doc: PublicationDocument): string {
       margin: 0 10px; 
     }
 
+    /* 🌟 UX Fix 2: BACK TO INDEX BUTTON */
+    .back-to-index {
+      display: inline-block;
+      margin-top: 30px;
+      padding: 10px 24px;
+      font-size: 0.95em;
+      color: ${t.accentDark};
+      text-decoration: none;
+      border: 1px solid ${t.accentGold};
+      border-radius: 30px;
+      background: ${t.chorusBg};
+      font-weight: 700;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+    }
+
     /* 🌟 ADAPTIVE LAYOUT PROFILES 🌟 */
-    
     .verses-container { width: 100%; }
     .verse-box { text-align: center; page-break-inside: avoid; break-inside: avoid; }
     .verse-line { display: block; letter-spacing: 0.2px; overflow-wrap: break-word; }
@@ -337,7 +454,8 @@ export function generatePrintHTML(doc: PublicationDocument): string {
     <div class="page-frame"></div>
     <div class="page-frame-inner"></div>
     <div class="watermark-center">ॐ</div>
-    <div class="running-footer">॥ हिंदी भजन मंजरी • hindibhajanmanjari.com ॥</div>
+    <!-- 🌟 UX Fix 5: Clickable Footer Link -->
+    <div class="running-footer">॥ <a href="https://www.hindibhajanmanjari.com" target="_blank">hindibhajanmanjari.com</a> ॥</div>
   </div>
 
   <!-- =======================================
@@ -345,10 +463,7 @@ export function generatePrintHTML(doc: PublicationDocument): string {
        ======================================= -->
   <div class="cover-page">
     <div class="cover-border">
-      
-      <!-- 🌟 Aapki website ka Logo yahan load hoga -->
       <img src="${logoUrl}" alt="Hindi Bhajan Manjari" class="cover-logo" />
-
       <div class="cover-title">${metadata.title || 'भजन संग्रह'}</div>
       <div class="cover-subtitle">दिव्य भजनों और आरतियों का पावन संग्रह</div>
       
@@ -366,33 +481,55 @@ export function generatePrintHTML(doc: PublicationDocument): string {
   </div>
 
   <!-- =======================================
-       🌟 2. CLICKABLE & RESPONSIVE INDEX
+       🌟 2. SMART GROUPED INDEX (WITH ID FOR NAVIGATION)
        ======================================= -->
-  <div class="index-page">
+  <!-- 🌟 ID Added Here For 'Back To Index' Linking -->
+  <div id="index-page" class="index-page">
     <div class="index-heading">अनुक्रमणिका (Index)</div>
     
-    <!-- 🌟 .index-list ab 2-column layout use karegi. Agar 400 bhajans hue toh apne aap pages bante jayenge -->
-    <div class="index-list">
-      ${chapters.map((chapter, index) => `
-        <a href="#chapter-${index}" class="index-item">
-          <span class="index-text">${index + 1}.${chapter.titleMain}</span>
-          <span class="index-dots"></span>
-          <span class="index-click-hint">पढ़ें 🔗</span>
-        </a>
-      `).join('')}
-    </div>
+    ${groupedIndex.map(group => `
+      <div class="index-deity-section">
+        <div class="index-deity-header">॥ ${group.deity} ॥</div>
+        <div class="index-list">
+          ${group.chapters.map(ch => `
+            <a href="#chapter-${ch.globalIndex}" class="index-item">
+              <span class="index-text">${ch.globalIndex + 1}. ${ch.titleMain}</span>
+              <span class="index-dots"></span>
+              <span class="index-click-hint">पढ़ें 🔗</span>
+            </a>
+          `).join('')}
+        </div>
+      </div>
+    `).join('')}
+    
   </div>
 
   <!-- =======================================
-       🌟 3. PER-CHAPTER DYNAMIC WRAPPERS (BHAJANS)
+       🌟 3. ORDERED CHAPTERS & DIVIDERS
        ======================================= -->
-  ${chapters.map((chapter, index) => {
-    return `
-      <!-- 🌟 ID For Clickable Navigation -->
-      <div id="chapter-${index}" class="chapter dynamic-chapter layout-single-standard">
+  ${groupedIndex.map(group => `
+    
+    <!-- 🌟 UX Fix 3: DEITY SEPARATOR PAGE -->
+    <div class="deity-divider-page">
+      <div class="deity-divider-border">
+        <div class="ornamental-line" style="width: 100%; margin: 0 auto 15px auto;">
+          <div class="line-dash"></div><div class="line-diamond"></div><div class="line-dash"></div>
+        </div>
+        <div class="deity-divider-title">॥ ${group.deity} ॥</div>
+        <div class="ornamental-line" style="width: 100%; margin: 15px auto 0 auto;">
+          <div class="line-dash"></div><div class="line-diamond"></div><div class="line-dash"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🌟 BHAJANS FOR THIS DEITY -->
+    ${group.chapters.map(chapter => `
+      <div id="chapter-${chapter.globalIndex}" class="chapter dynamic-chapter layout-single-standard">
         
         <div class="header-branding">
-          <div class="logo-title">${chapter.titleMain}</div>${chapter.titleSecondary ? `<div class="sub-title">${chapter.titleSecondary}</div>` : ''}
+          <div class="deity-tag">॥ ${chapter.extractedDeity} ॥</div>
+          <div class="logo-title">${chapter.titleMain}</div>
+          ${chapter.titleSecondary ? `<div class="sub-title">${chapter.titleSecondary}</div>` : ''}
           <div class="ornamental-line">
             <div class="line-dash"></div>
             <div class="line-diamond"></div>
@@ -401,18 +538,24 @@ export function generatePrintHTML(doc: PublicationDocument): string {
         </div>
 
         <div class="verses-container">
-          ${chapter.verses.map(verse => `
+          ${chapter.verses.map((verse: any) => `
             <div class="verse-box">
               <div class="${verse.type === 'chorus' ? 'verse-chorus' : ''}">
-                ${verse.lines.map(line => `<span class="verse-line">${line}</span>`).join('')}
+                ${verse.lines.map((line: string) => `<span class="verse-line">${line}</span>`).join('')}
               </div>
             </div>
           `).join('')}
         </div>
 
+        <!-- 🌟 UX Fix 2: BACK TO INDEX BUTTON (At the end of each Bhajan) -->
+        <div style="text-align: center; margin-top: 25px; page-break-inside: avoid;">
+          <a href="#index-page" class="back-to-index">↑ विषय सूची (Index) पर जाएँ</a>
+        </div>
+
       </div>
-    `;
-  }).join('')}
+    `).join('')}
+
+  `).join('')}
 
 </body>
 </html>`;

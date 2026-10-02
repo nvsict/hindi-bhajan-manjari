@@ -47,6 +47,31 @@ export async function POST(req: Request) {
     
     const redirectUrl = `${baseUrl}/api/cashfree/redirect?order_id={order_id}&return_path=${returnPath || '/donate'}`;
 
+    // 🌟 3. DYNAMIC PAYLOAD CREATION (The Fix)
+    const payload: any = {
+      order_id: orderId,
+      order_amount: finalAmount,
+      order_currency: 'INR',
+      customer_details: {
+        customer_id: phone ? `cust_${phone}` : `cust_anon_${Date.now()}`,
+        customer_phone: phone || '9999999999',
+        customer_name: name || 'Bhakt',
+      },
+      order_tags: {
+        orderType: orderType,
+        bhajanCount: String(bhajanCount)
+      }
+    };
+
+    // 🚨 THE MAGIC FIX: Only pass 'return_url' for normal donations.
+    // For e-books, we leave it out so the Cashfree modal simply closes 
+    // and lets our Frontend JS trigger the PDF generation seamlessly!
+    if (orderType === 'donation') {
+      payload.order_meta = {
+        return_url: redirectUrl
+      };
+    }
+
     const response = await fetch(`${process.env.CASHFREE_BASE_URL}/pg/orders`, {
       method: 'POST',
       headers: {
@@ -55,23 +80,7 @@ export async function POST(req: Request) {
         'x-client-secret': process.env.CASHFREE_CLIENT_SECRET!,
         'x-api-version': '2023-08-01',
       },
-      body: JSON.stringify({
-        order_id: orderId,
-        order_amount: finalAmount,
-        order_currency: 'INR',
-        customer_details: {
-          customer_id: phone ? `cust_${phone}` : `cust_anon_${Date.now()}`,
-          customer_phone: phone || '9999999999',
-          customer_name: name || 'Bhakt',
-        },
-        order_meta: {
-          return_url: redirectUrl, 
-        },
-        order_tags: {
-          orderType: orderType,
-          bhajanCount: String(bhajanCount)
-        }
-      }),
+      body: JSON.stringify(payload),
     });
 
     const data = await response.json();
