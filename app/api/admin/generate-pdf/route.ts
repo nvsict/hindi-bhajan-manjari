@@ -9,17 +9,16 @@ export async function POST(req: Request) {
     const { slug } = await req.json();
     if (!slug) return NextResponse.json({ error: 'Slug is required' }, { status: 400 });
 
-    // 🌟 Debug check for environment variables
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!serviceKey) {
-      throw new Error("SERVER CONFIG ERROR: SUPABASE_SERVICE_ROLE_KEY environment variable missing!");
+    if (!supabaseUrl || !serviceKey) {
+      throw new Error("SERVER CONFIG ERROR: Supabase URL or Service Role Key is missing!");
     }
 
-    // 🌟 Admin Client with Service Role Key to bypass all RLS / permissions
-    const supabaseAdmin = createClient(supabaseUrl!, serviceKey, {
-      auth: { persistSession: false }
+    // 🌟 Forcefully bypasses all RLS using the Service Role Master Key
+    const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false }
     });
 
     // 1. Fetch E-Book metadata from DB
