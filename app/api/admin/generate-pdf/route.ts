@@ -22,7 +22,12 @@ export async function POST(req: Request) {
       .eq('slug', slug)
       .single();
 
-    if (ebookErr || !ebook) throw new Error("ई-बुक डेटाबेस में नहीं मिली!");
+    // 🌟 FIX: Show exact database error if something is wrong
+    if (ebookErr) {
+      console.error("Supabase Error:", ebookErr);
+      throw new Error(`डेटाबेस एरर: ${ebookErr.message}`);
+    }
+    if (!ebook) throw new Error(`ई-बुक (${slug}) डेटाबेस में नहीं मिली!`);
 
     // 2. Fetch required Bhajans
     let query = supabaseAdmin.from('mv_bhajan_details').select('slug');
