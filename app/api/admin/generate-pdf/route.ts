@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js'; // 🌟 import change
+import { createClient } from '@supabase/supabase-js';
 import { createMultiBhajanDocument } from '@/lib/publication/content/selector';
 import { renderToPDFBuffer } from '@/lib/publication/renderers/pdf/puppeteerRenderer';
 import { ScriptLanguage } from '@/lib/publication/types';
 
-// 🌟 FIX: Use Service Role Key to bypass RLS for Admin operations
+// 🌟 Supabase Admin Client (Bypasses RLS using Service Role Key for background processing)
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // यह RLS को बायपास कर देगा
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 export async function POST(req: Request) {
@@ -22,7 +22,6 @@ export async function POST(req: Request) {
       .eq('slug', slug)
       .single();
 
-    // 🌟 FIX: Show exact database error if something is wrong
     if (ebookErr) {
       console.error("Supabase Error:", ebookErr);
       throw new Error(`डेटाबेस एरर: ${ebookErr.message}`);
@@ -71,21 +70,23 @@ export async function POST(req: Request) {
         upsert: true, 
       });
 
-    // 🌟 Throw exact storage error if it fails
     if (uploadErr) {
-        console.error("Storage Upload Error Details:", uploadErr);
-        throw new Error(`स्टोरेज में सेव नहीं हो सका: ${uploadErr.message}`);
+      console.error("Storage Upload Error Details:", uploadErr);
+      throw new Error(`स्टोरेज में सेव नहीं हो सका: ${uploadErr.message}`);
     }
 
     // 6. Get Public URL and update the database
     const { data: publicUrlData } = supabaseAdmin.storage.from('ebook_pdfs').getPublicUrl(fileName);
     const pdfUrl = publicUrlData.publicUrl;
 
-    const { error: updateErr } = await supabaseAdmin.from('ebook_templates').update({ pdf_url: pdfUrl }).eq('slug', slug);
+    const { error: updateErr } = await supabaseAdmin
+      .from('ebook_templates')
+      .update({ pdf_url: pdfUrl })
+      .eq('slug', slug);
     
     if (updateErr) {
-        console.error("Database Update Error Details:", updateErr);
-        throw new Error(`डेटाबेस अपडेट नहीं हो सका: ${updateErr.message}`);
+      console.error("Database Update Error Details:", updateErr);
+      throw new Error(`डेटाबेस अपडेट नहीं हो सका: ${updateErr.message}`);
     }
 
     return NextResponse.json({ success: true, url: pdfUrl });
