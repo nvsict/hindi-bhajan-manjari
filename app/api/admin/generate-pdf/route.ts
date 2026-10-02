@@ -4,16 +4,23 @@ import { createMultiBhajanDocument } from '@/lib/publication/content/selector';
 import { renderToPDFBuffer } from '@/lib/publication/renderers/pdf/puppeteerRenderer';
 import { ScriptLanguage } from '@/lib/publication/types';
 
-// 🌟 Supabase Admin Client (Bypasses RLS using Service Role Key for background processing)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function POST(req: Request) {
   try {
     const { slug } = await req.json();
     if (!slug) return NextResponse.json({ error: 'Slug is required' }, { status: 400 });
+
+    // 🌟 Debug check for environment variables
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!serviceKey) {
+      throw new Error("SERVER CONFIG ERROR: SUPABASE_SERVICE_ROLE_KEY environment variable missing!");
+    }
+
+    // 🌟 Admin Client with Service Role Key to bypass all RLS / permissions
+    const supabaseAdmin = createClient(supabaseUrl!, serviceKey, {
+      auth: { persistSession: false }
+    });
 
     // 1. Fetch E-Book metadata from DB
     const { data: ebook, error: ebookErr } = await supabaseAdmin
