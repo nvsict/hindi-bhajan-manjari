@@ -92,6 +92,7 @@ export async function renderToPDFBuffer(doc: PublicationDocument): Promise<Buffe
 
   // 🌟 FAST PATH: अगर ई-बुक छोटी है (<= CHUNK_SIZE), तो पुराने तरीके से सिंगल पास में रेंडर करें
   if (totalChapters <= CHUNK_SIZE) {
+    // यहाँ doc.chapters में सारे भजन हैं, तो अलग से allChapters पास करने की ज़रूरत नहीं है।
     const htmlContent = generatePrintHTML(doc);
     const pdfFormat = doc.config.pageSize?.toLowerCase() === 'a5' ? 'A5' : 'A4';
     const singlePdfBuffer = await renderHtmlChunkToPDF(htmlContent, pdfFormat);
@@ -120,16 +121,15 @@ export async function renderToPDFBuffer(doc: PublicationDocument): Promise<Buffe
     console.log(`[PDF BUILDER] Processing chunk ${i + 1} to ${Math.min(i + CHUNK_SIZE, totalChapters)}...`);
 
     // Create a temporary document just for this chunk.
-    // Important: We only pass the actual chapters for this chunk. 
-    // HTML Template needs to know if it's the FIRST chunk to render Cover & Index.
     const isFirstChunk = i === 0;
     
-    const chunkDoc: PublicationDocument = {
+    const chunkDoc: any = {
       ...doc,
       chapters: chunkChapters,
-      // Custom metadata flag so generatePrintHTML knows whether to print the cover/index
+      // 🌟 FIX: We pass ALL chapters here so the HTML Template can build a full 100% Index
+      allChapters: doc.chapters, 
       _isFirstChunk: isFirstChunk 
-    } as any; 
+    }; 
 
     // Generate HTML just for this subset
     const chunkHtml = generatePrintHTML(chunkDoc);

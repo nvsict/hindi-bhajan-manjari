@@ -34,11 +34,15 @@ function getScriptFontConfig(script: ScriptLanguage) {
 }
 
 export function generatePrintHTML(doc: any): string {
-  // 🌟 FIX: Added _isFirstChunk to handle large PDF chunking rendering properly
-  const { config, metadata, chapters, _isFirstChunk } = doc;
+  // 🌟 FIX: We now accept 'allChapters' for the Index, and 'chapters' for the actual body rendering.
+  // This solves the Custom Diary issue where the index was only showing 50 items.
+  const { config, metadata, chapters, allChapters, _isFirstChunk } = doc;
   
-  // Default to true if the flag is missing (for normal small PDFs)
+  // Default to true if the flag is missing (this ensures Admin Pre-generation works seamlessly)
   const shouldRenderCoverAndIndex = _isFirstChunk === undefined ? true : _isFirstChunk;
+
+  // For the Index, always use the FULL list of chapters if provided, otherwise fallback to standard chapters
+  const indexChaptersList = allChapters || chapters;
 
   // 1. Font setup
   const fontConfig = getScriptFontConfig(config.script);
@@ -56,9 +60,51 @@ export function generatePrintHTML(doc: any): string {
   const logoUrl = 'https://www.hindibhajanmanjari.com/logo.png'; 
 
   // ==========================================
-  // 🌟 SMART GROUPING ENGINE (By Deity)
+  // 🌟 ENGINE 1: FULL INDEX GROUPING (For Cover & Index)
   // ==========================================
-  const groupsMap = new Map<string, any[]>();
+  const fullGroupsMap = new Map<string, any[]>();
+  let fullGlobalCounter = 0;
+
+  indexChaptersList.forEach((chapter: any) => {
+    let deityName = 'विविध भजन (Miscellaneous)';
+    
+    if (chapter.deity) {
+      deityName = typeof chapter.deity === 'string' ? chapter.deity : (chapter.deity.name_hindi || chapter.deity.name || deityName);
+    } else if (chapter.metadata && chapter.metadata.deity) {
+      deityName = typeof chapter.metadata.deity === 'string' ? chapter.metadata.deity : (chapter.metadata.deity.name_hindi || chapter.metadata.deity.name || deityName);
+    } else if (chapter.categories && chapter.categories.length > 0) {
+      deityName = chapter.categories[0].name_hindi || chapter.categories[0].name || deityName;
+    }
+
+    if (!fullGroupsMap.has(deityName)) {
+      fullGroupsMap.set(deityName, []);
+    }
+    
+    fullGroupsMap.get(deityName)!.push({
+      ...chapter,
+      globalIndex: fullGlobalCounter++, // Consistent ID generation across the whole book
+      extractedDeity: deityName
+    });
+  });
+
+  const fullGroupedIndex: { deity: string, chapters: any[] }[] = [];
+  fullGroupsMap.forEach((bhajans, deity) => {
+    fullGroupedIndex.push({ deity, chapters: bhajans });
+  });
+
+  // ==========================================
+  // 🌟 ENGINE 2: BODY RENDER GROUPING (For Actual PDF Pages)
+  // ==========================================
+  // We need to match the exact same globalIndex generated above so the links connect.
+  const bodyGroupsMap = new Map<string, any[]>();
+  
+  // Find the global index offset for this specific chunk
+  let startingOffset = 0;
+  if (allChapters && chapters.length > 0) {
+     startingOffset = allChapters.findIndex((ch: any) => ch.slug === chapters[0].slug);
+     if(startingOffset === -1) startingOffset = 0;
+  }
+  let currentChunkGlobalCounter = startingOffset;
 
   chapters.forEach((chapter: any) => {
     let deityName = 'विविध भजन (Miscellaneous)';
@@ -71,23 +117,21 @@ export function generatePrintHTML(doc: any): string {
       deityName = chapter.categories[0].name_hindi || chapter.categories[0].name || deityName;
     }
 
-    if (!groupsMap.has(deityName)) {
-      groupsMap.set(deityName, []);
+    if (!bodyGroupsMap.has(deityName)) {
+      bodyGroupsMap.set(deityName, []);
     }
-    groupsMap.get(deityName)!.push(chapter);
+    bodyGroupsMap.get(deityName)!.push({
+      ...chapter,
+      globalIndex: currentChunkGlobalCounter++, // Matches the Index link
+      extractedDeity: deityName
+    });
   });
 
-  const groupedIndex: { deity: string, chapters: any[] }[] = [];
-  let globalCounter = 0;
-
-  groupsMap.forEach((bhajans, deity) => {
-    const processedBhajans = bhajans.map(bhajan => ({
-      ...bhajan,
-      globalIndex: globalCounter++,
-      extractedDeity: deity
-    }));
-    groupedIndex.push({ deity, chapters: processedBhajans });
+  const bodyGroupedIndex: { deity: string, chapters: any[] }[] = [];
+  bodyGroupsMap.forEach((bhajans, deity) => {
+    bodyGroupedIndex.push({ deity, chapters: bhajans });
   });
+
 
   return `<!DOCTYPE html>
 <html lang="hi">
@@ -105,7 +149,7 @@ export function generatePrintHTML(doc: any): string {
       size: ${config.pageSize || 'A4'} portrait; 
       margin: ${l.pageMargin}; 
       
-      /* 🌟 UX Fix 1: Page Numbers (Standard Paged Media CSS) */
+      /* 🌟 UX Fix 1: Page Numbers */
       @bottom-right {
         content: "Page " counter(page);
         font-family: '${fontConfig.name}', sans-serif;
@@ -173,7 +217,6 @@ export function generatePrintHTML(doc: any): string {
       font-weight: 600; 
       color: ${t.accentDark}; 
     }
-    /* 🌟 UX Fix 5: Footer Clickable styling */
     .running-footer a {
       color: inherit;
       text-decoration: none;
@@ -307,7 +350,7 @@ export function generatePrintHTML(doc: any): string {
     }
 
     /* =======================================
-       🌟 UX Fix 3: DEITY DIVIDER PAGE STYLES 
+       🌟 DEITY DIVIDER PAGE STYLES 
        ======================================= */
     .deity-divider-page {
       position: relative;
@@ -397,7 +440,7 @@ export function generatePrintHTML(doc: any): string {
       margin: 0 10px; 
     }
 
-    /* 🌟 UX Fix 2: BACK TO INDEX BUTTON */
+    /* 🌟 BACK TO INDEX BUTTON */
     .back-to-index {
       display: inline-block;
       margin-top: 30px;
@@ -458,13 +501,12 @@ export function generatePrintHTML(doc: any): string {
     <div class="page-frame"></div>
     <div class="page-frame-inner"></div>
     <div class="watermark-center">ॐ</div>
-    <!-- 🌟 UX Fix 5: Clickable Footer Link -->
     <div class="running-footer">॥ <a href="https://www.hindibhajanmanjari.com" target="_blank">hindibhajanmanjari.com</a> ॥</div>
   </div>
 
   ${shouldRenderCoverAndIndex ? `
     <!-- =======================================
-         🌟 1. BEAUTIFUL COVER PAGE (WITH LOGO)
+         🌟 1. BEAUTIFUL COVER PAGE
          ======================================= -->
     <div class="cover-page">
       <div class="cover-border">
@@ -486,13 +528,12 @@ export function generatePrintHTML(doc: any): string {
     </div>
 
     <!-- =======================================
-         🌟 2. SMART GROUPED INDEX (WITH ID FOR NAVIGATION)
+         🌟 2. FULL INDEX (Uses allChapters to show 100% of the book)
          ======================================= -->
-    <!-- 🌟 ID Added Here For 'Back To Index' Linking -->
     <div id="index-page" class="index-page">
       <div class="index-heading">अनुक्रमणिका (Index)</div>
       
-      ${groupedIndex.map(group => `
+      ${fullGroupedIndex.map(group => `
         <div class="index-deity-section">
           <div class="index-deity-header">॥ ${group.deity} ॥</div>
           <div class="index-list">
@@ -506,16 +547,15 @@ export function generatePrintHTML(doc: any): string {
           </div>
         </div>
       `).join('')}
-      
     </div>
   ` : ''}
 
   <!-- =======================================
-       🌟 3. ORDERED CHAPTERS & DIVIDERS
+       🌟 3. ORDERED CHAPTERS (Uses chunked chapters)
        ======================================= -->
-  ${groupedIndex.map(group => `
+  ${bodyGroupedIndex.map(group => `
     
-    <!-- 🌟 UX Fix 3: DEITY SEPARATOR PAGE -->
+    <!-- 🌟 DEITY SEPARATOR PAGE -->
     <div class="deity-divider-page">
       <div class="deity-divider-border">
         <div class="ornamental-line" style="width: 100%; margin: 0 auto 15px auto;">
@@ -553,7 +593,7 @@ export function generatePrintHTML(doc: any): string {
           `).join('')}
         </div>
 
-        <!-- 🌟 UX Fix 2: BACK TO INDEX BUTTON (At the end of each Bhajan) -->
+        <!-- 🌟 BACK TO INDEX BUTTON -->
         <div style="text-align: center; margin-top: 25px; page-break-inside: avoid;">
           <a href="#index-page" class="back-to-index">↑ विषय सूची (Index) पर जाएँ</a>
         </div>

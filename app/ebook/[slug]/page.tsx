@@ -3,52 +3,40 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/utils/supabase';
 import Image from 'next/image';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { load } from '@cashfreepayments/cashfree-js';
-import { createMultiBhajanDocument } from '@/lib/publication/content/selector';
-import { ScriptLanguage } from '@/lib/publication/types';
 import * as fbq from '@/lib/fbpixel'; // 🌟 IMPORTED META PIXEL HELPER
 import {
   FaFilePdf, FaSpinner, FaRedo, FaExclamationTriangle,
   FaRupeeSign, FaShieldAlt, FaWhatsapp, FaCheckCircle,
-  FaLanguage, FaBook, FaPalette, FaUser, FaPhoneAlt,
-  FaArrowLeft, FaCheckSquare, FaRegSquare, FaLock,
+  FaBook, FaUser, FaPhoneAlt,
+  FaArrowLeft, FaCheckSquare, FaLock,
   FaDownload, FaFire
 } from 'react-icons/fa';
 import { HiSparkles } from 'react-icons/hi';
 
-type FlowStatus = 'idle' | 'payment_pending' | 'building' | 'rendering' | 'ready' | 'error';
-
-// 🎨 Theme options (color dots shown as chips)
-const THEMES = [
-  { id: 'default', label: 'क्लासिक', sub: 'सफेद', dot: 'bg-white border-2 border-gray-300' },
-  { id: 'sawan', label: 'सावन', sub: 'हरा', dot: 'bg-green-500' },
-  { id: 'navratri', label: 'नवरात्रि', sub: 'लाल', dot: 'bg-red-500' },
-];
+type FlowStatus = 'idle' | 'payment_pending' | 'ready' | 'error';
 
 export default function EbookProductCheckout() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const slug = params?.slug as string;
 
   // --- DATA STATE ---
   const [loading, setLoading] = useState(true);
   const [ebookDetails, setEbookDetails] = useState<any>(null);
   const [bhajans, setBhajans] = useState<any[]>([]);
-  const [selectedSlugs, setSelectedSlugs] = useState<string[]>([]);
 
   // --- CHECKOUT STATE ---
   const [buyerName, setBuyerName] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
-  const [script, setScript] = useState<ScriptLanguage>('devanagari');
-  const [theme, setTheme] = useState<string>('default');
 
   // --- SYSTEM STATE ---
   const [flowStatus, setFlowStatus] = useState<FlowStatus>('idle');
   const [errorMessage, setErrorMessage] = useState("");
   const [isPaid, setIsPaid] = useState(false);
   const [savedOrderId, setSavedOrderId] = useState<string | null>(null);
-  const lastDownloadUrl = useRef<string | null>(null);
 
   // --- MOBILE STICKY BAR STATE ---
   const checkoutRef = useRef<HTMLDivElement>(null);
@@ -70,7 +58,7 @@ export default function EbookProductCheckout() {
         if (ebookErr || !ebook) throw new Error("ई-बुक नहीं मिली!");
         setEbookDetails(ebook);
 
-        let query = supabase.from('mv_bhajan_details').select('slug, title_hindi, title_hinglish');
+        let query = supabase.from('mv_bhajan_details').select('slug, title_hindi');
 
         if (ebook.filter_deity_name) {
           query = query.eq('deity->>name_hindi', ebook.filter_deity_name);
@@ -82,11 +70,9 @@ export default function EbookProductCheckout() {
         query = query.limit(ebook.target_count);
 
         const { data: bhajanList, error: bhajanErr } = await query;
-
         if (bhajanErr) throw new Error("भजन सूची लोड नहीं हो सकी।");
 
         setBhajans(bhajanList || []);
-        setSelectedSlugs(bhajanList?.map(b => b.slug) || []);
 
       } catch (err: any) {
         setErrorMessage(err.message);
@@ -98,9 +84,26 @@ export default function EbookProductCheckout() {
     fetchEbookData();
   }, [slug]);
 
+  // 🌟 NEW: RECOVERY ENGINE (Handles Instagram Redirects)
+  const isVerify = searchParams.get('verify') === 'true';
+  useEffect(() => {
+    if (isVerify && ebookDetails && ebookDetails.pdf_url) {
+      const savedState = localStorage.getItem('pending_ebook_order');
+      if (savedState) {
+        try {
+          // If we are here, it means Cashfree redirected back after a successful payment
+          setIsPaid(true);
+          setFlowStatus('ready');
+          triggerDownload(ebookDetails.pdf_url, ebookDetails.title);
+          localStorage.removeItem('pending_ebook_order'); // Clean up
+        } catch(e) {}
+      }
+    }
+  }, [isVerify, ebookDetails]);
+
   // 🌟 META PIXEL: Fire ViewContent when the ebook loads
   useEffect(() => {
-    if (ebookDetails && bhajans.length > 0) {
+    if (ebookDetails && bhajans.length > 0 && !isVerify) {
       fbq.event('ViewContent', {
         content_name: ebookDetails.title,
         content_category: 'Ebook',
@@ -110,7 +113,7 @@ export default function EbookProductCheckout() {
         currency: 'INR'
       });
     }
-  }, [ebookDetails, bhajans.length, slug]);
+  }, [ebookDetails, bhajans.length, slug, isVerify]);
 
   // 2. 📱 Watch the checkout card: hide the sticky bar while the card is on screen
   useEffect(() => {
@@ -124,14 +127,6 @@ export default function EbookProductCheckout() {
     return () => observer.disconnect();
   }, [loading, ebookDetails]);
 
-  // 🌟 TOGGLE SPECIFIC BHAJANS
-  const toggleBhajan = (bhajanSlug: string) => {
-    setSelectedSlugs(prev =>
-      prev.includes(bhajanSlug)
-        ? prev.filter(s => s !== bhajanSlug)
-        : [...prev, bhajanSlug]
-    );
-  };
 
   // 🌟 WHATSAPP SUPPORT HANDLER
   const handleSupportClick = () => {
@@ -144,16 +139,19 @@ export default function EbookProductCheckout() {
     checkoutRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
-  // 🌟 CASHFREE PAYMENT & IN-PLACE PDF GENERATION
+  // 🌟 CASHFREE PAYMENT & INSTANT PDF SERVING
   const handleCheckoutAndDownload = async () => {
-    // ✅ FIX: अगर पेमेंट पहले ही हो चुका है तो दोबारा पेमेंट नहीं, सिर्फ PDF दोबारा बनाओ
-    if (isPaid) {
+    // ✅ FIX: अगर पेमेंट पहले ही हो चुका है तो दोबारा पेमेंट नहीं, सीधा डाउनलोड लिंक
+    if (isPaid && ebookDetails.pdf_url) {
       setErrorMessage("");
-      await generateEbookPDF(selectedSlugs, ebookDetails.title, script, theme);
+      triggerDownload(ebookDetails.pdf_url, ebookDetails.title);
       return;
     }
 
-    if (selectedSlugs.length === 0) return alert("कृपया कम से कम 1 भजन चुनें।");
+    if (!ebookDetails.pdf_url) {
+      alert("असुविधा के लिए खेद है, यह ई-बुक अभी अपडेट हो रही है। कृपया थोड़ी देर बाद प्रयास करें।");
+      return;
+    }
 
     // 🌟 FORM VALIDATION
     if (!buyerName.trim()) {
@@ -170,7 +168,7 @@ export default function EbookProductCheckout() {
     setErrorMessage("");
     setFlowStatus('payment_pending');
 
-    // 🌟 META PIXEL: Fire InitiateCheckout when they click buy and pass validation
+    // 🌟 META PIXEL: Fire InitiateCheckout
     fbq.event('InitiateCheckout', {
       content_name: ebookDetails.title,
       content_ids: [slug],
@@ -178,6 +176,9 @@ export default function EbookProductCheckout() {
       currency: 'INR',
       num_items: 1
     });
+
+    // 🌟 SAVE STATE TO SURVIVE REDIRECTS (Instagram Browser Fix)
+    localStorage.setItem('pending_ebook_order', JSON.stringify({ pending: true }));
 
     const originalBtoa = window.btoa;
 
@@ -189,10 +190,9 @@ export default function EbookProductCheckout() {
         body: JSON.stringify({ 
           type: 'prebuilt_ebook', // Tells backend to use FIXED pricing
           amount: ebookDetails.price,
-          count: selectedSlugs.length,
           name: buyerName.trim(), 
           phone: buyerPhone.trim(),
-          returnPath: `/ebook/${slug}`
+          returnPath: `/ebook/${slug}?verify=true` // Tells our system to run Recovery Engine when they return
         })
       });
 
@@ -202,15 +202,13 @@ export default function EbookProductCheckout() {
       const orderId: string = orderData.orderId;
       setSavedOrderId(orderId);
 
-      // ========================================================
-      // 🌟 FIX: BTOA HACK (To prevent Hindi Font Crash in Cashfree)
-      // ========================================================
+      // BTOA HACK
       window.btoa = function (str) {
         try { return originalBtoa(str); }
         catch (e) { return originalBtoa(unescape(encodeURIComponent(str))); }
       };
 
-      const cashfree = await load({ mode: process.env.NEXT_PUBLIC_CASHFREE_MODE || 'sandbox' });
+      const cashfree = await load({ mode: process.env.NEXT_PUBLIC_CASHFREE_MODE || 'production' });
 
       // 3. Open Checkout in Modal
       const result: any = await cashfree.checkout({
@@ -221,15 +219,14 @@ export default function EbookProductCheckout() {
       // Restore original btoa
       window.btoa = originalBtoa;
 
+      // 🌟 Handle Result
       if (result?.error) {
-        // 🚨 पेमेंट विफल/रद्द
         setFlowStatus('error');
         setErrorMessage(result.error.message || "भुगतान रद्द कर दिया गया या विफल रहा।");
       } else if (result?.paymentDetails) {
-        // 🌟 PAYMENT SUCCESS! PDF सीधे बनाओ
+        // 🌟 PAYMENT SUCCESS! INSTANT DOWNLOAD!
         setIsPaid(true);
 
-        // 🌟 META PIXEL: Fire Purchase when payment is successful
         fbq.event('Purchase', {
           content_name: ebookDetails.title,
           content_ids: [slug],
@@ -237,9 +234,13 @@ export default function EbookProductCheckout() {
           currency: 'INR'
         }, { eventID: orderId });
 
-        await generateEbookPDF(selectedSlugs, ebookDetails.title, script, theme);
+        setFlowStatus('ready');
+        triggerDownload(ebookDetails.pdf_url, ebookDetails.title);
+        
+      } else if (result?.redirect) {
+        setFlowStatus('payment_pending');
+        setErrorMessage("पेमेंट वेरिफाई हो रहा है, कृपया पेज रीलोड होने का इंतज़ार करें...");
       } else {
-        // यूज़र ने बिना किसी नतीजे के विंडो बंद कर दी
         setFlowStatus('idle');
       }
 
@@ -251,52 +252,20 @@ export default function EbookProductCheckout() {
     }
   };
 
-  // 🌟 PUPPETEER PDF GENERATOR LOGIC
-  const generateEbookPDF = async (slugs: string[], title: string, userScript: ScriptLanguage, userTheme: string) => {
-    setFlowStatus('building');
-    try {
-      const opts: any = {
-        script: userScript,
-        theme: userTheme,
-        themeName: userTheme,
-        pageSize: 'A4',
-        includeMeaning: true,
-        fontSizeScale: 1.0,
-        customTitle: title
-      };
-
-      const model = await createMultiBhajanDocument(title, slugs, opts);
-      if (!model) throw new Error("डेटा तैयार नहीं हो सका।");
-
-      setFlowStatus('rendering');
-
-      const response = await fetch('/api/export/pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(model),
-      });
-
-      if (!response.ok) throw new Error("सर्वर एरर (PDF Rendering)");
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      lastDownloadUrl.current = url;
-      triggerDownload(url, title);
-      setFlowStatus('ready');
-
-    } catch (err: any) {
-      setFlowStatus('error');
-      setErrorMessage(err.message || "PDF बनाने में समस्या आई। आपका भुगतान सुरक्षित है, कृपया 'PDF दोबारा बनाएँ' दबाएँ या सहायता लें।");
-    }
-  };
-
+  // 🌟 INSTANT DOWNLOAD HANDLER (Instagram Safe)
   const triggerDownload = (url: string, title: string) => {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${title}_BhajanManjari.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    const isWebView = /Instagram|FBAN|FBAV|LinkedIn/i.test(navigator.userAgent || '');
+    if (isWebView) {
+      // Instagram blocks a.click(). Opening directly so user can read/save it.
+      window.location.href = url;
+    } else {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title}_BhajanManjari.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
   };
 
   if (loading) {
@@ -316,7 +285,7 @@ export default function EbookProductCheckout() {
     );
   }
 
-  const inputStyles = "w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-base font-bold text-gray-900 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:bg-white transition-all shadow-sm";
+  const inputStyles = "w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-base font-bold text-gray-900 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:bg-white transition-all shadow-sm font-hind";
 
   // --- DERIVED VALUES ---
   const price = Number(ebookDetails.price) || 0;
@@ -324,7 +293,7 @@ export default function EbookProductCheckout() {
   const hasDiscount = originalPrice > price && price > 0;
   const savings = hasDiscount ? originalPrice - price : 0;
   const discountPct = hasDiscount ? Math.round((savings / originalPrice) * 100) : 0;
-  const downloadCount = Number(ebookDetails.download_count) || 0; // Supabase column (optional)
+  const downloadCount = Number(ebookDetails.download_count) || 0; 
   const showStickyBar =
     !checkoutVisible &&
     (flowStatus === 'idle' || flowStatus === 'payment_pending' || flowStatus === 'error');
@@ -340,10 +309,10 @@ export default function EbookProductCheckout() {
             <FaArrowLeft className="text-sm sm:text-base" />
           </button>
           <div className="flex-1">
-            <h1 className="text-lg sm:text-2xl font-black text-gray-900 truncate tracking-tight">
+            <h1 className="text-lg sm:text-2xl font-black text-gray-900 truncate tracking-tight font-hind">
               {ebookDetails.title}
             </h1>
-            <p className="text-[10px] sm:text-xs font-bold text-green-600 uppercase tracking-widest">
+            <p className="text-[10px] sm:text-xs font-bold text-green-600 uppercase tracking-widest font-hind">
               <FaLock className="inline mb-0.5 mr-1" /> सुरक्षित चेकआउट
             </p>
           </div>
@@ -369,19 +338,19 @@ export default function EbookProductCheckout() {
                 </div>
 
                 <div className="flex-1 text-center sm:text-left z-10 pt-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-red-50 to-orange-50 border border-red-100 text-red-600 text-[11px] font-black uppercase tracking-widest mb-4 shadow-sm">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-red-50 to-orange-50 border border-red-100 text-red-600 text-[11px] font-black uppercase tracking-widest mb-4 shadow-sm font-hind">
                     <HiSparkles size={14} className="animate-pulse" /> {ebookDetails.tag || "Best Seller"}
                   </span>
-                  <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-3 leading-[1.15] tracking-tight">
+                  <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-3 leading-[1.15] tracking-tight font-hind">
                     {ebookDetails.title}
                   </h2>
-                  <p className="text-gray-600 font-medium mb-5 text-base sm:text-lg leading-relaxed">
+                  <p className="text-gray-600 font-medium mb-5 text-base sm:text-lg leading-relaxed font-hind">
                     {ebookDetails.subtitle}
                   </p>
 
                   {/* ⭐ SOCIAL PROOF */}
                   {downloadCount > 0 && (
-                    <div className="inline-flex items-center gap-2 mb-5 px-4 py-2 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-sm font-black shadow-sm">
+                    <div className="inline-flex items-center gap-2 mb-5 px-4 py-2 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-sm font-black shadow-sm font-hind">
                       <FaFire className="text-orange-500" />
                       {downloadCount}+ भक्त यह ई-बुक डाउनलोड कर चुके हैं
                     </div>
@@ -390,14 +359,14 @@ export default function EbookProductCheckout() {
                   <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
                     <div className="bg-orange-50/80 border border-orange-100 rounded-xl px-4 py-2.5 flex items-center gap-2.5 shadow-sm">
                       <FaBook className="text-orange-500 text-lg" />
-                      <div className="text-left">
+                      <div className="text-left font-hind">
                         <p className="text-[10px] text-gray-500 font-bold uppercase leading-none mb-0.5">संग्रह</p>
                         <p className="text-sm font-black text-gray-900 leading-none">{bhajans.length} भजन</p>
                       </div>
                     </div>
                     <div className="bg-orange-50/80 border border-orange-100 rounded-xl px-4 py-2.5 flex items-center gap-2.5 shadow-sm">
                       <FaFilePdf className="text-orange-500 text-lg" />
-                      <div className="text-left">
+                      <div className="text-left font-hind">
                         <p className="text-[10px] text-gray-500 font-bold uppercase leading-none mb-0.5">फॉर्मेट</p>
                         <p className="text-sm font-black text-gray-900 leading-none">डिजिटल PDF</p>
                       </div>
@@ -413,7 +382,7 @@ export default function EbookProductCheckout() {
                   'विज्ञापन मुक्त, बिना किसी रुकावट',
                   'प्रिंट के लिए बेस्ट (A4 प्रिंट-रेडी)',
                 ].map((point) => (
-                  <li key={point} className="flex items-start gap-2.5 text-sm font-bold text-gray-800 leading-snug">
+                  <li key={point} className="flex items-start gap-2.5 text-sm font-bold text-gray-800 leading-snug font-hind">
                     <FaCheckCircle className="text-green-500 text-lg shrink-0 mt-px" />
                     <span>{point}</span>
                   </li>
@@ -425,32 +394,27 @@ export default function EbookProductCheckout() {
             <div className="bg-white rounded-[2rem] p-6 sm:p-10 shadow-lg shadow-gray-200/40 border border-gray-100">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div>
-                  <h3 className="text-2xl font-black text-gray-900 tracking-tight mb-1">
+                  <h3 className="text-2xl font-black text-gray-900 tracking-tight mb-1 font-hind">
                     ई-बुक की विषय सूची
                   </h3>
-                  <p className="text-gray-500 text-sm font-medium">
-                    आप चाहें तो किसी भजन को हटा (Untick) कर अपनी PDF कस्टमाइज़ कर सकते हैं।
+                  <p className="text-gray-500 text-sm font-medium font-hind">
+                    इस पुस्तक में निम्नलिखित भजन शामिल हैं:
                   </p>
                 </div>
-                <span className="shrink-0 text-sm font-black text-orange-700 bg-orange-100 border border-orange-200 px-4 py-2 rounded-xl shadow-sm self-start sm:self-auto">
-                  चयनित: {selectedSlugs.length}/{bhajans.length}
-                </span>
               </div>
 
               <div className="bg-gray-50 rounded-2xl p-3 h-[450px] overflow-y-auto custom-scrollbar border border-gray-200 shadow-inner">
                 {bhajans.map((bhajan, idx) => {
-                  const isSelected = selectedSlugs.includes(bhajan.slug);
                   return (
                     <div
                       key={bhajan.slug}
-                      onClick={() => toggleBhajan(bhajan.slug)}
-                      className={`flex items-center gap-4 p-4 mb-2 rounded-xl cursor-pointer transition-all duration-300 ${isSelected ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-100 hover:border-orange-300 transform hover:-translate-y-0.5' : 'bg-transparent hover:bg-gray-200/60 opacity-60 grayscale hover:grayscale-0'}`}
+                      className="flex items-center gap-4 p-4 mb-2 rounded-xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-100"
                     >
-                      <div className={`text-xl shrink-0 transition-colors ${isSelected ? 'text-orange-500' : 'text-gray-400'}`}>
-                        {isSelected ? <FaCheckSquare /> : <FaRegSquare />}
+                      <div className="text-xl shrink-0 text-orange-500">
+                        <FaCheckSquare />
                       </div>
-                      <div className="text-xs font-black text-gray-400 w-6 text-center shrink-0">{idx + 1}.</div>
-                      <div className={`font-bold text-base truncate flex-1 transition-colors ${isSelected ? 'text-gray-800' : 'text-gray-500 line-through'}`}>
+                      <div className="text-xs font-black text-gray-400 w-6 text-center shrink-0 font-hind">{idx + 1}.</div>
+                      <div className="font-bold text-base truncate flex-1 text-gray-800 font-hind">
                         {bhajan.title_hindi}
                       </div>
                     </div>
@@ -472,7 +436,7 @@ export default function EbookProductCheckout() {
 
                 {/* PRICING HEADER */}
                 <div className="flex items-end justify-between mb-8 pb-8 border-b border-gray-100">
-                  <div>
+                  <div className="font-hind">
                     <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">ऑफर प्राइस</p>
                     <div className="flex items-baseline gap-3">
                       <span className="text-5xl font-black text-gray-900 flex items-center tracking-tighter">
@@ -484,7 +448,7 @@ export default function EbookProductCheckout() {
                     </div>
                   </div>
                   {hasDiscount && (
-                    <div className="text-right">
+                    <div className="text-right font-hind">
                       <div className="inline-flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 text-green-700 px-4 py-2 rounded-xl shadow-sm relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
                         <span className="text-xl font-black leading-none mt-2">{discountPct}% OFF</span>
@@ -498,49 +462,9 @@ export default function EbookProductCheckout() {
                 {(flowStatus === 'idle' || flowStatus === 'payment_pending' || flowStatus === 'error') && (
                   <div className="space-y-6 animate-in fade-in duration-500">
 
-                    {/* CUSTOMIZATION PREFS */}
-                    <div className="space-y-4">
-                      <div className="bg-gray-50/50 p-3 rounded-2xl border border-gray-100">
-                        <label className="flex items-center gap-2 text-xs font-bold text-gray-500 mb-3 uppercase tracking-widest">
-                          <FaLanguage className="text-orange-500 text-sm" /> भाषा
-                        </label>
-                        <select value={script} onChange={(e) => setScript(e.target.value as ScriptLanguage)} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-3 text-sm font-bold text-gray-800 outline-none focus:border-orange-500 shadow-sm cursor-pointer">
-                          <option value="devanagari">हिंदी (Devanagari)</option>
-                          <option value="gujarati">ગુજરાતી (Gujarati)</option>
-                          <option value="hinglish">English (Hinglish)</option>
-                        </select>
-                      </div>
-
-                      <div className="bg-gray-50/50 p-3 rounded-2xl border border-gray-100">
-                        <label className="flex items-center gap-2 text-xs font-bold text-gray-500 mb-3 uppercase tracking-widest">
-                          <FaPalette className="text-orange-500 text-sm" /> डिज़ाइन
-                        </label>
-                        <div className="grid grid-cols-3 gap-2">
-                          {THEMES.map((t) => {
-                            const active = theme === t.id;
-                            return (
-                              <button
-                                key={t.id}
-                                type="button"
-                                onClick={() => setTheme(t.id)}
-                                aria-pressed={active}
-                                className={`flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl border-2 transition-all active:scale-95 ${active ? 'border-orange-500 bg-orange-50 shadow-sm' : 'border-gray-200 bg-white hover:border-orange-200'}`}
-                              >
-                                <span className={`w-6 h-6 rounded-full ${t.dot} ${active ? 'ring-2 ring-offset-2 ring-orange-400' : ''}`}></span>
-                                <span className={`text-xs font-black leading-none ${active ? 'text-orange-700' : 'text-gray-700'}`}>{t.label}</span>
-                                <span className="text-[10px] font-bold text-gray-400 leading-none">{t.sub}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-6"></div>
-
                     {/* BUYER DETAILS */}
                     {!isPaid && (
-                      <div className="space-y-5">
+                      <div className="space-y-5 font-hind">
                         <label className="block text-sm font-black text-gray-800">प्राप्तकर्ता का विवरण <span className="text-red-500">*</span></label>
                         <div className="relative group">
                           <FaUser className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
@@ -559,7 +483,7 @@ export default function EbookProductCheckout() {
 
                     {/* ERROR ALERTS */}
                     {errorMessage && (
-                      <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-sm font-bold rounded-2xl flex items-start gap-3 leading-relaxed shadow-sm">
+                      <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-sm font-bold rounded-2xl flex items-start gap-3 leading-relaxed shadow-sm font-hind">
                         <FaExclamationTriangle className="shrink-0 mt-0.5 text-red-500 text-lg" />
                         <span>{errorMessage}</span>
                       </div>
@@ -567,13 +491,12 @@ export default function EbookProductCheckout() {
 
                     {/* 🌟 CTA BUTTONS */}
                     {flowStatus === 'error' ? (
-                      <div className="mt-6 space-y-3">
+                      <div className="mt-6 space-y-3 font-hind">
                         <button
                           onClick={handleCheckoutAndDownload}
-                          disabled={selectedSlugs.length === 0}
                           className="w-full bg-gray-900 hover:bg-black text-white font-black text-lg py-4.5 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed h-16"
                         >
-                          <FaRedo /> {paidButFailed ? 'PDF दोबारा बनाएँ' : 'पुनः भुगतान का प्रयास करें'}
+                          <FaRedo /> {paidButFailed ? 'PDF दोबारा डाउनलोड करें' : 'पुनः भुगतान का प्रयास करें'}
                         </button>
                         <button
                           onClick={handleSupportClick}
@@ -585,8 +508,8 @@ export default function EbookProductCheckout() {
                     ) : (
                       <button
                         onClick={handleCheckoutAndDownload}
-                        disabled={flowStatus === 'payment_pending' || selectedSlugs.length === 0}
-                        className="w-full mt-6 bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-700 hover:to-amber-600 text-white font-black text-xl py-4.5 rounded-2xl shadow-[0_10px_30px_-5px_rgba(234,88,12,0.4)] transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed h-16"
+                        disabled={flowStatus === 'payment_pending'}
+                        className="w-full mt-6 bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-700 hover:to-amber-600 text-white font-black text-xl py-4.5 rounded-2xl shadow-[0_10px_30px_-5px_rgba(234,88,12,0.4)] transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed h-16 font-hind"
                       >
                         {flowStatus === 'payment_pending' ? (
                           <><FaSpinner className="animate-spin text-2xl" /> सुरक्षित कनेक्शन...</>
@@ -597,7 +520,7 @@ export default function EbookProductCheckout() {
                     )}
 
                     {/* 🌟 TRUST BADGES SECTION */}
-                    <div className="mt-8 pt-6 border-t border-gray-100">
+                    <div className="mt-8 pt-6 border-t border-gray-100 font-hind">
                       <div className="flex flex-col items-center gap-4">
                         <div className="flex items-center gap-2 text-xs font-black text-gray-500 uppercase tracking-widest">
                           <FaShieldAlt className="text-green-600 text-sm" /> 100% Secure Cashfree Payments
@@ -620,37 +543,26 @@ export default function EbookProductCheckout() {
                   </div>
                 )}
 
-                {/* FLOW: BUILDING / RENDERING / READY */}
-                {(flowStatus === 'building' || flowStatus === 'rendering' || flowStatus === 'ready') && (
-                  <div className="py-10 flex flex-col items-center text-center animate-in zoom-in duration-700">
+                {/* FLOW: READY (Instantly Served) */}
+                {flowStatus === 'ready' && (
+                  <div className="py-10 flex flex-col items-center text-center animate-in zoom-in duration-700 font-hind">
+                    <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-8 shadow-inner border-4 border-white outline outline-4 outline-green-50">
+                      <FaCheckCircle className="text-5xl text-green-500" />
+                    </div>
+                    <h3 className="text-3xl font-black mb-3 text-gray-900 tracking-tight">सफलतापूर्वक तैयार!</h3>
+                    <p className="text-gray-500 text-base font-medium mb-10">आपका डाउनलोड स्वतः शुरू हो गया होगा।</p>
 
-                    {flowStatus !== 'ready' ? (
-                      <>
-                        <div className="relative w-24 h-24 mb-8">
-                          <div className="absolute inset-0 border-4 border-orange-100 rounded-full"></div>
-                          <div className="absolute inset-0 border-4 border-orange-500 rounded-full border-t-transparent animate-spin"></div>
-                          <FaFilePdf className="absolute inset-0 m-auto text-3xl text-orange-500 animate-pulse" />
-                        </div>
-                        <h3 className="text-2xl font-black mb-3 text-gray-900 tracking-tight">
-                          {flowStatus === 'building' ? 'भजनों को कस्टमाइज़ किया जा रहा है...' : 'PDF ई-बुक तैयार हो रही है...'}
-                        </h3>
-                        <p className="text-gray-500 text-base font-medium">कृपया पेज को बंद या रिफ्रेश न करें। बस कुछ सेकंड्स...</p>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-8 shadow-inner border-4 border-white outline outline-4 outline-green-50">
-                          <FaCheckCircle className="text-5xl text-green-500" />
-                        </div>
-                        <h3 className="text-3xl font-black mb-3 text-gray-900 tracking-tight">सफलतापूर्वक तैयार!</h3>
-                        <p className="text-gray-500 text-base font-medium mb-10">आपका डाउनलोड स्वतः शुरू हो गया होगा।</p>
-
-                        <button
-                          onClick={() => { if (lastDownloadUrl.current) triggerDownload(lastDownloadUrl.current, ebookDetails.title); }}
-                          className="w-full bg-gray-900 hover:bg-black text-white px-6 py-4.5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 shadow-2xl active:scale-95 transition-all"
-                        >
-                          <FaFilePdf className="text-xl" /> PDF पुनः डाउनलोड करें
-                        </button>
-                      </>
+                    {/* 🌟 SOLID LINK FOR INSTAGRAM BROWSER */}
+                    {ebookDetails.pdf_url && (
+                      <a 
+                        href={ebookDetails.pdf_url} 
+                        download={`${ebookDetails.title}_BhajanManjari.pdf`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full bg-gray-900 hover:bg-black text-white px-6 py-4.5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 shadow-2xl active:scale-95 transition-all"
+                      >
+                        <FaFilePdf className="text-xl" /> PDF खोलें / डाउनलोड करें
+                      </a>
                     )}
                   </div>
                 )}
@@ -670,7 +582,7 @@ export default function EbookProductCheckout() {
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         aria-hidden={!showStickyBar}
       >
-        <div className="flex items-center gap-3 px-4 py-3">
+        <div className="flex items-center gap-3 px-4 py-3 font-hind">
           <div className="shrink-0 leading-tight">
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-black text-gray-900">₹{ebookDetails.price}</span>
