@@ -18,8 +18,18 @@ import SupportersWall from '@/components/SupportersWall';
 import EbookBundleSlot from '../components/EbookBundleSlot';
 import VicharBanner from '../components/VicharBanner';
 
+// 🌟 NEW: MGID AD WIDGET (client component, safe to render from a server page)
+import MgidWidget from '@/components/MgidWidget';
+
 // VPS Native ISR (Incremental Static Regeneration)
 export const revalidate = 300; 
+
+// ==========================================
+// 🌟 MGID WIDGET IDS (create more units in the MGID dashboard for more slots)
+// NOTE: use a DIFFERENT widget ID for each placement on the same page.
+// ==========================================
+const MGID_HOME_FEED_WIDGET_ID = "2090402";
+// const MGID_HOME_BOTTOM_WIDGET_ID = "XXXXXXX"; // 🌟 Optional 2nd slot (see bottom of page)
 
 // ==========================================
 // 🌟 ADVANCED HOMEPAGE METADATA (Language Targeted)
@@ -381,6 +391,12 @@ export default function Home() {
             </Suspense>
           </div>
 
+          {/* ==========================================
+              🌟 MGID AD SLOT #1 — natural break after the main bhajan feed.
+              Below the fold, away from hero / ebook CTA / donation wall.
+              ========================================== */}
+          <MgidWidget widgetId={MGID_HOME_FEED_WIDGET_ID} minHeight={300} />
+
           {/* 4. Secondary Discovery */}
           <div className="mt-10">
             <PopularCategories />
@@ -401,6 +417,12 @@ export default function Home() {
           <Suspense fallback={<div className="h-64 bg-gray-50 dark:bg-[#110c08] rounded-2xl animate-pulse mt-16 mb-12 border border-gray-100 dark:border-[#2a1d12]"></div>}>
             <LatestGyanSection />
           </Suspense>
+
+          {/* ==========================================
+              🌟 OPTIONAL MGID AD SLOT #2 (enable after creating a 2nd widget
+              in the MGID dashboard and setting MGID_HOME_BOTTOM_WIDGET_ID above)
+              ========================================== */}
+          {/* <MgidWidget widgetId={MGID_HOME_BOTTOM_WIDGET_ID} minHeight={300} /> */}
 
         </main>
 

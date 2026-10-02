@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script"; // 🌟 NEW: for MGID loader
 import AnnouncementStrip from '@/components/AnnouncementStrip';
 
 // 🌟 1. PERF FIX: Removed the 4 extra fonts. Only loading default 'Hind' and Base fonts upfront.
@@ -35,6 +36,9 @@ import CampaignModal from '@/components/CampaignModal';
 // 🌟 FIX: Removed { ssr: false } because layout.tsx is a Server Component.
 // The component itself has "use client" so it's perfectly safe and dynamic.
 const DivinePeek = dynamic(() => import('@/components/DivinePeek'));
+
+// 🌟 MGID SITE LOADER (loaded once per page, site-wide)
+const MGID_LOADER_SRC = "https://jsc.mgid.com/site/1114048.js";
 
 // --- BASE FONTS ---
 const geistSans = Geist({
@@ -120,6 +124,9 @@ export default async function RootLayout({
         {/* Supabase & Media API Preconnects */}
         <link rel="preconnect" href="https://vjylssvpxjhzjkmqzvjz.supabase.co" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://img.youtube.com" crossOrigin="anonymous" />
+
+        {/* 🌟 NEW: MGID preconnect for faster ad loading */}
+        <link rel="preconnect" href="https://jsc.mgid.com" crossOrigin="anonymous" />
       </head>
 
       <body 
@@ -129,6 +136,14 @@ export default async function RootLayout({
       >
         {/* 🌟 NEW: META PIXEL COMPONENT INJECTED HERE */}
         <MetaPixel />
+
+        {/* 🌟 NEW: MGID LOADER — once per page, async, after hydration.
+            Widgets are rendered by <MgidWidget /> inside pages. */}
+        <Script
+          id="mgid-loader"
+          src={MGID_LOADER_SRC}
+          strategy="afterInteractive"
+        />
 
         <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false}>
 
