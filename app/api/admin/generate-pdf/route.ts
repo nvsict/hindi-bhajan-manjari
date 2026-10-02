@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/utils/supabase';
+import { createClient } from '@supabase/supabase-js'; // 🌟 import change
 import { createMultiBhajanDocument } from '@/lib/publication/content/selector';
 import { renderToPDFBuffer } from '@/lib/publication/renderers/pdf/puppeteerRenderer';
 import { ScriptLanguage } from '@/lib/publication/types';
+
+// 🌟 FIX: Use Service Role Key to bypass RLS for Admin operations
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // यह RLS को बायपास कर देगा
+);
 
 export async function POST(req: Request) {
   try {
@@ -10,7 +16,7 @@ export async function POST(req: Request) {
     if (!slug) return NextResponse.json({ error: 'Slug is required' }, { status: 400 });
 
     // 1. Fetch E-Book metadata from DB
-    const { data: ebook, error: ebookErr } = await supabase
+    const { data: ebook, error: ebookErr } = await supabaseAdmin
       .from('ebook_templates')
       .select('*')
       .eq('slug', slug)
@@ -19,7 +25,7 @@ export async function POST(req: Request) {
     if (ebookErr || !ebook) throw new Error("ई-बुक डेटाबेस में नहीं मिली!");
 
     // 2. Fetch required Bhajans
-    let query = supabase.from('mv_bhajan_details').select('slug');
+    let query = supabaseAdmin.from('mv_bhajan_details').select('slug');
     if (ebook.filter_deity_name) {
       query = query.eq('deity->>name_hindi', ebook.filter_deity_name);
     }
@@ -47,26 +53,35 @@ export async function POST(req: Request) {
     const model = await createMultiBhajanDocument(ebook.title, slugs, opts as any);
     if (!model) throw new Error("डॉक्यूमेंट मॉडल तैयार नहीं हो सका!");
 
-    // 4. 🔥 Trigger Puppeteer rendering (Single-Pass or Chunking, your renderer handles it)
+    // 4. 🔥 Trigger Puppeteer rendering
     console.log(`[Admin] Generating PDF for ${slug}...`);
     const pdfBuffer = await renderToPDFBuffer(model);
 
     // 5. Upload PDF to Supabase Storage (ebook_pdfs bucket)
     const fileName = `${slug}.pdf`;
-    const { error: uploadErr } = await supabase.storage
+    const { error: uploadErr } = await supabaseAdmin.storage
       .from('ebook_pdfs')
       .upload(fileName, pdfBuffer, {
         contentType: 'application/pdf',
-        upsert: true, // Overwrites if exists (Great for Re-generation)
+        upsert: true, 
       });
 
-    if (uploadErr) throw uploadErr;
+    // 🌟 Throw exact storage error if it fails
+    if (uploadErr) {
+        console.error("Storage Upload Error Details:", uploadErr);
+        throw new Error(`स्टोरेज में सेव नहीं हो सका: ${uploadErr.message}`);
+    }
 
     // 6. Get Public URL and update the database
-    const { data: publicUrlData } = supabase.storage.from('ebook_pdfs').getPublicUrl(fileName);
+    const { data: publicUrlData } = supabaseAdmin.storage.from('ebook_pdfs').getPublicUrl(fileName);
     const pdfUrl = publicUrlData.publicUrl;
 
-    await supabase.from('ebook_templates').update({ pdf_url: pdfUrl }).eq('slug', slug);
+    const { error: updateErr } = await supabaseAdmin.from('ebook_templates').update({ pdf_url: pdfUrl }).eq('slug', slug);
+    
+    if (updateErr) {
+        console.error("Database Update Error Details:", updateErr);
+        throw new Error(`डेटाबेस अपडेट नहीं हो सका: ${updateErr.message}`);
+    }
 
     return NextResponse.json({ success: true, url: pdfUrl });
 
