@@ -33,9 +33,13 @@ function getScriptFontConfig(script: ScriptLanguage) {
   return fontConfigs[script] || fontConfigs.devanagari;
 }
 
-export function generatePrintHTML(doc: PublicationDocument): string {
-  const { config, metadata, chapters } = doc;
+export function generatePrintHTML(doc: any): string {
+  // 🌟 FIX: Added _isFirstChunk to handle large PDF chunking rendering properly
+  const { config, metadata, chapters, _isFirstChunk } = doc;
   
+  // Default to true if the flag is missing (for normal small PDFs)
+  const shouldRenderCoverAndIndex = _isFirstChunk === undefined ? true : _isFirstChunk;
+
   // 1. Font setup
   const fontConfig = getScriptFontConfig(config.script);
   
@@ -458,51 +462,53 @@ export function generatePrintHTML(doc: PublicationDocument): string {
     <div class="running-footer">॥ <a href="https://www.hindibhajanmanjari.com" target="_blank">hindibhajanmanjari.com</a> ॥</div>
   </div>
 
-  <!-- =======================================
-       🌟 1. BEAUTIFUL COVER PAGE (WITH LOGO)
-       ======================================= -->
-  <div class="cover-page">
-    <div class="cover-border">
-      <img src="${logoUrl}" alt="Hindi Bhajan Manjari" class="cover-logo" />
-      <div class="cover-title">${metadata.title || 'भजन संग्रह'}</div>
-      <div class="cover-subtitle">दिव्य भजनों और आरतियों का पावन संग्रह</div>
-      
-      <div class="ornamental-line" style="width: 50%;">
-        <div class="line-dash"></div>
-        <div class="line-diamond"></div>
-        <div class="line-dash"></div>
-      </div>
-      
-      <div class="cover-branding">
-        संकलनकर्ता<br/>
-        <b>Hindi Bhajan Manjari</b>
-      </div>
-    </div>
-  </div>
-
-  <!-- =======================================
-       🌟 2. SMART GROUPED INDEX (WITH ID FOR NAVIGATION)
-       ======================================= -->
-  <!-- 🌟 ID Added Here For 'Back To Index' Linking -->
-  <div id="index-page" class="index-page">
-    <div class="index-heading">अनुक्रमणिका (Index)</div>
-    
-    ${groupedIndex.map(group => `
-      <div class="index-deity-section">
-        <div class="index-deity-header">॥ ${group.deity} ॥</div>
-        <div class="index-list">
-          ${group.chapters.map(ch => `
-            <a href="#chapter-${ch.globalIndex}" class="index-item">
-              <span class="index-text">${ch.globalIndex + 1}. ${ch.titleMain}</span>
-              <span class="index-dots"></span>
-              <span class="index-click-hint">पढ़ें 🔗</span>
-            </a>
-          `).join('')}
+  ${shouldRenderCoverAndIndex ? `
+    <!-- =======================================
+         🌟 1. BEAUTIFUL COVER PAGE (WITH LOGO)
+         ======================================= -->
+    <div class="cover-page">
+      <div class="cover-border">
+        <img src="${logoUrl}" alt="Hindi Bhajan Manjari" class="cover-logo" />
+        <div class="cover-title">${metadata.title || 'भजन संग्रह'}</div>
+        <div class="cover-subtitle">दिव्य भजनों और आरतियों का पावन संग्रह</div>
+        
+        <div class="ornamental-line" style="width: 50%;">
+          <div class="line-dash"></div>
+          <div class="line-diamond"></div>
+          <div class="line-dash"></div>
+        </div>
+        
+        <div class="cover-branding">
+          संकलनकर्ता<br/>
+          <b>Hindi Bhajan Manjari</b>
         </div>
       </div>
-    `).join('')}
-    
-  </div>
+    </div>
+
+    <!-- =======================================
+         🌟 2. SMART GROUPED INDEX (WITH ID FOR NAVIGATION)
+         ======================================= -->
+    <!-- 🌟 ID Added Here For 'Back To Index' Linking -->
+    <div id="index-page" class="index-page">
+      <div class="index-heading">अनुक्रमणिका (Index)</div>
+      
+      ${groupedIndex.map(group => `
+        <div class="index-deity-section">
+          <div class="index-deity-header">॥ ${group.deity} ॥</div>
+          <div class="index-list">
+            ${group.chapters.map(ch => `
+              <a href="#chapter-${ch.globalIndex}" class="index-item">
+                <span class="index-text">${ch.globalIndex + 1}.${ch.titleMain}</span>
+                <span class="index-dots"></span>
+                <span class="index-click-hint">पढ़ें 🔗</span>
+              </a>
+            `).join('')}
+          </div>
+        </div>
+      `).join('')}
+      
+    </div>
+  ` : ''}
 
   <!-- =======================================
        🌟 3. ORDERED CHAPTERS & DIVIDERS
@@ -523,7 +529,7 @@ export function generatePrintHTML(doc: PublicationDocument): string {
     </div>
 
     <!-- 🌟 BHAJANS FOR THIS DEITY -->
-    ${group.chapters.map(chapter => `
+    ${group.chapters.map((chapter: any) => `
       <div id="chapter-${chapter.globalIndex}" class="chapter dynamic-chapter layout-single-standard">
         
         <div class="header-branding">

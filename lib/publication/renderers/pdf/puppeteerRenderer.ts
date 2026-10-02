@@ -1,21 +1,28 @@
 // ==========================================
-// 🌟 PUPPETEER PDF RENDERER (Smart Adaptive Engine - Per Chapter)
+// 🌟 PUPPETEER PDF RENDERER (Production Chunking Engine)
 // ==========================================
 import { PDFDocument } from 'pdf-lib';
 import { getBrowserInstance } from './browserPool';
 import { generatePrintHTML } from './htmlTemplate';
 import { PublicationDocument } from '../../types';
 
-export async function renderToPDFBuffer(doc: PublicationDocument): Promise<Buffer> {
+// 🌟 CONFIG: Maximum chapters to render in a single Chromium pass.
+// 50 is a very safe limit to prevent memory/timeout crashes on small servers.
+const CHUNK_SIZE = 50; 
+
+/**
+ * Helper: Puppeteer के जरिए HTML स्ट्रिंग को PDF Buffer में बदलता है।
+ * यह आपके उसी Adaptive Engine का इस्तेमाल करता है।
+ */
+async function renderHtmlChunkToPDF(htmlContent: string, format: 'A4' | 'A5'): Promise<Buffer> {
   const browser = await getBrowserInstance();
   const page = await browser.newPage();
 
   try {
-    const htmlContent = generatePrintHTML(doc);
-
     // 1. HTML सेट करें
     await page.setContent(htmlContent, {
       waitUntil: 'load',
+      timeout: 60000 // 60 seconds per chunk is plenty
     });
 
     // 2. Race Condition Fix: सुनिश्चित करें कि Google Font लोड हो चुका है
@@ -28,7 +35,6 @@ export async function renderToPDFBuffer(doc: PublicationDocument): Promise<Buffe
     await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
 
     await page.evaluate(() => {
-      // पेज पर मौजूद सभी भजनों (Chapters) को सिलेक्ट करें
       const chapters = document.querySelectorAll('.dynamic-chapter');
       if (chapters.length === 0) return;
 
@@ -39,38 +45,30 @@ export async function renderToPDFBuffer(doc: PublicationDocument): Promise<Buffe
         'layout-two-column-compact'
       ];
 
-      // A4 सेफ हाइट (Top 22mm + Bottom 22mm margin घटाकर)
       const MAX_SAFE_HEIGHT = 960;
 
-      // हर भजन के लिए अलग-अलग बेस्ट लेआउट तय करें
       chapters.forEach((chapter) => {
-        let bestProfile = profiles[profiles.length - 1]; // Default to compact
+        let bestProfile = profiles[profiles.length - 1];
 
         for (const profile of profiles) {
-          // पिछले प्रोफाइल्स को हटाकर नया टेस्ट प्रोफाइल लगाएँ 
-          // (नोट: 'chapter' और 'dynamic-chapter' क्लासेज़ हमेशा बनी रहनी चाहिए)
           chapter.className = `chapter dynamic-chapter ${profile}`;
-          
-          // इस अकेले भजन (Chapter) की हाइट नापें
           const currentHeight = chapter.getBoundingClientRect().height;
 
-          // अगर यह भजन इस लेआउट में 1 पेज के अंदर आ रहा है, तो यही परफेक्ट है
           if (currentHeight <= MAX_SAFE_HEIGHT) {
             bestProfile = profile;
             break; 
           }
         }
-
-        // लूप खत्म होने के बाद, इस भजन को इसका अपना बेस्ट लेआउट दे दें
         chapter.className = `chapter dynamic-chapter ${bestProfile}`;
       });
     });
 
     // 4. Puppeteer से Raw Print-Ready PDF Buffer जनरेट करें
     const rawPdfBuffer = await page.pdf({
-      format: doc.config.pageSize?.toLowerCase() === 'a5' ? 'A5' : 'A4',
+      format: format,
       printBackground: true,
       preferCSSPageSize: true, 
+      timeout: 90000, // 90 Seconds timeout strictly for this 50-page chunk
       margin: {
         top: '0mm',
         bottom: '0mm',
@@ -79,19 +77,85 @@ export async function renderToPDFBuffer(doc: PublicationDocument): Promise<Buffe
       },
     });
 
-    // 5. pdf-lib के ज़रिए मेटाडेटा ऑप्टिमाइज़ेशन
-    const pdfDoc = await PDFDocument.load(rawPdfBuffer);
+    return Buffer.from(rawPdfBuffer);
+  } finally {
+    // हर चंक रेंडर होने के बाद पेज को बंद करना बहुत ज़रूरी है (Memory Leak से बचने के लिए)
+    await page.close();
+  }
+}
+
+/**
+ * 🌟 MAIN FUNCTION: Chunking & Merging Engine
+ */
+export async function renderToPDFBuffer(doc: PublicationDocument): Promise<Buffer> {
+  const totalChapters = doc.chapters.length;
+
+  // 🌟 FAST PATH: अगर ई-बुक छोटी है (<= CHUNK_SIZE), तो पुराने तरीके से सिंगल पास में रेंडर करें
+  if (totalChapters <= CHUNK_SIZE) {
+    const htmlContent = generatePrintHTML(doc);
+    const pdfFormat = doc.config.pageSize?.toLowerCase() === 'a5' ? 'A5' : 'A4';
+    const singlePdfBuffer = await renderHtmlChunkToPDF(htmlContent, pdfFormat);
+    
+    // Optimize & Return
+    const pdfDoc = await PDFDocument.load(singlePdfBuffer);
     pdfDoc.setTitle(doc.metadata.title || 'Hindi Bhajan Manjari Book');
     pdfDoc.setAuthor('Hindi Bhajan Manjari');
     pdfDoc.setProducer('Hindi Bhajan Manjari Publication Engine');
-
-    const optimizedPdfBytes = await pdfDoc.save({
-      useObjectStreams: false,
-    });
-
+    
+    const optimizedPdfBytes = await pdfDoc.save({ useObjectStreams: false });
     return Buffer.from(optimizedPdfBytes);
-  } finally {
-    // हर PDF जनरेशन के बाद पेज बंद करें
-    await page.close();
   }
+
+  // ==========================================
+  // 🌟 HEAVY DUTY PATH: Chunking for Large Books
+  // ==========================================
+  console.log(`[PDF BUILDER] Large book detected (${totalChapters} chapters). Starting Chunking Engine...`);
+  
+  const mergedPdf = await PDFDocument.create();
+  const pdfFormat = doc.config.pageSize?.toLowerCase() === 'a5' ? 'A5' : 'A4';
+  
+  // Chunking Loop
+  for (let i = 0; i < totalChapters; i += CHUNK_SIZE) {
+    const chunkChapters = doc.chapters.slice(i, i + CHUNK_SIZE);
+    console.log(`[PDF BUILDER] Processing chunk ${i + 1} to ${Math.min(i + CHUNK_SIZE, totalChapters)}...`);
+
+    // Create a temporary document just for this chunk.
+    // Important: We only pass the actual chapters for this chunk. 
+    // HTML Template needs to know if it's the FIRST chunk to render Cover & Index.
+    const isFirstChunk = i === 0;
+    
+    const chunkDoc: PublicationDocument = {
+      ...doc,
+      chapters: chunkChapters,
+      // Custom metadata flag so generatePrintHTML knows whether to print the cover/index
+      _isFirstChunk: isFirstChunk 
+    } as any; 
+
+    // Generate HTML just for this subset
+    const chunkHtml = generatePrintHTML(chunkDoc);
+    
+    // Render this specific HTML chunk via Puppeteer
+    const chunkPdfBuffer = await renderHtmlChunkToPDF(chunkHtml, pdfFormat);
+
+    // Merge this chunk's PDF pages into our master PDF document
+    const chunkPdfDoc = await PDFDocument.load(chunkPdfBuffer);
+    const copiedPages = await mergedPdf.copyPages(chunkPdfDoc, chunkPdfDoc.getPageIndices());
+    
+    copiedPages.forEach((page) => {
+      mergedPdf.addPage(page);
+    });
+  }
+
+  console.log(`[PDF BUILDER] All chunks processed and merged successfully.`);
+
+  // 🌟 Set Metadata on Final Merged Document
+  mergedPdf.setTitle(doc.metadata.title || 'Hindi Bhajan Manjari Book');
+  mergedPdf.setAuthor('Hindi Bhajan Manjari');
+  mergedPdf.setProducer('Hindi Bhajan Manjari Publication Engine');
+
+  const optimizedMergedBytes = await mergedPdf.save({
+    useObjectStreams: false,
+  });
+
+  return Buffer.from(optimizedMergedBytes);
 }
