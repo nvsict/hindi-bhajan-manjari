@@ -15,6 +15,7 @@ import DivineHover from '@/components/DivineHover';
 import ReadingTracker from '@/components/ReadingTracker';
 import BhaktiStudio from '@/components/BhaktiStudio';
 import CommunityWall from '@/components/CommunityWall';
+import MgidWidget from '@/components/MgidWidget'; // 🌟 MGID Widget Import
 
 export const revalidate = 3600;
 
@@ -395,6 +396,10 @@ export default async function BhajanDetails({ params }: Props) {
                 tarz={bhajan.tarj_parody}
               />
 
+              {/* 🌟 1. MGID IN-ARTICLE WIDGET (Highly engaging spot) */}
+              {/* Replace "YOUR_IN_ARTICLE_ID" once you create it in the MGID dashboard */}
+              <MgidWidget widgetId="2090402" minHeight={250} label="प्रायोजित (Sponsored)" />
+
               {/* 🌟 ORIGINAL CONTENT FIRST (AdSense Priority) - Moved Bhavarth up right after Lyrics */}
               {bhajan.explanation && (
                 <div className="mt-10 mb-8 bg-gradient-to-br from-orange-50 dark:from-orange-900/10 to-orange-100/50 dark:to-orange-900/5 p-6 md:p-8 rounded-2xl border border-orange-200 dark:border-orange-900/30 shadow-sm">
@@ -411,6 +416,10 @@ export default async function BhajanDetails({ params }: Props) {
                 <AffiliateSlot deityId={bhajan.deity_id?.toString()} layout="inline" />
               </div>
 
+              {/* 🌟 2. MGID SMART WIDGET (Captures users who reach the end of the article) */}
+              {/* Replace "YOUR_SMART_WIDGET_ID" once you create it in the MGID dashboard */}
+              <MgidWidget widgetId="2090467" minHeight={400} label="और पढ़ें (Read More)" />
+
               <div className="mt-12 space-y-8 border-t border-orange-100 dark:border-white/10 pt-10">
                 <div className="text-center mb-6">
                   <h2 className="text-2xl md:text-3xl font-black font-hindi text-gray-900 dark:text-orange-50">भक्तों का मंच (Bhakt's Voice)</h2>
@@ -419,8 +428,6 @@ export default async function BhajanDetails({ params }: Props) {
                 <CommunityWall bhajanId={bhajan.id} />
               </div>
               
-              {/* Note: Boilerplate repeated icon boxes have been removed here to improve Content Quality for AdSense */}
-
               {bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0 && (
                 <div className="mt-12">
                   <h3 className="text-2xl font-black text-gray-900 dark:text-orange-50 tracking-tighter mb-6 flex items-center gap-2">
@@ -478,6 +485,11 @@ export default async function BhajanDetails({ params }: Props) {
           {/* 🌟 Updated Sidebar Wrapper with flexbox to fit the Ad properly */}
           <aside className="hidden lg:flex flex-col gap-8 w-[320px] shrink-0">
             
+            {/* 🌟 3. MGID SIDEBAR WIDGET (Real ID Applied) */}
+            <div className="bg-white dark:bg-[#120c08] rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 p-4">
+               <MgidWidget widgetId="2090465" minHeight={300} label="प्रायोजित (Sponsored)" className="!my-0" />
+            </div>
+
             <Sidebar 
               topicName={bhajan.deity?.name_hinglish}
               filterColumn="deity_id"

@@ -32,6 +32,9 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 // 🌟 NEW: CAMPAIGN MODAL (GLOBAL POPUP)
 import CampaignModal from '@/components/CampaignModal';
 
+// 🌟 NEW: MGID GLOBAL CONTROLLER (Load ads securely, except on /admin)
+import MgidGlobal from '@/components/MgidGlobal';
+
 // 🌟 FIX: Removed { ssr: false } because layout.tsx is a Server Component.
 // The component itself has "use client" so it's perfectly safe and dynamic.
 const DivinePeek = dynamic(() => import('@/components/DivinePeek'));
@@ -120,11 +123,8 @@ export default async function RootLayout({
         {/* Supabase & Media API Preconnects */}
         <link rel="preconnect" href="https://vjylssvpxjhzjkmqzvjz.supabase.co" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://img.youtube.com" crossOrigin="anonymous" />
-
-        {/* 🌟 MGID LOADER: must sit directly in <head> (MGID checks this).
-            Plain async tag, once per page, site-wide. Widgets are rendered
-            by <MgidWidget /> inside pages. */}
-        <script src="https://jsc.mgid.com/site/1114048.js" async></script>
+        
+        {/* 🌟 MGID script removed from here. It is now safely handled by <MgidGlobal /> */}
       </head>
 
       <body 
@@ -174,6 +174,13 @@ export default async function RootLayout({
           {/* 🌟 GLOBAL MODAL */}
           <CampaignModal />
           <DivinePeek />
+
+          {/* ==========================================
+              🌟 MGID GLOBAL AD CONTROLLER
+              Safe execution: Blocks scripts & ads on /admin routes 
+              ========================================== */}
+          <MgidGlobal />
+
         </ThemeProvider>
       </body>
     </html>

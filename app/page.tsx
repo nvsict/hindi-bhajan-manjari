@@ -18,18 +18,11 @@ import SupportersWall from '@/components/SupportersWall';
 import EbookBundleSlot from '../components/EbookBundleSlot';
 import VicharBanner from '../components/VicharBanner';
 
-// 🌟 NEW: MGID AD WIDGET (client component, safe to render from a server page)
+// 🌟 NEW: MGID AD WIDGET
 import MgidWidget from '@/components/MgidWidget';
 
 // VPS Native ISR (Incremental Static Regeneration)
 export const revalidate = 300; 
-
-// ==========================================
-// 🌟 MGID WIDGET IDS (create more units in the MGID dashboard for more slots)
-// NOTE: use a DIFFERENT widget ID for each placement on the same page.
-// ==========================================
-const MGID_HOME_FEED_WIDGET_ID = "2090402";
-// const MGID_HOME_BOTTOM_WIDGET_ID = "XXXXXXX"; // 🌟 Optional 2nd slot (see bottom of page)
 
 // ==========================================
 // 🌟 ADVANCED HOMEPAGE METADATA (Language Targeted)
@@ -358,7 +351,15 @@ export default function Home() {
           <DeityBrowse /> 
 
           {/* ==========================================
-              🌟 2.5 PREMIUM HOMEPAGE CAROUSEL (0ms Server Load)
+              🌟 MGID AD SLOT #1: IN-ARTICLE (High Visibility)
+              Placed naturally between Deity list & Carousel.
+              ========================================== */}
+          <div className="my-10">
+            <MgidWidget widgetId="2090402" minHeight={250} label="प्रायोजित (Sponsored)" />
+          </div>
+
+          {/* ==========================================
+              🌟 2.5 PREMIUM HOMEPAGE CAROUSEL
               ========================================== */}
           <div className="mt-8 md:mt-12">
             <Suspense fallback={
@@ -392,10 +393,12 @@ export default function Home() {
           </div>
 
           {/* ==========================================
-              🌟 MGID AD SLOT #1 — natural break after the main bhajan feed.
-              Below the fold, away from hero / ebook CTA / donation wall.
+              🌟 MGID AD SLOT #2: SMART WIDGET (Content Rec)
+              Catches users who finished scrolling the Latest Bhajans.
               ========================================== */}
-          <MgidWidget widgetId={MGID_HOME_FEED_WIDGET_ID} minHeight={300} />
+          <div className="my-12">
+             <MgidWidget widgetId="2090467" minHeight={400} label="और पढ़ें (Discover More)" />
+          </div>
 
           {/* 4. Secondary Discovery */}
           <div className="mt-10">
@@ -406,7 +409,7 @@ export default function Home() {
             <TrendingArtists />
           </div>
 
-          {/* 🌟 0ms Server-Rendered Supporters Wall */}
+          {/* 🌟 Supporters Wall */}
           <div className="mt-16">
             <Suspense fallback={<div className="h-64 bg-orange-50/50 dark:bg-[#110c08]/80 rounded-[2.5rem] animate-pulse border border-orange-100/50 dark:border-[#2a1d12]/50 my-4 md:my-6"></div>}>
               <SupportersWallSection />
@@ -418,12 +421,6 @@ export default function Home() {
             <LatestGyanSection />
           </Suspense>
 
-          {/* ==========================================
-              🌟 OPTIONAL MGID AD SLOT #2 (enable after creating a 2nd widget
-              in the MGID dashboard and setting MGID_HOME_BOTTOM_WIDGET_ID above)
-              ========================================== */}
-          {/* <MgidWidget widgetId={MGID_HOME_BOTTOM_WIDGET_ID} minHeight={300} /> */}
-
         </main>
 
         {/* 6. Intelligent Global Sidebar */}
@@ -432,6 +429,13 @@ export default function Home() {
         }>
           <div className="hidden lg:flex lg:flex-col lg:gap-8 lg:sticky lg:top-28 h-fit w-[300px] shrink-0 pb-8">
             
+            {/* ==========================================
+                🌟 MGID AD SLOT #3: SIDEBAR WIDGET
+                Placed at the very top of the sticky sidebar for max viewability.
+                ========================================== */}
+            <div className="bg-white dark:bg-[#120c08] rounded-2xl shadow-sm border border-gray-100 dark:border-[#2a1d12] p-4">
+              <MgidWidget widgetId="2090465" minHeight={300} label="प्रायोजित (Sponsored)" className="!my-0" />
+            </div>
 
             <Sidebar />
           </div>
