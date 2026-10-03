@@ -18,22 +18,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     supabase.from('categories').select('slug'),
     supabase.from('deities').select('slug'),
     supabase.from('artists').select('slug, created_at'),
-    supabase
-      .from('articles')
-      .select('slug, published_at')
-      .eq('is_published', true),
+    // अगर articles में भी is_published कॉलम नहीं है, तो .eq() हटा दें
+    supabase.from('articles').select('slug, published_at') 
   ]);
 
-  // 2. 🌟 BATCH FETCHING FOR BHAJANS (With Error Catching & Safe View Support)
+  // 2. 🌟 BATCH FETCHING FOR BHAJANS (Safe Fetching)
   const allBhajans: any[] = [];
   let hasMore = true;
   let from = 0;
   const step = 1000;
 
   while (hasMore) {
-    // 🌟 पहले mv_bhajan_details या bhajans से सुरक्षित रूप से फेच करें
     const { data, error } = await supabase
-      .from('mv_bhajan_details') // अगर आपकी मुख्य टेबल 'bhajans' है, तो इसे 'bhajans' कर दें
+      .from('mv_bhajan_details') 
       .select('slug, created_at')
       .range(from, from + step - 1);
 
@@ -42,7 +39,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         `❌ [Sitemap] Bhajan fetch error at range ${from}-${from + step - 1}:`,
         error.message
       );
-      break; // एरर आने पर लूप रोकें ताकि कंसोल में साफ़ पता चले
+      break; 
     }
 
     if (!data || data.length === 0) {
@@ -55,17 +52,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   // 3. Map Static Routes
+  // 🌟 FIX: Removed /submit, /donate, /developers (often these have noindex tags)
   const staticRoutes = [
     { url: '', priority: 1.0 },
     { url: '/gyan', priority: 0.9 },
     { url: '/category', priority: 0.8 },
     { url: '/deity', priority: 0.8 },
     { url: '/artist', priority: 0.8 },
-    { url: '/submit', priority: 0.8 },
-    { url: '/donate', priority: 0.8 },
     { url: '/about', priority: 0.7 },
     { url: '/contact', priority: 0.7 },
-    { url: '/developers', priority: 0.6 },
   ].map((route) => ({
     url: `${baseUrl}${route.url}`,
     changeFrequency: 'weekly' as const,
@@ -116,7 +111,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...staticRoutes,
     ...articleRoutes,
-    ...bhajanRoutes, // 🌟 अब आपके सारे भजन यहाँ सही से आएंगे
+    ...bhajanRoutes, 
     ...categoryRoutes,
     ...deityRoutes,
     ...artistRoutes,

@@ -9,8 +9,8 @@ import { GiTempleGate } from 'react-icons/gi';
 import { FaBookOpen, FaPenNib } from 'react-icons/fa';
 import Link from 'next/link';
 
-// 🌟 CACHE BUSTER: Keep this 0 while testing. Once everything works, change back to 3600.
-export const revalidate = 0; 
+// 🌟 PERFORMANCE FIX: Set to 3600 (1 hour) for production caching to prevent database overload
+export const revalidate = 3600; 
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -18,7 +18,7 @@ interface Props {
 }
 
 // ==========================================
-// 🌟 1. DYNAMIC SEO METADATA (AdSense Optimized)
+// 🌟 1. DYNAMIC SEO METADATA (AdSense & Search Optimized)
 // ==========================================
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -27,17 +27,23 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const currentPage = resolvedSearchParams?.page ? Number(resolvedSearchParams.page) : 1;
   
   // 🌟 Fetching rich_description for better SEO Meta
-  const { data: category } = await supabase
+  const { data: category, error } = await supabase
     .from('categories')
     .select('name_hinglish, name_hindi, rich_description')
     .eq('slug', slug)
     .single();
 
-  if (!category) return { title: 'Category Not Found' };
+  // 🌟 Safe Error Handling to prevent 5XX server errors on missing slugs
+  if (error || !category) {
+    return { title: 'Category Not Found | Hindi Bhajan Manjari' };
+  }
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hindibhajanmanjari.com';
+  
+  // 🌟 SEO FIX: Prevent Duplicate Titles using Page Suffix
   const pageSuffix = currentPage > 1 ? ` - Page ${currentPage}` : '';
   
+  // 🌟 SEO FIX: Accurate Canonical Tag for Pagination
   const canonicalUrl = currentPage > 1 
     ? `${baseUrl}/category/${slug}?page=${currentPage}` 
     : `${baseUrl}/category/${slug}`;
@@ -53,7 +59,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     : `Explore our complete collection of ${category.name_hinglish} (${category.name_hindi})${pageSuffix}. Read accurate lyrics, meanings, and free PDFs.`;
 
   return {
-    title: `Best ${category.name_hinglish} (${category.name_hindi}) Lyrics & Meanings${pageSuffix} | Hindi Bhajan Manjari`,
+    title: `${category.name_hindi} लिरिक्स | Best ${category.name_hinglish} Lyrics & Meanings${pageSuffix} | Hindi Bhajan Manjari`,
     description: metaDesc,
     keywords: `${category.name_hinglish}, ${category.name_hindi}, ${category.name_hinglish} lyrics, best ${category.name_hindi} sangrah, ${category.name_hinglish} PDF, Hindi Bhajan Manjari, spiritual meanings`,
     alternates: { canonical: canonicalUrl },
@@ -179,6 +185,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     });
   }
 
+  // Only show FAQ Schema on Page 1 to avoid duplicate content flags
   if (currentPage === 1) {
     graphNodes.push({
       "@type": "FAQPage",
@@ -278,7 +285,9 @@ export default async function CategoryPage({ params, searchParams }: Props) {
             )}
             
           </main>
+          
           <Sidebar />
+          
         </div>
       </div>
     </div>
