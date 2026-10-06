@@ -159,7 +159,7 @@ export default async function DeityPage({ params, searchParams }: Props) {
     "@id": `${pageUrl}#breadcrumb`,
     "itemListElement": [
       { "@type": "ListItem", "position": 1, "name": "Home", "item": siteUrl },
-      { "@type": "ListItem", "position": 2, "name": "Deities", "item": `${siteUrl}/deities` }, 
+      { "@type": "ListItem", "position": 2, "name": "Deities", "item": `${siteUrl}/deity` }, 
       { "@type": "ListItem", "position": 3, "name": deity.name_hinglish, "item": pageUrl }
     ]
   });

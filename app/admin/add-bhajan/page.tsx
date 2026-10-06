@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../utils/supabase'; // ड्रॉपडाउन्स (Categories/Deities) लोड करने के लिए
+import { supabase } from '../../../utils/supabase'; 
 import { publishBhajanAction } from '@/app/actions/bhajanActions';
 import { 
   FaPlus, FaTrash, FaMusic, FaBookOpen, FaTags, 

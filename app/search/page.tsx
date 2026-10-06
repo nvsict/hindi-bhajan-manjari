@@ -7,48 +7,63 @@ import { FaSearch, FaMusic, FaAlignLeft, FaOm } from 'react-icons/fa';
 export const revalidate = 0; // Search pages should always be dynamic
 
 const RESULT_LIMIT = 50;
+const MAX_QUERY_LENGTH = 100;
 
-export async function generateMetadata({ searchParams }: { searchParams: Promise<{ q: string }> }): Promise<Metadata> {
-  const { q: query } = await searchParams;
-  return {
-    title: `Search Results for "${query}" | Hindi Bhajan Manjari`,
-    description: `Discover bhajans, aartis, and spiritual content related to ${query}. Search by title, melody (tarz), or deep within the lyrics.`,
-    robots: {
-      index: false, // Best practice: Don't let Google index dynamic search result pages
-      follow: true,
+type SearchParams = Promise<{ q?: string | string[] }>;
+
+type BhajanResult = {
+  slug: string;
+  title_hindi: string | null;
+  title_hinglish: string | null;
+  tarj_parody: string | null;
+  deity_name_hinglish: string | null;
+  match_type: 'title' | 'tarz' | 'lyrics';
+  match_rank: number;
+  total_count: number | string;
+};
+
+/**
+ * Next.js already decodes searchParams, so calling decodeURIComponent again
+ * can throw (e.g. a query like "100%"). Only fall back to it safely.
+ */
+function cleanQuery(raw: string | string[] | undefined): string {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  let query = (value ?? '').trim();
+  if (/%[0-9A-Fa-f]{2}/.test(query)) {
+    try {
+      query = decodeURIComponent(query).trim();
+    } catch {
+      /* keep the query as-is */
     }
+  }
+  return query.slice(0, MAX_QUERY_LENGTH);
+}
+
+export async function generateMetadata({ searchParams }: { searchParams: SearchParams }): Promise<Metadata> {
+  const { q } = await searchParams;
+  const query = cleanQuery(q);
+
+  return {
+    title: query
+      ? `Search Results for "${query}" | Hindi Bhajan Manjari`
+      : 'Search Bhajans | Hindi Bhajan Manjari',
+    description: query
+      ? `Discover bhajans, aartis, and spiritual content related to ${query}. Search by title, melody (tarz), or deep within the lyrics.`
+      : 'Search bhajans, aartis, and spiritual content by title, melody (tarz), or lyrics.',
+    robots: {
+      index: false, // Don't let Google index dynamic search result pages
+      follow: true,
+    },
   };
 }
 
-export default async function SearchPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q: string }>;
-}) {
-  const { q: rawQuery } = await searchParams;
-  // Decode and clean the query
-  const query = decodeURIComponent(rawQuery || '').trim();
+export default async function SearchPage({ searchParams }: { searchParams: SearchParams }) {
+  const { q } = await searchParams;
+  const query = cleanQuery(q);
 
-  /*
-   * Ranking, typo-tolerant matching, and match-type classification are now
-   * all done in Postgres via search_bhajans_full (see search_page_function.sql)
-   * instead of client-side here. Two changes from the previous version:
-   *
-   *   1. Typo tolerance — this page previously ran a plain ILIKE query,
-   *      completely separate from the header's quick-search dropdown
-   *      (which already got trigram matching). A typo'd query could find
-   *      results in the dropdown but zero results here. Now both use the
-   *      same underlying trigram approach.
-   *
-   *   2. No more fetching full lyrics_hindi/lyrics_hinglish text for every
-   *      row just to classify matchType client-side — that data was never
-   *      rendered on this page, only used for an .includes() check. The
-   *      RPC does that classification in the database and returns only
-   *      the fields actually displayed.
-   */
-
-  let results: any[] = [];
+  let results: BhajanResult[] = [];
   let totalCount = 0;
+  let searchFailed = false;
 
   if (query.length > 0) {
     const { data, error } = await supabase.rpc('search_bhajans_full', {
@@ -56,9 +71,13 @@ export default async function SearchPage({
       match_limit: RESULT_LIMIT,
     });
 
-    if (!error && data) {
-      results = data;
-      totalCount = data.length > 0 ? Number(data[0].total_count) : 0;
+    if (error) {
+      // Visible in your terminal (next dev) or hosting logs
+      console.error('search_bhajans_full error:', JSON.stringify(error, null, 2));
+      searchFailed = true;
+    } else if (data) {
+      results = data as BhajanResult[];
+      totalCount = results.length > 0 ? Number(results[0].total_count) : 0;
     }
   }
 
@@ -75,12 +94,16 @@ export default async function SearchPage({
             <FaSearch size={24} />
           </div>
           <h1 className="text-3xl md:text-5xl font-black text-white mb-4 tracking-tighter">
-            Search Results for <span className="text-orange-500">"{query}"</span>
+            Search Results for <span className="text-orange-500">&quot;{query}&quot;</span>
           </h1>
           <p className="text-orange-100/70 text-lg font-medium">
-            {isCapped
-              ? `Showing top ${results.length} of ${totalCount} sacred bhajans matching your search.`
-              : `Found ${results.length} sacred ${results.length === 1 ? 'bhajan' : 'bhajans'} matching your search.`}
+            {query.length === 0
+              ? 'Enter a word to start searching.'
+              : searchFailed
+                ? 'Search is temporarily unavailable.'
+                : isCapped
+                  ? `Showing top ${results.length} of ${totalCount} sacred bhajans matching your search.`
+                  : `Found ${results.length} sacred ${results.length === 1 ? 'bhajan' : 'bhajans'} matching your search.`}
           </p>
         </div>
       </div>
@@ -96,10 +119,22 @@ export default async function SearchPage({
               <h2 className="text-2xl font-black text-gray-900 mb-2">Please enter a search term</h2>
               <p className="text-gray-500">Try searching for a deity, a bhajan title, a melody (tarz), or a specific word.</p>
             </div>
+          ) : searchFailed ? (
+            <div className="text-center py-20 bg-white rounded-[2.5rem] border border-orange-100 shadow-sm px-6">
+              <FaSearch size={40} className="text-gray-300 mx-auto mb-4" />
+              <h2 className="text-2xl font-black text-gray-900 mb-2">Something went wrong</h2>
+              <p className="text-gray-500 max-w-md mx-auto">
+                We couldn&apos;t complete your search right now. Please try again in a moment.
+              </p>
+            </div>
           ) : results.length > 0 ? (
             <div className="grid gap-6">
               {results.map((bhajan) => (
-                <Link href={`/bhajan/${bhajan.slug}`} key={bhajan.slug} className="group block outline-none focus-visible:ring-4 focus-visible:ring-orange-500/30 rounded-[2rem]">
+                <Link
+                  href={`/bhajan/${bhajan.slug}`}
+                  key={bhajan.slug}
+                  className="group block outline-none focus-visible:ring-4 focus-visible:ring-orange-500/30 rounded-[2rem]"
+                >
                   <div className="p-6 md:p-8 border border-orange-100 rounded-[2rem] shadow-sm bg-white hover:shadow-xl hover:border-orange-300 transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
 
                     {/* Decorative Hover Element */}
@@ -107,7 +142,7 @@ export default async function SearchPage({
 
                     <div className="flex-1 relative z-10">
 
-                      {/* SMART MATCH BADGES — matchType now comes pre-classified from the RPC */}
+                      {/* SMART MATCH BADGES — match_type comes pre-classified from the RPC */}
                       <div className="mb-4 flex flex-wrap gap-2">
                         {bhajan.match_type === 'tarz' && (
                           <span className="inline-flex items-center gap-1.5 bg-purple-50 text-purple-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-purple-200">
@@ -157,13 +192,13 @@ export default async function SearchPage({
               </div>
               <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tighter">कोई परिणाम नहीं मिला</h2>
               <p className="text-gray-500 text-lg mb-8 max-w-md mx-auto">
-                We couldn't find any bhajans, melodies, or lyrics matching <strong className="text-gray-900">"{query}"</strong>.
+                We couldn&apos;t find any bhajans, melodies, or lyrics matching <strong className="text-gray-900">&quot;{query}&quot;</strong>.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
-                <Link href="/deities" className="bg-gray-900 text-white px-8 py-3.5 rounded-full font-bold text-sm uppercase tracking-wider hover:bg-black transition-colors shadow-md">
+                <Link href="/deity" className="bg-gray-900 text-white px-8 py-3.5 rounded-full font-bold text-sm uppercase tracking-wider hover:bg-black transition-colors shadow-md">
                   Browse Deities
                 </Link>
-                <Link href="/categories" className="bg-orange-50 text-orange-600 px-8 py-3.5 rounded-full font-bold text-sm uppercase tracking-wider hover:bg-orange-100 transition-colors">
+                <Link href="/category" className="bg-orange-50 text-orange-600 px-8 py-3.5 rounded-full font-bold text-sm uppercase tracking-wider hover:bg-orange-100 transition-colors">
                   View Categories
                 </Link>
               </div>
