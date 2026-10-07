@@ -50,12 +50,17 @@ const MultiSelect = ({ label, options, selected, onChange, icon: Icon }: any) =>
       {isOpen && (
         <div className="absolute z-20 w-full mt-2 bg-white dark:bg-[#1a120b] border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
           {options.map((option: string, idx: number) => (
-            <label key={idx} className="flex items-center gap-3 px-4 py-3 hover:bg-orange-50 dark:hover:bg-orange-900/20 cursor-pointer border-b border-gray-100 dark:border-white/5 last:border-0">
+            // ✅ FIXED: Changed <label> to <div onClick> to actually register the selection
+            <div 
+              key={idx} 
+              onClick={() => toggleOption(option)}
+              className="flex items-center gap-3 px-4 py-3 hover:bg-orange-50 dark:hover:bg-orange-900/20 cursor-pointer border-b border-gray-100 dark:border-white/5 last:border-0"
+            >
               <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${selected.includes(option) ? 'bg-orange-500 border-orange-500' : 'border-gray-300 dark:border-gray-600'}`}>
                 {selected.includes(option) && <FaCheck className="text-white text-[10px]" />}
               </div>
               <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{option}</span>
-            </label>
+            </div>
           ))}
         </div>
       )}
@@ -66,7 +71,14 @@ const MultiSelect = ({ label, options, selected, onChange, icon: Icon }: any) =>
           {selected.map((item: string) => (
             <span key={item} className="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-2 py-1 rounded-md text-[10px] font-black tracking-wide flex items-center gap-1">
               {item}
-              <button onClick={(e) => { e.stopPropagation(); toggleOption(item); }} className="hover:text-red-500"><FaTimesCircle /></button>
+              {/* ✅ FIXED: Added type="button" so clicking X doesn't submit the form */}
+              <button 
+                type="button" 
+                onClick={(e) => { e.stopPropagation(); toggleOption(item); }} 
+                className="hover:text-red-500"
+              >
+                <FaTimesCircle />
+              </button>
             </span>
           ))}
         </div>
@@ -86,7 +98,6 @@ export default function EbookManagerClient() {
   
   const [message, setMessage] = useState({ text: '', type: '' });
 
-  // 🌟 Upgraded Form State
   const [formData, setFormData] = useState({
     title: '', slug: '', subtitle: '', cover_image_url: '', 
     price: 49, original_price: 99, tag: 'Best Seller', target_count: 21, 
@@ -94,7 +105,6 @@ export default function EbookManagerClient() {
     filter_categories: [] as string[]
   });
 
-  // 🌟 Verification State
   const [verification, setVerification] = useState({ isVerifying: false, isVerified: false, availableCount: 0, error: '' });
 
   const fetchAllData = async () => {
@@ -126,7 +136,6 @@ export default function EbookManagerClient() {
     setFormData({ ...formData, title, slug });
   };
 
-  // 🌟 NEW: Verify Count Function
   const handleVerify = async () => {
     setVerification({ ...verification, isVerifying: true, error: '' });
     try {
@@ -136,7 +145,6 @@ export default function EbookManagerClient() {
         countQuery = countQuery.in('deity->>name_hindi', formData.filter_deities);
       }
       if (formData.filter_categories.length > 0) {
-        // Applying AND condition if multiple categories selected
         formData.filter_categories.forEach(cat => {
           countQuery = countQuery.contains('categories', JSON.stringify([{ name_hindi: cat }]));
         });
@@ -185,7 +193,6 @@ export default function EbookManagerClient() {
     setMessage({ text: '', type: '' });
 
     try {
-      // 🌟 STEP 2: INSERT E-BOOK
       const payload = { ...formData };
       const { error } = await supabase.from('ebook_templates').insert([payload]);
       if (error) throw error;
@@ -220,7 +227,7 @@ export default function EbookManagerClient() {
   return (
     <div className="max-w-[95rem] mx-auto grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
       
-      {/* 🌟 LEFT COLUMN: UPGRADED FORM */}
+      {/* 🌟 LEFT COLUMN: FORM */}
       <div className="xl:col-span-5 xl:sticky xl:top-28 relative z-10">
         <div className="backdrop-blur-xl bg-white/90 dark:bg-[#1a120b]/90 border border-gray-200/80 dark:border-white/5 p-6 sm:p-8 rounded-[2rem] shadow-2xl shadow-orange-900/5">
           <h2 className="text-xl font-black text-gray-900 dark:text-white mb-6 flex items-center gap-2">
@@ -298,7 +305,7 @@ export default function EbookManagerClient() {
               </div>
             </div>
 
-            {/* 🌟 SECTION: DYNAMIC RULES ENGINE (UPGRADED) */}
+            {/* 🌟 SECTION: DYNAMIC RULES ENGINE */}
             <div className="bg-orange-50/50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/30 rounded-2xl p-5 shadow-inner">
               <h3 className="text-sm font-black text-orange-800 dark:text-orange-400 mb-4 flex items-center justify-between">
                 <span className="flex items-center gap-2"><FaListOl /> Content Generator Rules</span>
@@ -328,7 +335,7 @@ export default function EbookManagerClient() {
                     <input type="number" required value={formData.target_count} onChange={(e) => setFormData({...formData, target_count: Number(e.target.value) || 0})} className={inputStyle} />
                   </div>
                   
-                  {/* 🌟 VERIFY BUTTON & STATUS */}
+                  {/* VERIFY BUTTON */}
                   <div className="w-full sm:w-2/3 flex items-center gap-3">
                     <button 
                       type="button" 
@@ -373,7 +380,7 @@ export default function EbookManagerClient() {
         </div>
       </div>
 
-      {/* RIGHT COLUMN: LIST (Remains largely the same, optimized formatting) */}
+      {/* RIGHT COLUMN: LIST */}
       <div className="xl:col-span-7">
         <div className="backdrop-blur-xl bg-white/80 dark:bg-[#1a120b]/80 border border-gray-200/80 dark:border-white/5 p-6 sm:p-8 rounded-[2rem] shadow-2xl shadow-orange-900/5">
           <h2 className="text-xl font-black text-gray-900 dark:text-white mb-6 flex items-center gap-2 border-b border-gray-100 dark:border-white/10 pb-4">
