@@ -34,13 +34,19 @@ export async function POST(req: Request) {
     }
     if (!ebook) throw new Error(`ई-बुक (${slug}) डेटाबेस में नहीं मिली!`);
 
-    // 2. Fetch required Bhajans
+    // 2. 🌟 UPGRADED: Fetch required Bhajans using Arrays
     let query = supabaseAdmin.from('mv_bhajan_details').select('slug');
-    if (ebook.filter_deity_name) {
-      query = query.eq('deity->>name_hindi', ebook.filter_deity_name);
+    
+    // Handle Array of Deities
+    if (ebook.filter_deities && ebook.filter_deities.length > 0) {
+      query = query.in('deity->>name_hindi', ebook.filter_deities);
     }
-    if (ebook.filter_category_name) {
-      query = query.contains('categories', JSON.stringify([{ name_hindi: ebook.filter_category_name }]));
+    
+    // Handle Array of Categories
+    if (ebook.filter_categories && ebook.filter_categories.length > 0) {
+      ebook.filter_categories.forEach((cat: string) => {
+        query = query.contains('categories', JSON.stringify([{ name_hindi: cat }]));
+      });
     }
     
     const { data: bhajanList, error: bhajanErr } = await query.limit(ebook.target_count);
