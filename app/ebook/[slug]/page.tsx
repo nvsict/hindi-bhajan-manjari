@@ -60,8 +60,17 @@ export default function EbookProductCheckout() {
 
         let query = supabase.from('mv_bhajan_details').select('slug, title_hindi');
 
-        if (ebook.filter_deity_name) query = query.eq('deity->>name_hindi', ebook.filter_deity_name);
-        if (ebook.filter_category_name) query = query.contains('categories', JSON.stringify([{ name_hindi: ebook.filter_category_name }]));
+        // 🌟 UPGRADED: Handle Array of Deities
+        if (ebook.filter_deities && ebook.filter_deities.length > 0) {
+          query = query.in('deity->>name_hindi', ebook.filter_deities);
+        }
+        
+        // 🌟 UPGRADED: Handle Array of Categories
+        if (ebook.filter_categories && ebook.filter_categories.length > 0) {
+          ebook.filter_categories.forEach((cat: string) => {
+            query = query.contains('categories', JSON.stringify([{ name_hindi: cat }]));
+          });
+        }
 
         query = query.limit(ebook.target_count);
 
