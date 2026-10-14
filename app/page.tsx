@@ -18,9 +18,6 @@ import SupportersWall from '@/components/SupportersWall';
 import EbookBundleSlot from '../components/EbookBundleSlot';
 import VicharBanner from '../components/VicharBanner';
 
-// 🌟 NEW: MGID AD WIDGET
-import MgidWidget from '@/components/MgidWidget';
-
 // VPS Native ISR (Incremental Static Regeneration)
 export const revalidate = 300; 
 
@@ -351,14 +348,6 @@ export default function Home() {
           <DeityBrowse /> 
 
           {/* ==========================================
-              🌟 MGID AD SLOT #1: IN-ARTICLE (High Visibility)
-              Placed naturally between Deity list & Carousel.
-              ========================================== */}
-          <div className="my-10">
-            <MgidWidget widgetId="2090402" minHeight={250} label="प्रायोजित (Sponsored)" />
-          </div>
-
-          {/* ==========================================
               🌟 2.5 PREMIUM HOMEPAGE CAROUSEL
               ========================================== */}
           <div className="mt-8 md:mt-12">
@@ -392,14 +381,6 @@ export default function Home() {
             </Suspense>
           </div>
 
-          {/* ==========================================
-              🌟 MGID AD SLOT #2: SMART WIDGET (Content Rec)
-              Catches users who finished scrolling the Latest Bhajans.
-              ========================================== */}
-          <div className="my-12">
-             <MgidWidget widgetId="2090467" minHeight={400} label="और पढ़ें (Discover More)" />
-          </div>
-
           {/* 4. Secondary Discovery */}
           <div className="mt-10">
             <PopularCategories />
@@ -429,14 +410,6 @@ export default function Home() {
         }>
           <div className="hidden lg:flex lg:flex-col lg:gap-8 lg:sticky lg:top-28 h-fit w-[300px] shrink-0 pb-8">
             
-            {/* ==========================================
-                🌟 MGID AD SLOT #3: SIDEBAR WIDGET
-                Placed at the very top of the sticky sidebar for max viewability.
-                ========================================== */}
-            <div className="bg-white dark:bg-[#120c08] rounded-2xl shadow-sm border border-gray-100 dark:border-[#2a1d12] p-4">
-              <MgidWidget widgetId="2090465" minHeight={300} label="प्रायोजित (Sponsored)" className="!my-0" />
-            </div>
-
             <Sidebar />
           </div>
         </Suspense>
