@@ -3,8 +3,9 @@ import { supabase } from '@/utils/supabase';
 import { FaFire, FaWhatsapp, FaStar, FaChevronRight, FaBookOpen } from 'react-icons/fa';
 import { FaWandSparkles } from 'react-icons/fa6';
 
-// 🌟 IMPORT SMART AFFILIATE SLOT
+// 🌟 IMPORT SMART AFFILIATE SLOT & LETTER PROMO
 import AffiliateSlot from './AffiliateSlot';
+import LetterPromo from '@/components/LetterPromo';
 
 interface SidebarProps {
   topicName?: string;           // e.g., "Hanuman" or "Aarti"
@@ -22,13 +23,13 @@ export default async function Sidebar({
 
   // 1. Build the Dynamic Queries using the superfast Materialized View
   let trendingQuery = supabase
-    .from('mv_bhajan_details') // 👈 Switched from 'bhajans' to 'mv_bhajan_details'
+    .from('mv_bhajan_details') 
     .select('title_hindi, title_hinglish, slug, view_count')
     .order('view_count', { ascending: false })
     .limit(5);
 
   let latestQuery = supabase
-    .from('mv_bhajan_details') // 👈 Switched from 'bhajans' to 'mv_bhajan_details'
+    .from('mv_bhajan_details') 
     .select('title_hindi, title_hinglish, slug')
     .order('created_at', { ascending: false })
     .limit(4);
@@ -39,9 +40,6 @@ export default async function Sidebar({
       trendingQuery = trendingQuery.eq('deity_id', filterValue);
       latestQuery = latestQuery.eq('deity_id', filterValue);
     } else if (filterColumn === 'category_id' || filterColumn === 'category_slug') {
-      // For category filters, it's often safer to query the original mapping table if 
-      // array filtering in JSONB gets too complex for the API. 
-      // Assuming you pass deity_id for sidebars most often, we will stick to basic equality.
       trendingQuery = trendingQuery.eq(filterColumn, filterValue);
       latestQuery = latestQuery.eq(filterColumn, filterValue);
     } else {
@@ -66,7 +64,7 @@ export default async function Sidebar({
     latestQuery,
     supabase
       .from('articles')
-      .select('title_hindi, meta_description, slug') // 🌟 Assuming you use title_hindi for Sanatan Gyan
+      .select('title_hindi, meta_description, slug') 
       .eq('is_published', true)
       .order('published_at', { ascending: false })
       .limit(1)
@@ -129,7 +127,7 @@ export default async function Sidebar({
         </div>
       )}
 
-      {/* --- 🌟 AD SLOT 1 (Fills the gap between Trending and New Arrivals) --- */}
+      {/* --- 🌟 AD SLOT 1 --- */}
       <div className="w-full">
         <AffiliateSlot deityId={specificDeityId} layout="sidebar" />
       </div>
@@ -182,12 +180,17 @@ export default async function Sidebar({
         </div>
       )}
 
-      {/* --- 🌟 AD SLOT 2 (Smartly fills the gap before WhatsApp banner) --- */}
+      {/* --- 🌟 AD SLOT 2 --- */}
       <div className="w-full">
         <AffiliateSlot deityId={specificDeityId} layout="sidebar" />
       </div>
 
-      {/* --- SECTION 4: PREMIUM COMMUNITY BANNER --- */}
+      {/* --- 🌟 SECTION 4: LETTER PROMO (A Letter from Braj) --- */}
+      <div className="w-full">
+        <LetterPromo variant="sidebar" />
+      </div>
+
+      {/* --- SECTION 5: PREMIUM COMMUNITY BANNER --- */}
       <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#128C7E] to-[#075E54] p-8 text-white shadow-xl shadow-[#128C7E]/20 group">
         <FaWhatsapp className="absolute -bottom-8 -right-8 text-9xl text-white opacity-5 group-hover:scale-125 group-hover:-rotate-12 transition-transform duration-700 ease-out" />
         <div className="relative z-10 flex flex-col items-center text-center">

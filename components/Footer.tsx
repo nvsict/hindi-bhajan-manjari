@@ -15,7 +15,11 @@ import {
   FaShieldAlt,
   FaFileContract,
   FaHeart,
-  FaExclamationCircle
+  FaExclamationCircle,
+  FaBook,
+  FaEnvelopeOpenText,
+  FaPenNib,
+  FaPrint
 } from 'react-icons/fa';
 import { HiSparkles } from 'react-icons/hi';
 
@@ -130,46 +134,52 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* 2. Sacred Collections */}
-          <div className="lg:pl-4">
-            <h3 className="text-white font-black mb-6 text-lg md:text-xl font-hindi flex items-center gap-2">
-              <HiSparkles className="text-orange-500 text-base" /> भक्ति सागर
-            </h3>
+          {/* 2. Sacred Collections & Services */}
+          <div className="lg:pl-4 flex flex-col gap-10">
+            {/* Sacred Collections */}
+            <div>
+              <h3 className="text-white font-black mb-5 text-lg md:text-xl font-hindi flex items-center gap-2">
+                <HiSparkles className="text-orange-500 text-base" /> भक्ति सागर
+              </h3>
+              <ul className="space-y-3.5 text-sm">
+                <li><FooterLink href="/category/aarti">सम्पूर्ण आरती संग्रह</FooterLink></li>
+                <li><FooterLink href="/category/chalisa">श्री चालीसा पाठ</FooterLink></li>
+                <li><FooterLink href="/category/navratri-special">नवरात्रि स्पेशल</FooterLink></li>
+                <li><FooterLink href="/category/stotram">दिव्य स्तोत्रम</FooterLink></li>
+                <li><FooterLink href="/deity/shri-radha-krishna">राधा-कृष्ण भजन</FooterLink></li>
+              </ul>
+            </div>
 
-            <ul className="space-y-4 text-sm">
-              <li>
-                <FooterLink href="/category/aarti">
-                  सम्पूर्ण आरती संग्रह
-                </FooterLink>
-              </li>
-
-              <li>
-                <FooterLink href="/category/chalisa">
-                  श्री चालीसा पाठ
-                </FooterLink>
-              </li>
-
-              <li>
-                <FooterLink href="/category/navratri-special">
-                  नवरात्रि स्पेशल
-                </FooterLink>
-              </li>
-
-              <li>
-                <FooterLink href="/category/stotram">
-                  दिव्य स्तोत्रम
-                </FooterLink>
-              </li>
-
-              <li>
-                <FooterLink href="/deity/shri-radha-krishna">
-                  राधा-कृष्ण भजन
-                </FooterLink>
-              </li>
-            </ul>
+            {/* 🌟 Premium Services (NEW) */}
+            <div>
+              <h3 className="text-white font-black mb-5 text-lg md:text-xl font-hindi flex items-center gap-2">
+                <HiSparkles className="text-orange-500 text-base" /> विशेष सेवाएँ
+              </h3>
+              <ul className="space-y-3.5 text-sm">
+                <li>
+                  <FooterLink 
+                    href="/letter-from-braj" 
+                    icon={<FaEnvelopeOpenText size={12} />}
+                    overrideColor="text-orange-400 font-bold"
+                  >
+                    ब्रज से पत्र (New)
+                  </FooterLink>
+                </li>
+                <li>
+                  <FooterLink href="/publication-test" icon={<FaPrint size={12} />}>
+                    प्रकाशन सेवा
+                  </FooterLink>
+                </li>
+                <li>
+                  <FooterLink href="/submit" icon={<FaPenNib size={12} />}>
+                    अपने भजन भेजें
+                  </FooterLink>
+                </li>
+              </ul>
+            </div>
           </div>
 
-          {/* 3. Quick Links */}
+          {/* 3. Quick Links (Legal & Help) */}
           <div>
             <h3 className="text-white font-black mb-6 text-lg md:text-xl font-hindi flex items-center gap-2">
               <HiSparkles className="text-orange-500 text-base" /> कानूनी एवं सहायता
@@ -177,64 +187,37 @@ export default function Footer() {
 
             <ul className="space-y-4 text-sm">
               <li>
-                <FooterLink
-                  href="/about"
-                  icon={<HiSparkles size={12} />}
-                >
+                <FooterLink href="/about" icon={<HiSparkles size={12} />}>
                   हमारी यात्रा (About Us)
                 </FooterLink>
               </li>
 
               <li>
-                <FooterLink
-                  href="/submit"
-                  overrideColor="text-orange-400 font-bold"
-                >
-                  ✍️ अपने भजन भेजें
-                </FooterLink>
-              </li>
-
-              <li>
-                <FooterLink
-                  href="/contact"
-                  icon={<FaEnvelope size={12} />}
-                >
+                <FooterLink href="/contact" icon={<FaEnvelope size={12} />}>
                   संपर्क करें (Contact Us)
                 </FooterLink>
               </li>
 
               <li>
-                <FooterLink
-                  href="/privacy"
-                  icon={<FaShieldAlt size={12} />}
-                >
+                <FooterLink href="/privacy" icon={<FaShieldAlt size={12} />}>
                   गोपनीयता नीति (Privacy)
                 </FooterLink>
               </li>
 
               <li>
-                <FooterLink
-                  href="/dmca"
-                  icon={<FaGavel size={12} />}
-                >
+                <FooterLink href="/dmca" icon={<FaGavel size={12} />}>
                   कॉपीराइट (DMCA)
                 </FooterLink>
               </li>
 
               <li>
-                <FooterLink
-                  href="/terms"
-                  icon={<FaFileContract size={12} />}
-                >
+                <FooterLink href="/terms" icon={<FaFileContract size={12} />}>
                   नियम व शर्तें (Terms)
                 </FooterLink>
               </li>
 
               <li>
-                <FooterLink
-                  href="/disclaimer"
-                  icon={<FaExclamationCircle size={12} />}
-                >
+                <FooterLink href="/disclaimer" icon={<FaExclamationCircle size={12} />}>
                   अस्वीकरण (Disclaimer)
                 </FooterLink>
               </li>
@@ -402,12 +385,12 @@ function FooterLink({
   return (
     <Link
       href={href}
-      className={`flex items-center gap-2 font-hindi text-[15px] hover:text-orange-400 hover:translate-x-1 transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded w-fit ${
+      className={`flex items-center gap-2.5 font-hindi text-[15px] hover:text-orange-400 hover:translate-x-1 transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded w-fit ${
         overrideColor ?? 'text-slate-300'
       }`}
     >
       {icon && (
-        <span className="text-orange-500/70">
+        <span className="text-orange-500/70 shrink-0">
           {icon}
         </span>
       )}

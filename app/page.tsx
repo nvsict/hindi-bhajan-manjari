@@ -14,9 +14,10 @@ import { FaBookOpen, FaClock, FaArrowRight, FaMusic } from 'react-icons/fa';
 import ScrollReveal from '../components/ScrollReveal';
 import SupportersWall from '@/components/SupportersWall';
 
-// 🌟 NEW: Ebook Bundle Slot & Vichar Banner
+// 🌟 NEW: Ebook Bundle Slot, Vichar Banner & Letter Promo
 import EbookBundleSlot from '../components/EbookBundleSlot';
 import VicharBanner from '../components/VicharBanner';
+import LetterPromo from '@/components/LetterPromo';
 
 // VPS Native ISR (Incremental Static Regeneration)
 export const revalidate = 300; 
@@ -381,8 +382,17 @@ export default function Home() {
             </Suspense>
           </div>
 
+          {/* ==========================================
+              🌟 3.5 LETTER FROM BRAJ PROMO (Highly Visible on Mobile)
+              ========================================== */}
+          <div className="mt-12 md:mt-16">
+            <ScrollReveal yOffset={30}>
+              <LetterPromo variant="banner" />
+            </ScrollReveal>
+          </div>
+
           {/* 4. Secondary Discovery */}
-          <div className="mt-10">
+          <div className="mt-12 md:mt-16">
             <PopularCategories />
           </div>
 
@@ -409,7 +419,6 @@ export default function Home() {
           <div className="hidden lg:block w-[300px] h-[800px] shrink-0 bg-gray-50/50 dark:bg-[#110c08] border border-gray-100 dark:border-[#2a1d12] rounded-[2rem] animate-pulse sticky top-28"></div>
         }>
           <div className="hidden lg:flex lg:flex-col lg:gap-8 lg:sticky lg:top-28 h-fit w-[300px] shrink-0 pb-8">
-            
             <Sidebar />
           </div>
         </Suspense>
