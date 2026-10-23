@@ -4,16 +4,16 @@ import { supabase } from '@/utils/supabase';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    
+
     // 🌟 1. Added 'type' parameter to explicitly know what the user is buying
     const { amount, count, returnPath, name, phone, type } = body;
 
     let finalAmount = 0;
     // Default to 'donation' if type is not provided
-    let orderType = type || 'donation'; 
+    let orderType = type || 'donation';
     let bhajanCount = count ? Number(count) : 0;
 
-    // 🌟 2. PERFECT ROUTING LOGIC FOR DIFFERENT PRODUCTS
+    // 🌟 2. ROUTING LOGIC FOR DIFFERENT PRODUCTS
     if (orderType === 'prebuilt_ebook') {
       // For fixed-price ebooks (Admin created)
       if (!amount || Number(amount) <= 0) {
@@ -21,7 +21,12 @@ export async function POST(req: Request) {
       }
       finalAmount = Number(amount);
 
-    } else if (orderType === 'book_builder' || (count !== undefined && type === undefined)) {
+    } else if (
+      orderType === 'book_builder' ||
+      // ✅ FIX: legacy detection only when a real bhajan count (> 0) is sent.
+      // Donations that send count: 0 (or no count) now fall through to the donation branch.
+      (type === undefined && bhajanCount > 0)
+    ) {
       // For Custom Book Builder (Per bhajan pricing logic)
       if (bhajanCount <= 0) {
         return NextResponse.json({ error: 'कम से कम 1 भजन चुनें।' }, { status: 400 });
@@ -32,22 +37,23 @@ export async function POST(req: Request) {
     } else if (orderType === 'donation' && amount !== undefined) {
       // Standard donation
       finalAmount = Number(amount);
+      bhajanCount = 0; // donations never carry a bhajan count
     }
 
     // Safety check
-    if (finalAmount <= 0) {
+    if (!finalAmount || finalAmount <= 0) {
       return NextResponse.json({ error: 'अमान्य राशि' }, { status: 400 });
     }
 
     const orderId = `cf_order_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-    
-    const baseUrl = process.env.NODE_ENV === 'development' 
-      ? 'http://localhost:3000' 
+
+    const baseUrl = process.env.NODE_ENV === 'development'
+      ? 'http://localhost:3000'
       : (process.env.NEXT_PUBLIC_SITE_URL || 'https://hindibhajanmanjari.com');
-    
+
     const redirectUrl = `${baseUrl}/api/cashfree/redirect?order_id={order_id}&return_path=${returnPath || '/donate'}`;
 
-    // 🌟 3. DYNAMIC PAYLOAD CREATION (The Fix)
+    // 🌟 3. DYNAMIC PAYLOAD CREATION
     const payload: any = {
       order_id: orderId,
       order_amount: finalAmount,
@@ -63,9 +69,9 @@ export async function POST(req: Request) {
       }
     };
 
-    // 🚨 THE MAGIC FIX: Only pass 'return_url' for normal donations.
-    // For e-books, we leave it out so the Cashfree modal simply closes 
-    // and lets our Frontend JS trigger the PDF generation seamlessly!
+    // Only pass 'return_url' for normal donations.
+    // For e-books, we leave it out so the Cashfree modal simply closes
+    // and lets our Frontend JS trigger the PDF generation seamlessly.
     if (orderType === 'donation') {
       payload.order_meta = {
         return_url: redirectUrl
@@ -93,7 +99,7 @@ export async function POST(req: Request) {
       bhajan_count: bhajanCount,
       status: 'pending',
       // If name/phone is provided, it's not strictly anonymous
-      is_anonymous: !(name && phone), 
+      is_anonymous: !(name && phone),
       name: name || 'A Gupt Bhakt' // Save the name in the DB
     }]);
 
