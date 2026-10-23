@@ -49,7 +49,7 @@ export default function DonationCheckout({ mode = 'donation', returnPath = '/don
     window.open(`https://wa.me/918384844353?text=${text}`, '_blank');
   };
 
- const handlePayment = async () => {
+  const handlePayment = async () => {
     if (selectedAmount < 1) {
       setErrorMessage("कृपया सही सहयोग राशि चुनें।");
       setIsErrorState(true);
@@ -60,25 +60,34 @@ export default function DonationCheckout({ mode = 'donation', returnPath = '/don
     setErrorMessage('');
     setIsErrorState(false);
 
+    // Saved outside try so every exit path can restore it
+    const originalBtoa = window.btoa;
+    const restoreBtoa = () => {
+      window.btoa = originalBtoa;
+    };
+
     try {
       // 1. Create Order
       const res = await fetch('/api/cashfree/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           amount: selectedAmount,
           count: mode === 'book_builder' ? urlAmount : null,
-          returnPath: returnPath 
+          returnPath: returnPath
         })
       });
 
       const orderData = await res.json();
-      if (!res.ok) throw new Error(orderData.error || "Order creation failed");
+      if (!res.ok) {
+        const serverError: any = new Error(orderData.error || "Order creation failed");
+        serverError.userFacing = Boolean(orderData.error);
+        throw serverError;
+      }
 
       // ========================================================
       // 🌟 FIX: BTOA HACK (To prevent Hindi Font Crash in Cashfree)
       // ========================================================
-      const originalBtoa = window.btoa;
       window.btoa = function (str) {
         try {
           return originalBtoa(str);
@@ -88,38 +97,49 @@ export default function DonationCheckout({ mode = 'donation', returnPath = '/don
       };
 
       const cashfree = await load({ mode: process.env.NEXT_PUBLIC_CASHFREE_MODE || 'sandbox' });
-      
+
       // 3. Open Checkout with Promise Handling
       cashfree.checkout({
         paymentSessionId: orderData.paymentSessionId,
         redirectTarget: '_modal'
       }).then((result: any) => {
-        
-        // पॉपअप बंद होने के बाद btoa को वापस नॉर्मल कर दें
-        window.btoa = originalBtoa;
 
-        if (result.error) {
+        // पॉपअप बंद होने के बाद btoa को वापस नॉर्मल कर दें
+        restoreBtoa();
+
+        if (result?.error) {
           // 🚨 अगर यूज़र ने पॉपअप काट दिया या कार्ड फेल हो गया
           setIsLoading(false);
           setErrorMessage(result.error.message || "पेमेंट रद्द कर दिया गया या विफल रहा।");
           setIsErrorState(true);
-        } else if (result.paymentDetails) {
+        } else if (result?.paymentDetails) {
           // ✅ पेमेंट की प्रक्रिया पूरी हो गई! अब हम खुद यूज़र को Verify API पर भेजेंगे
           setIsLoading(true); // रीडायरेक्ट होने तक लोडिंग चालू रखें
-          window.location.href = `/api/cashfree/redirect?order_id=${orderData.orderId}&return_path=${returnPath}`;
+          window.location.href = `/api/cashfree/redirect?order_id=${encodeURIComponent(orderData.orderId)}&return_path=${encodeURIComponent(returnPath)}`;
+        } else {
+          // किसी और नतीजे पर बटन अटकना नहीं चाहिए
+          setIsLoading(false);
         }
+      }).catch(() => {
+        restoreBtoa();
+        setIsLoading(false);
+        setErrorMessage("पेमेंट विंडो नहीं खुल पाई। पुनः प्रयास करें।");
+        setIsErrorState(true);
       });
 
     } catch (err: any) {
       console.error(err);
-      setErrorMessage("पेमेंट सर्वर से संपर्क नहीं हो पाया। पुनः प्रयास करें।");
+      restoreBtoa();
+      setErrorMessage(
+        err?.userFacing ? err.message : "पेमेंट सर्वर से संपर्क नहीं हो पाया। पुनः प्रयास करें।"
+      );
       setIsErrorState(true);
       setIsLoading(false);
     }
   };
-  
+
   return (
-    <div 
+    <div
       className="w-full max-w-[500px] mx-auto bg-white rounded-3xl shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1)] border border-orange-50 overflow-hidden relative font-hind tracking-wide"
       style={{ fontFamily: 'var(--font-hind), sans-serif' }}
     >
@@ -179,7 +199,7 @@ export default function DonationCheckout({ mode = 'donation', returnPath = '/don
         {isErrorState && (
           <div className="mb-6 space-y-3 animate-in fade-in zoom-in duration-300">
             <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm font-bold rounded-xl flex items-start gap-2 leading-snug text-left">
-              <FaExclamationTriangle className="shrink-0 mt-0.5" /> 
+              <FaExclamationTriangle className="shrink-0 mt-0.5" />
               <span>{errorMessage}</span>
             </div>
             <button
@@ -210,7 +230,7 @@ export default function DonationCheckout({ mode = 'donation', returnPath = '/don
             <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-widest">
               <FaLock className="text-green-600" /> 100% Secure Cashfree Payments
             </div>
-            
+
             <div className="flex flex-wrap justify-center gap-2 opacity-70 grayscale">
               <span className="bg-gray-100 border border-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-[10px] font-black tracking-wider">UPI</span>
               <span className="bg-gray-100 border border-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-[10px] font-black tracking-wider">GPay</span>

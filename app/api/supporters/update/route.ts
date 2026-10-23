@@ -1,18 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// 1. सही की (Key) का चयन और डायग्नोस्टिक चेतावनी
+// 🔒 Service role key is mandatory. No fallback to the public anon key.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseServiceKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  '';
-
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.warn(
-    '⚠️ [API /supporters/update] SUPABASE_SERVICE_ROLE_KEY नहीं मिली! ANON_KEY का उपयोग किया जा रहा है। कृपया सुनिश्चित करें कि RLS पॉलिसी सही है।'
-  );
-}
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
@@ -21,42 +12,66 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   },
 });
 
+function cleanText(value: unknown, maxLength: number): string {
+  return String(value ?? '').trim().slice(0, maxLength);
+}
+
+function isSafeHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(req: Request) {
   try {
+    if (!supabaseServiceKey) {
+      console.error('❌ [API /supporters/update] SUPABASE_SERVICE_ROLE_KEY missing');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     const body = await req.json();
 
-    // 2. Multi-Key Support (किसी भी नाम से Payment ID आए, यह पकड़ लेगा)
-    const paymentId =
+    // Multi-Key Support (किसी भी नाम से Payment ID आए, यह पकड़ लेगा)
+    const rawPaymentId =
       body.paymentId || body.razorpay_payment_id || body.payment_id;
 
-    if (!paymentId) {
+    if (!rawPaymentId || typeof rawPaymentId !== 'string' || rawPaymentId.length > 100) {
       return NextResponse.json(
         { error: 'Payment ID is required' },
         { status: 400 }
       );
     }
+    const paymentId = rawPaymentId.trim();
 
-    // 3. सेफ पेलोड तैयार करें
+    // 🔒 सिर्फ़ दिखावटी (cosmetic) फ़ील्ड बदले जा सकते हैं.
+    // status और amount सिर्फ़ webhook/verify (server-side payment check) से बदलेंगे.
     const updatePayload: Record<string, any> = {
-      status: 'completed',
       updated_at: new Date().toISOString(),
     };
 
-    if (body.name !== undefined) updatePayload.name = body.name;
-    if (body.message !== undefined) updatePayload.message = body.message;
-    if (body.photo_url !== undefined) updatePayload.photo_url = body.photo_url;
+    if (body.name !== undefined) updatePayload.name = cleanText(body.name, 100);
+    if (body.message !== undefined) updatePayload.message = cleanText(body.message, 500);
     if (body.is_anonymous !== undefined) {
       updatePayload.is_anonymous = Boolean(body.is_anonymous);
     }
-    if (body.amount !== undefined) {
-      updatePayload.amount = Number(body.amount) || 0;
+    if (body.photo_url !== undefined) {
+      const photo = cleanText(body.photo_url, 500);
+      if (photo === '' || isSafeHttpUrl(photo)) {
+        updatePayload.photo_url = photo;
+      } else {
+        return NextResponse.json({ error: 'Invalid photo URL' }, { status: 400 });
+      }
     }
 
-    // 4. पहले UPDATE करने का प्रयास करें
+    // 🔒 सिर्फ़ उसी रिकॉर्ड को अपडेट करें जो पहले से verified payment के रूप में मौजूद है.
     const { data: updatedRows, error: updateError } = await supabaseAdmin
       .from('supporters')
       .update(updatePayload)
       .eq('razorpay_payment_id', paymentId)
+      .eq('status', 'completed')
       .select();
 
     if (updateError) {
@@ -71,39 +86,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // 5. अगर रिकॉर्ड नहीं मिला (Empty array), तो नया INSERT करें (Upsert Fallback)
+    // 🔒 कोई नया रिकॉर्ड नहीं बनेगा: अगर पेमेंट verify नहीं हुआ तो 404.
     if (!updatedRows || updatedRows.length === 0) {
-      const insertPayload = {
-        razorpay_payment_id: paymentId,
-        name:
-          body.name || (body.is_anonymous ? 'गुप्त दानकर्ता' : 'सनातन सहयोगी'),
-        message: body.message || '',
-        photo_url: body.photo_url || '',
-        is_anonymous: Boolean(body.is_anonymous),
-        amount: Number(body.amount) || 0,
-        status: 'completed',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const { data: insertedData, error: insertError } = await supabaseAdmin
-        .from('supporters')
-        .insert([insertPayload])
-        .select();
-
-      if (insertError) {
-        console.error(
-          '❌ [API /supporters/update] Insert fallback error:',
-          insertError.message,
-          insertError.details
-        );
-        return NextResponse.json(
-          { error: insertError.message || 'Failed to insert supporter record' },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json({ success: true, data: insertedData });
+      return NextResponse.json(
+        { error: 'Verified payment not found' },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({ success: true, data: updatedRows });
