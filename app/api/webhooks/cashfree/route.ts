@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
+import { activateSubscriptionForOrder } from "../../app-sub/_lib";
 
 // 🌟 FIX: Webhook को कभी भी कैश न होने दें
 export const dynamic = 'force-dynamic';
@@ -33,6 +34,21 @@ export async function POST(req: NextRequest) {
     // सिर्फ PAYMENT_SUCCESS_WEBHOOK को प्रोसेस करें
     if (event.type === "PAYMENT_SUCCESS_WEBHOOK") {
       const { order, payment } = event.data;
+
+      // Android App Subscription Orders -> NEVER touch `supporters` table!
+      if (
+        String(order?.order_id || "").startsWith("HBM_APP_") ||
+        order?.order_tags?.type === "app_subscription"
+      ) {
+        await activateSubscriptionForOrder({
+          orderId: String(order.order_id),
+          paymentId: String(payment?.cf_payment_id || `wh_${Date.now()}`),
+          amountInr: Math.round(Number(order?.order_amount || 0)),
+          eventType: event.type,
+          rawPayload: event.data,
+        });
+        return NextResponse.json({ status: "OK" });
+      }
       
       const orderType = order.order_tags?.orderType || 'donation';
       const bhajanCount = order.order_tags?.bhajanCount ? Number(order.order_tags.bhajanCount) : 0;

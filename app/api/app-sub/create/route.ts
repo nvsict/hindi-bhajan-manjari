@@ -145,6 +145,7 @@ export async function POST(req: Request) {
       },
       order_meta: {
         return_url: returnUrl,
+        notify_url: `${siteUrl}/api/app-sub/webhook`,
       },
       order_tags: {
         type: "app_subscription",
