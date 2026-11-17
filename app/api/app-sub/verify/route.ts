@@ -1,25 +1,32 @@
 import { NextResponse } from "next/server";
 import {
-  activateSubscriptionForOrder,
-  cfFetch,
+  activateRazorpaySubscription,
   getSupabaseAdmin,
+  rzpFetch,
+  verifyRazorpaySubscriptionSignature,
 } from "../_lib";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Verifies a Cashfree order live against Cashfree's API and activates the user's
- * subscription in `app_subscriptions` if paid.
+ * Verifies a Razorpay Recurring Subscription live and activates it in `app_subscriptions`.
+ * Supports BOTH:
+ * 1) Instant signature verification right from Razorpay Checkout handler
+ * 2) Live Razorpay Subscriptions API status lookup (e.g., manual "Verify" button after UPI app switch)
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const orderId = String(body.orderId || "").trim();
+    const subscriptionId = String(
+      body.subscriptionId || body.orderId || "",
+    ).trim();
+    const paymentId = String(body.paymentId || "").trim();
+    const signature = String(body.signature || "").trim();
 
-    if (!orderId) {
+    if (!subscriptionId) {
       return NextResponse.json(
-        { paid: false, error: "अमान्य ऑर्डर आईडी।" },
+        { paid: false, error: "अमान्य सदस्यता आईडी।" },
         { status: 400 },
       );
     }
@@ -30,7 +37,7 @@ export async function POST(req: Request) {
     const { data: existingActive } = await supabaseAdmin
       .from("app_subscriptions")
       .select("*")
-      .eq("cf_order_id", orderId)
+      .eq("rzp_subscription_id", subscriptionId)
       .eq("status", "active")
       .maybeSingle();
 
@@ -41,30 +48,45 @@ export async function POST(req: Request) {
       });
     }
 
-    // Layer 1: Query Cashfree Payments API live
-    const cfRes = await cfFetch(`/orders/${encodeURIComponent(orderId)}/payments`, {
-      method: "GET",
-    });
+    // Fetch live Razorpay subscription status for authoritative period timestamps
+    let liveSub: any = null;
+    try {
+      const rzpRes = await rzpFetch(
+        `/subscriptions/${encodeURIComponent(subscriptionId)}`,
+        { method: "GET" },
+      );
+      if (rzpRes.ok) {
+        liveSub = await rzpRes.json().catch(() => null);
+      }
+    } catch {
+      // continue to signature check if live fetch momentarily hiccuped
+    }
 
-    const payments = await cfRes.json().catch(() => []);
-    if (!cfRes.ok || !Array.isArray(payments)) {
+    // Layer 1: Cryptographic signature verification from Checkout handler
+    const signatureValid =
+      Boolean(paymentId && signature) &&
+      verifyRazorpaySubscriptionSignature(paymentId, subscriptionId, signature);
+
+    // Layer 2: Live Razorpay subscription status check
+    const liveStatus = String(liveSub?.status || "").toLowerCase();
+    const liveAuthorized =
+      liveStatus === "authenticated" ||
+      liveStatus === "active" ||
+      Number(liveSub?.paid_count || 0) >= 1;
+
+    if (!signatureValid && !liveAuthorized) {
       return NextResponse.json({ paid: false });
     }
 
-    const successPayment = payments.find(
-      (p: any) => String(p?.payment_status || "").toUpperCase() === "SUCCESS",
-    );
-
-    if (!successPayment) {
-      return NextResponse.json({ paid: false });
-    }
-
-    const result = await activateSubscriptionForOrder({
-      orderId,
-      paymentId: String(successPayment.cf_payment_id || `pay_${Date.now()}`),
-      amountInr: Math.round(Number(successPayment.payment_amount || 0)),
-      eventType: "VERIFY_API_SUCCESS",
-      rawPayload: successPayment,
+    const result = await activateRazorpaySubscription({
+      subscriptionId,
+      paymentId: paymentId || null,
+      periodStartUnix: liveSub?.current_start || null,
+      periodEndUnix: liveSub?.current_end || null,
+      eventType: signatureValid
+        ? "VERIFY_RZP_SIGNATURE_SUCCESS"
+        : "VERIFY_RZP_API_SUCCESS",
+      rawPayload: liveSub || { subscriptionId, paymentId },
     });
 
     if (result.activated) {

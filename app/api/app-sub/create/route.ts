@@ -1,27 +1,28 @@
 import { NextResponse } from "next/server";
 import {
-  cfFetch,
   createAppUserAccount,
+  ensureRazorpayPlan,
   getSiteBaseUrl,
   getSupabaseAdmin,
-  IS_CF_SANDBOX,
   isValidEmail,
   isValidIndianPhone,
   isValidPassword,
   normalizeEmail,
   normalizeIndianPhone,
+  rzpFetch,
 } from "../_lib";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * 1-STEP CHECKOUT + AUTO USER CREATION:
+ * 1-STEP CHECKOUT + AUTO USER CREATION (Razorpay Recurring Subscriptions):
  * - Reads live price from `app_plans` (never trusts client price)
- * - If user is logged in (via Bearer JWT), binds payment to their existing user_id
+ * - Auto-syncs a Razorpay recurring Plan (`monthly` / `yearly`) if needed
+ * - If user is logged in (via Bearer JWT), binds subscription to their user_id
  * - If user is NOT logged in, automatically creates their user_id + profile from
- *   the checkout mobile/email/password in ONE single step (zero extra signup friction!)
- * - Creates a Cashfree Payment Session & stores a `pending` row in `app_subscriptions`
+ *   the checkout mobile/email/password in ONE single step
+ * - Creates a Razorpay Subscription (`sub_XXXX`) & stores a `pending` row in `app_subscriptions`
  */
 export async function POST(req: Request) {
   try {
@@ -70,14 +71,14 @@ export async function POST(req: Request) {
           .maybeSingle();
 
         customerPhone =
-          existingProfile?.phone || normalizeIndianPhone(body.phone) || "9999999999";
+          existingProfile?.phone || normalizeIndianPhone(body.phone) || "";
         customerEmail = existingProfile?.email || normalizeEmail(body.email);
-        customerName = existingProfile?.full_name || String(body.fullName || "").trim() || "Bhakt";
+        customerName =
+          existingProfile?.full_name || String(body.fullName || "").trim() || "Bhakt";
       }
     }
 
     if (!userId) {
-      // Guest at checkout -> validate details & auto-create account in 1 step!
       const phone = normalizeIndianPhone(body.phone);
       const email = normalizeEmail(body.email);
       const password = String(body.password || "");
@@ -126,52 +127,43 @@ export async function POST(req: Request) {
       accountAutoCreated = true;
     }
 
-    // 3. Create Cashfree Order bound tightly to `userId` & `planId`
-    const orderId = `HBM_APP_${planId.toUpperCase()}_${Date.now().toString(36).toUpperCase()}_${Math.floor(Math.random() * 9000 + 1000)}`;
-    const siteUrl = getSiteBaseUrl();
+    // 3. Ensure Razorpay Plan exists at the current DB price
+    const rzpPlanId = await ensureRazorpayPlan(plan);
+    const totalCount = Number(plan.duration_days) >= 300 ? 10 : 120;
 
-    const returnUrl = `${siteUrl}/api/app-sub/checkout-page?done=1&order_id={order_id}`;
-
-    const cfPayload: Record<string, unknown> = {
-      order_id: orderId,
-      order_amount: Number(plan.price_inr),
-      order_currency: "INR",
-      order_note: `Hindi Bhajan Manjari App — ${plan.name_en}`,
-      customer_details: {
-        customer_id: `hbm_${userId.replace(/-/g, "").slice(0, 24)}`,
-        customer_name: customerName,
-        customer_phone: customerPhone,
-        ...(customerEmail ? { customer_email: customerEmail } : {}),
-      },
-      order_meta: {
-        return_url: returnUrl,
-        notify_url: `${siteUrl}/api/app-sub/webhook`,
-      },
-      order_tags: {
-        type: "app_subscription",
-        app_user_id: userId,
-        plan_id: plan.id,
-      },
-    };
-
-    const cfRes = await cfFetch("/orders", {
+    // 4. Create Razorpay Recurring Subscription bound tightly to `userId` & `plan.id`
+    const rzpRes = await rzpFetch("/subscriptions", {
       method: "POST",
-      body: JSON.stringify(cfPayload),
+      body: JSON.stringify({
+        plan_id: rzpPlanId,
+        total_count: totalCount,
+        quantity: 1,
+        customer_notify: 1,
+        notes: {
+          type: "app_subscription",
+          app_user_id: userId,
+          plan_id: plan.id,
+          phone: customerPhone,
+        },
+      }),
     });
 
-    const cfData = await cfRes.json().catch(() => ({}));
-    if (!cfRes.ok || !cfData.payment_session_id) {
-      console.error("[app-sub/create] Cashfree error:", cfRes.status, cfData);
+    const rzpData = await rzpRes.json().catch(() => ({}));
+    if (!rzpRes.ok || !rzpData?.id) {
+      console.error("[app-sub/create] Razorpay error:", rzpRes.status, rzpData);
       return NextResponse.json(
         {
           error:
-            cfData?.message || "भुगतान सत्र तैयार करने में समस्या आई। कृपया पुनः प्रयास करें।",
+            rzpData?.error?.description ||
+            "सदस्यता सत्र तैयार करने में समस्या आई। कृपया पुनः प्रयास करें।",
         },
         { status: 502 },
       );
     }
 
-    // 4. Insert pending subscription row bound to userId
+    const rzpSubscriptionId = String(rzpData.id);
+
+    // 5. Insert pending subscription row bound to userId
     const { error: subErr } = await supabaseAdmin
       .from("app_subscriptions")
       .insert([
@@ -181,7 +173,7 @@ export async function POST(req: Request) {
           status: "pending",
           auto_renew: true,
           amount_inr: Number(plan.price_inr),
-          cf_order_id: orderId,
+          rzp_subscription_id: rzpSubscriptionId,
         },
       ]);
 
@@ -189,30 +181,39 @@ export async function POST(req: Request) {
       console.error("[app-sub/create] DB insert warning:", subErr.message);
     }
 
-    const checkoutUrl = `${siteUrl}/api/app-sub/checkout-page?session_id=${encodeURIComponent(
-      cfData.payment_session_id,
-    )}&order_id=${encodeURIComponent(orderId)}&mode=${
-      IS_CF_SANDBOX ? "sandbox" : "production"
-    }`;
+    const siteUrl = getSiteBaseUrl();
+    const qs = new URLSearchParams({
+      sub_id: rzpSubscriptionId,
+      plan_name: plan.name_hi || plan.name_en,
+      name: customerName,
+      phone: customerPhone,
+      ...(customerEmail ? { email: customerEmail } : {}),
+    });
+
+    const checkoutUrl = `${siteUrl}/api/app-sub/checkout-page?${qs.toString()}`;
 
     return NextResponse.json(
       {
-        orderId,
-        paymentSessionId: cfData.payment_session_id,
+        subscriptionId: rzpSubscriptionId,
+        orderId: rzpSubscriptionId, // backwards-compatible alias
         checkoutUrl,
+        shortUrl: rzpData.short_url || null,
         amountInr: Number(plan.price_inr),
         planId: plan.id,
         userId,
         authEmail,
         accountAutoCreated,
-        cashfreeMode: IS_CF_SANDBOX ? "sandbox" : "production",
       },
       { status: 200 },
     );
   } catch (err: any) {
     console.error("[app-sub/create] Unexpected error:", err);
     return NextResponse.json(
-      { error: "भुगतान प्रारंभ करने में त्रुटि आई। कृपया पुनः प्रयास करें।" },
+      {
+        error:
+          err?.message ||
+          "भुगतान प्रारंभ करने में त्रुटि आई। कृपया पुनः प्रयास करें।",
+      },
       { status: 500 },
     );
   }

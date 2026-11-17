@@ -1,73 +1,52 @@
-// E:\Desktop\Tools\hindi-bhajan-manjari\app\api\app-sub\_lib.ts
-// Isolated server-only helpers for Android App Auth & Recurring Subscriptions.
-// Does NOT touch `supporters` or any existing website table.
-
 import crypto from "crypto";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-export const CF_BASE =
-  process.env.CASHFREE_BASE_URL || "https://sandbox.cashfree.com";
-
-export const IS_CF_SANDBOX = CF_BASE.toLowerCase().includes("sandbox");
-
-export function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceKey) {
-    throw new Error("Supabase server env vars are not configured.");
+export function getRazorpayKeyId(): string {
+  const keyId =
+    process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || "";
+  if (!keyId) {
+    throw new Error("Missing NEXT_PUBLIC_RAZORPAY_KEY_ID / RAZORPAY_KEY_ID");
   }
-  return createClient(url, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  return keyId.trim();
+}
+
+export function getRazorpayKeySecret(): string {
+  const secret = process.env.RAZORPAY_KEY_SECRET || "";
+  if (!secret) {
+    throw new Error("Missing RAZORPAY_KEY_SECRET");
+  }
+  return secret.trim();
+}
+
+export function getRazorpayWebhookSecret(): string {
+  const secret =
+    process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET || "";
+  if (!secret) {
+    throw new Error("Missing RAZORPAY_WEBHOOK_SECRET");
+  }
+  return secret.trim();
 }
 
 export function getSiteBaseUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL || "https://www.hindibhajanmanjari.com"
-  ).replace(/\/+$/, "");
+  const raw =
+    process.env.NEXT_PUBLIC_SITE_URL || "https://www.hindibhajanmanjari.com";
+  return raw.replace(/\/+$/, "");
 }
 
-export async function cfFetch(path: string, init?: RequestInit) {
-  const clientId = process.env.CASHFREE_CLIENT_ID;
-  const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
-  if (!clientId || !clientSecret) {
-    throw new Error("Cashfree server credentials are missing.");
+export function getSupabaseAdmin(): SupabaseClient {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) {
+    throw new Error(
+      "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY",
+    );
   }
-
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 14000);
-  const baseUrl = CF_BASE.endsWith("/pg") ? CF_BASE : `${CF_BASE}/pg`;
-
-  try {
-    return await fetch(`${baseUrl}${path}`, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-version": "2023-08-01",
-        "x-client-id": clientId,
-        "x-client-secret": clientSecret,
-        ...(init?.headers || {}),
-      },
-      cache: "no-store",
-      signal: ctrl.signal,
-    });
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-export function verifyCashfreeSignature(
-  timestamp: string,
-  rawBody: string,
-  signature: string,
-): boolean {
-  const secret = process.env.CASHFREE_CLIENT_SECRET || "";
-  if (!secret || !timestamp || !signature) return false;
-  const expected = crypto
-    .createHmac("sha256", secret)
-    .update(timestamp + rawBody)
-    .digest("base64");
-  return expected === signature;
+  return createClient(url, serviceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
 }
 
 export function normalizeIndianPhone(raw: unknown): string {
@@ -91,35 +70,169 @@ export function normalizeEmail(raw: unknown): string | null {
 }
 
 export function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
 }
 
 export function isValidPassword(password: unknown): boolean {
-  const s = String(password || "");
-  return s.length >= 6 && s.length <= 72;
+  return typeof password === "string" && password.length >= 6 && password.length <= 72;
 }
 
-/**
- * Deterministic auth email for phone-first registration so users can sign in
- * with either phone OR email + password without SMS OTP fees.
- */
-export function buildAuthEmail(phone: string, email: string | null): string {
+export function deriveAuthEmail(phone: string, email: string | null): string {
   return email || `${phone}@phone.hindibhajanmanjari.com`;
 }
 
 /**
- * Creates a verified Supabase Auth user + `app_profiles` row with strict duplicate checks.
+ * Call Razorpay REST API v1 with Basic Auth.
+ */
+export async function rzpFetch(
+  path: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  const keyId = getRazorpayKeyId();
+  const keySecret = getRazorpayKeySecret();
+  const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
+
+  return fetch(`https://api.razorpay.com/v1${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Basic ${auth}`,
+      ...(init.headers || {}),
+    },
+  });
+}
+
+/**
+ * Ensures a Razorpay Recurring Plan exists for the given `app_plans` row.
+ * If `rzp_plan_id` is missing OR `price_inr` was changed in Supabase,
+ * automatically creates a fresh Razorpay Plan at the new price and caches its ID!
+ */
+export async function ensureRazorpayPlan(plan: {
+  id: string;
+  name_en: string;
+  name_hi: string;
+  description_hi: string | null;
+  price_inr: number;
+  duration_days: number;
+  rzp_plan_id?: string | null;
+  rzp_plan_price_inr?: number | null;
+}): Promise<string> {
+  const currentPrice = Number(plan.price_inr);
+  if (
+    plan.rzp_plan_id &&
+    (!plan.rzp_plan_price_inr || Number(plan.rzp_plan_price_inr) === currentPrice)
+  ) {
+    return plan.rzp_plan_id;
+  }
+
+  const period = Number(plan.duration_days) >= 300 ? "yearly" : "monthly";
+  const res = await rzpFetch("/plans", {
+    method: "POST",
+    body: JSON.stringify({
+      period,
+      interval: 1,
+      item: {
+        name: `Hindi Bhajan Manjari — ${plan.name_en}`,
+        amount: Math.round(currentPrice * 100), // paise
+        currency: "INR",
+        description:
+          plan.description_hi ||
+          `Hindi Bhajan Manjari Android App ${plan.name_en}`,
+      },
+      notes: {
+        app_plan_id: plan.id,
+        price_inr: String(currentPrice),
+      },
+    }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data?.id) {
+    console.error("[app-sub] Failed to create Razorpay plan:", res.status, data);
+    throw new Error(
+      data?.error?.description ||
+        "Razorpay प्लान बनाने में समस्या आई। कृपया पुनः प्रयास करें।",
+    );
+  }
+
+  const supabaseAdmin = getSupabaseAdmin();
+  await supabaseAdmin
+    .from("app_plans")
+    .update({
+      rzp_plan_id: data.id,
+      rzp_plan_price_inr: currentPrice,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", plan.id);
+
+  return String(data.id);
+}
+
+/**
+ * Verifies Razorpay Checkout handler signature for Subscriptions:
+ * HMAC_SHA256(razorpay_payment_id + "|" + razorpay_subscription_id, RAZORPAY_KEY_SECRET)
+ */
+export function verifyRazorpaySubscriptionSignature(
+  paymentId: string,
+  subscriptionId: string,
+  signature: string,
+): boolean {
+  if (!paymentId || !subscriptionId || !signature) return false;
+  const secret = getRazorpayKeySecret();
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(`${paymentId}|${subscriptionId}`)
+    .digest("hex");
+
+  const expectedBuf = Buffer.from(expected, "utf8");
+  const actualBuf = Buffer.from(signature.trim(), "utf8");
+  if (expectedBuf.length !== actualBuf.length) return false;
+  return crypto.timingSafeEqual(expectedBuf, actualBuf);
+}
+
+/**
+ * Verifies Razorpay Webhook signature (`x-razorpay-signature` header):
+ * HMAC_SHA256(rawBody, RAZORPAY_WEBHOOK_SECRET)
+ */
+export function verifyRazorpayWebhookSignature(
+  rawBody: string,
+  signature: string,
+): boolean {
+  if (!rawBody || !signature) return false;
+  const secret = getRazorpayWebhookSecret();
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(rawBody)
+    .digest("hex");
+
+  const expectedBuf = Buffer.from(expected, "utf8");
+  const actualBuf = Buffer.from(signature.trim(), "utf8");
+  if (expectedBuf.length !== actualBuf.length) return false;
+  return crypto.timingSafeEqual(expectedBuf, actualBuf);
+}
+
+/**
+ * Creates a Supabase Auth user + `app_profiles` row with strict duplicate checks.
+ * Used by BOTH `/api/app-sub/auth/register` AND 1-step `/api/app-sub/create`.
  */
 export async function createAppUserAccount(params: {
   phone: string;
   email: string | null;
   password: string;
-  fullName?: string | null;
-}) {
+  fullName: string;
+}): Promise<
+  | {
+      userId: string;
+      authEmail: string;
+      phone: string;
+      email: string | null;
+      fullName: string;
+    }
+  | { error: string; code: string; status: number }
+> {
   const supabaseAdmin = getSupabaseAdmin();
   const { phone, email, password, fullName } = params;
 
-  // 1. Check duplicate phone
   const { data: existingPhone } = await supabaseAdmin
     .from("app_profiles")
     .select("user_id")
@@ -129,12 +242,11 @@ export async function createAppUserAccount(params: {
   if (existingPhone) {
     return {
       error: "यह मोबाइल नंबर पहले से पंजीकृत है। कृपया लॉगिन करें।",
-      code: "PHONE_EXISTS" as const,
+      code: "PHONE_EXISTS",
       status: 409,
     };
   }
 
-  // 2. Check duplicate email (if provided)
   if (email) {
     const { data: existingEmail } = await supabaseAdmin
       .from("app_profiles")
@@ -145,64 +257,59 @@ export async function createAppUserAccount(params: {
     if (existingEmail) {
       return {
         error: "यह ईमेल पता पहले से पंजीकृत है। कृपया लॉगिन करें।",
-        code: "EMAIL_EXISTS" as const,
+        code: "EMAIL_EXISTS",
         status: 409,
       };
     }
   }
 
-  const authEmail = buildAuthEmail(phone, email);
-  const cleanName = String(fullName || "").trim().slice(0, 80) || null;
+  const authEmail = deriveAuthEmail(phone, email);
 
-  // 3. Create Supabase Auth user (pre-confirmed for instant frictionless login)
-  const { data: authCreated, error: authErr } =
+  const { data: createdAuth, error: authErr } =
     await supabaseAdmin.auth.admin.createUser({
       email: authEmail,
       password,
       email_confirm: true,
       user_metadata: {
         phone,
-        real_email: email,
-        full_name: cleanName,
+        full_name: fullName || "",
         source: "android_app",
       },
     });
 
-  if (authErr || !authCreated?.user) {
-    const msg = authErr?.message || "खाता बनाने में त्रुटि आई।";
-    const isDup =
-      msg.toLowerCase().includes("already") ||
-      msg.toLowerCase().includes("registered");
+  if (authErr || !createdAuth?.user) {
+    const msg = (authErr?.message || "").toLowerCase();
+    if (msg.includes("already") || msg.includes("registered")) {
+      return {
+        error: "यह खाता पहले से मौजूद है। कृपया लॉगिन करें।",
+        code: "ACCOUNT_EXISTS",
+        status: 409,
+      };
+    }
     return {
-      error: isDup
-        ? "यह खाता पहले से पंजीकृत है। कृपया लॉगिन करें।"
-        : msg,
-      code: isDup ? ("ACCOUNT_EXISTS" as const) : ("AUTH_ERROR" as const),
-      status: isDup ? 409 : 400,
+      error: "खाता बनाने में समस्या आई। कृपया पुनः प्रयास करें।",
+      code: "AUTH_CREATE_FAILED",
+      status: 500,
     };
   }
 
-  const userId = authCreated.user.id;
+  const userId = createdAuth.user.id;
 
-  // 4. Insert profile row bound to auth.users(id)
-  const { error: profileErr } = await supabaseAdmin
-    .from("app_profiles")
-    .insert([
-      {
-        user_id: userId,
-        phone,
-        email,
-        full_name: cleanName,
-        auth_email: authEmail,
-      },
-    ]);
+  const { error: profileErr } = await supabaseAdmin.from("app_profiles").insert([
+    {
+      user_id: userId,
+      phone,
+      email,
+      full_name: fullName || null,
+      auth_email: authEmail,
+    },
+  ]);
 
   if (profileErr) {
-    // Rollback auth user if profile insert fails
     await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => {});
     return {
       error: "प्रोफ़ाइल सहेजने में त्रुटि आई। कृपया पुनः प्रयास करें।",
-      code: "PROFILE_ERROR" as const,
+      code: "PROFILE_CREATE_FAILED",
       status: 500,
     };
   }
@@ -212,78 +319,94 @@ export async function createAppUserAccount(params: {
     authEmail,
     phone,
     email,
-    fullName: cleanName,
+    fullName,
   };
 }
 
 /**
- * Idempotent activation of an app subscription upon verified Cashfree payment.
- * Called by BOTH `/api/app-sub/verify` and `/api/app-sub/webhook`.
+ * Idempotently activates or extends a Razorpay subscription in `app_subscriptions`
+ * and writes an audit row in `app_payment_logs`.
  */
-export async function activateSubscriptionForOrder(params: {
-  orderId: string;
-  paymentId: string;
+export async function activateRazorpaySubscription(params: {
+  subscriptionId: string;
+  paymentId?: string | null;
   amountInr?: number;
+  periodStartUnix?: number | null;
+  periodEndUnix?: number | null;
   eventType: string;
-  rawPayload?: any;
+  rawPayload: unknown;
 }) {
   const supabaseAdmin = getSupabaseAdmin();
-  const { orderId, paymentId, amountInr, eventType, rawPayload } = params;
+  const {
+    subscriptionId,
+    paymentId,
+    amountInr,
+    periodStartUnix,
+    periodEndUnix,
+    eventType,
+    rawPayload,
+  } = params;
 
-  const { data: subRow, error: subErr } = await supabaseAdmin
+  const { data: subRow, error: findErr } = await supabaseAdmin
     .from("app_subscriptions")
     .select("*")
-    .eq("cf_order_id", orderId)
+    .eq("rzp_subscription_id", subscriptionId)
     .maybeSingle();
 
-  if (subErr || !subRow) {
-    return { activated: false, reason: "SUBSCRIPTION_NOT_FOUND" as const };
+  if (findErr || !subRow) {
+    return { activated: false, reason: "subscription_not_found" as const };
   }
 
-  // Already active for this order — idempotent return
-  if (subRow.status === "active" && subRow.current_period_end) {
-    return { activated: true, subscription: subRow };
-  }
-
-  // Fetch plan duration
   const { data: planRow } = await supabaseAdmin
     .from("app_plans")
     .select("duration_days, price_inr")
     .eq("id", subRow.plan_id)
     .maybeSingle();
 
-  const durationDays = planRow?.duration_days || (subRow.plan_id === "annual" ? 365 : 30);
-
-  // If user already has an active future period, extend from that date; otherwise start from now()
-  const { data: latestActive } = await supabaseAdmin
-    .from("app_subscriptions")
-    .select("current_period_end")
-    .eq("user_id", subRow.user_id)
-    .eq("status", "active")
-    .gt("current_period_end", new Date().toISOString())
-    .order("current_period_end", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const durationDays =
+    planRow?.duration_days || (subRow.plan_id === "annual" ? 365 : 30);
 
   const now = new Date();
-  const startBase =
-    latestActive?.current_period_end &&
-    new Date(latestActive.current_period_end) > now
-      ? new Date(latestActive.current_period_end)
-      : now;
+  let nextStart =
+    periodStartUnix && periodStartUnix > 0
+      ? new Date(periodStartUnix * 1000)
+      : subRow.current_period_start
+        ? new Date(subRow.current_period_start)
+        : now;
 
-  const periodEnd = new Date(
-    startBase.getTime() + durationDays * 24 * 60 * 60 * 1000,
-  );
+  let nextEnd: Date;
+  if (periodEndUnix && periodEndUnix > 0) {
+    nextEnd = new Date(periodEndUnix * 1000);
+  } else {
+    const base =
+      subRow.current_period_end && new Date(subRow.current_period_end) > now
+        ? new Date(subRow.current_period_end)
+        : now;
+    nextEnd = new Date(base.getTime() + durationDays * 24 * 60 * 60 * 1000);
+  }
+
+  // Never shorten an existing valid period
+  if (
+    subRow.current_period_end &&
+    new Date(subRow.current_period_end).getTime() > nextEnd.getTime()
+  ) {
+    nextEnd = new Date(subRow.current_period_end);
+  }
+
+  const effectiveAmount =
+    amountInr && amountInr > 0
+      ? Math.round(amountInr)
+      : subRow.amount_inr || planRow?.price_inr || 0;
 
   const { data: updated, error: updateErr } = await supabaseAdmin
     .from("app_subscriptions")
     .update({
       status: "active",
-      cf_payment_id: String(paymentId),
-      amount_inr: amountInr ?? subRow.amount_inr,
-      current_period_start: now.toISOString(),
-      current_period_end: periodEnd.toISOString(),
+      auto_renew: true,
+      rzp_payment_id: paymentId || subRow.rzp_payment_id || null,
+      amount_inr: effectiveAmount,
+      current_period_start: nextStart.toISOString(),
+      current_period_end: nextEnd.toISOString(),
       updated_at: now.toISOString(),
     })
     .eq("id", subRow.id)
@@ -291,28 +414,27 @@ export async function activateSubscriptionForOrder(params: {
     .single();
 
   if (updateErr) {
-    console.error("[app-sub] Failed updating subscription:", updateErr);
-    return { activated: false, reason: "DB_UPDATE_ERROR" as const };
+    throw updateErr;
   }
 
-  // Log payment idempotently (unique cf_payment_id ignores duplicate webhook/verify races)
-  await supabaseAdmin
-    .from("app_payment_logs")
-    .upsert(
-      [
-        {
-          user_id: subRow.user_id,
-          subscription_id: subRow.id,
-          cf_order_id: orderId,
-          cf_payment_id: String(paymentId),
-          event_type: eventType,
-          amount_inr: amountInr ?? subRow.amount_inr,
-          status: "SUCCESS",
-          raw_payload: rawPayload || null,
-        },
-      ],
-      { onConflict: "cf_payment_id", ignoreDuplicates: true },
-    );
+  const logPaymentId =
+    paymentId || `rzp_${subscriptionId}_${eventType}_${Math.floor(Date.now() / 60000)}`;
+
+  await supabaseAdmin.from("app_payment_logs").upsert(
+    [
+      {
+        user_id: subRow.user_id,
+        subscription_id: subRow.id,
+        rzp_subscription_id: subscriptionId,
+        rzp_payment_id: logPaymentId,
+        event_type: eventType,
+        amount_inr: effectiveAmount,
+        status: "SUCCESS",
+        raw_payload: rawPayload,
+      },
+    ],
+    { onConflict: "rzp_payment_id", ignoreDuplicates: true },
+  );
 
   return { activated: true, subscription: updated };
 }
