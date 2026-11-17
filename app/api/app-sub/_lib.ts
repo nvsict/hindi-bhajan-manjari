@@ -417,24 +417,64 @@ export async function activateRazorpaySubscription(params: {
     throw updateErr;
   }
 
-  const logPaymentId =
-    paymentId || `rzp_${subscriptionId}_${eventType}_${Math.floor(Date.now() / 60000)}`;
+  // Only log actual Razorpay payment charges (`pay_...`) so lifecycle webhooks
+  // like `subscription.authenticated` never create duplicate rows in Payment History.
+  if (paymentId && paymentId.startsWith("pay_")) {
+    await supabaseAdmin.from("app_payment_logs").upsert(
+      [
+        {
+          user_id: subRow.user_id,
+          subscription_id: subRow.id,
+          rzp_subscription_id: subscriptionId,
+          rzp_payment_id: paymentId,
+          event_type: eventType,
+          amount_inr: effectiveAmount,
+          status: "SUCCESS",
+          raw_payload: rawPayload,
+        },
+      ],
+      { onConflict: "rzp_payment_id", ignoreDuplicates: true },
+    );
+  }
 
-  await supabaseAdmin.from("app_payment_logs").upsert(
-    [
-      {
-        user_id: subRow.user_id,
-        subscription_id: subRow.id,
-        rzp_subscription_id: subscriptionId,
-        rzp_payment_id: logPaymentId,
-        event_type: eventType,
-        amount_inr: effectiveAmount,
-        status: "SUCCESS",
-        raw_payload: rawPayload,
-      },
-    ],
-    { onConflict: "rzp_payment_id", ignoreDuplicates: true },
-  );
+  // If the user upgraded (e.g. Monthly -> Annual), automatically cancel any OTHER
+  // active Razorpay subscription for this user so they are never double-charged!
+  try {
+    const { data: olderActiveSubs } = await supabaseAdmin
+      .from("app_subscriptions")
+      .select("id, rzp_subscription_id")
+      .eq("user_id", subRow.user_id)
+      .eq("status", "active")
+      .neq("id", subRow.id);
+
+    if (Array.isArray(olderActiveSubs) && olderActiveSubs.length > 0) {
+      for (const oldSub of olderActiveSubs) {
+        if (
+          oldSub.rzp_subscription_id &&
+          oldSub.rzp_subscription_id !== subscriptionId
+        ) {
+          await rzpFetch(
+            `/subscriptions/${encodeURIComponent(oldSub.rzp_subscription_id)}/cancel`,
+            {
+              method: "POST",
+              body: JSON.stringify({ cancel_at_cycle_end: 0 }),
+            },
+          ).catch(() => {});
+        }
+
+        await supabaseAdmin
+          .from("app_subscriptions")
+          .update({
+            status: "cancelled",
+            auto_renew: false,
+            updated_at: now.toISOString(),
+          })
+          .eq("id", oldSub.id);
+      }
+    }
+  } catch (cancelErr) {
+    console.error("[app-sub] Old subscription cancel warning:", cancelErr);
+  }
 
   return { activated: true, subscription: updated };
 }
