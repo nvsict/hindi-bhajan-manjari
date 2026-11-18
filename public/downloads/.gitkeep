@@ -1,0 +1,3 @@
+# Place your signed production release APK here when self-hosting on your VPS:
+# Example: hindi-bhajan-manjari-v1.0.0.apk
+# Then set apkDownloadUrl = "/downloads/hindi-bhajan-manjari-v1.0.0.apk" in lib/appRelease.ts

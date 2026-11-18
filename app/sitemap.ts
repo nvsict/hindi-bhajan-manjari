@@ -55,6 +55,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 🌟 FIX: Removed /submit, /donate, /developers (often these have noindex tags)
   const staticRoutes = [
     { url: '', priority: 1.0 },
+    { url: '/app', priority: 0.95 },
     { url: '/gyan', priority: 0.9 },
     { url: '/category', priority: 0.8 },
     { url: '/deity', priority: 0.8 },

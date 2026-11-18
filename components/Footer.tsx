@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useLenis } from 'lenis/react';
 import { supabase } from '@/utils/supabase'; 
 import {
+  FaAndroid,
   FaFacebook,
   FaInstagram,
   FaWhatsapp,
@@ -156,6 +157,15 @@ export default function Footer() {
                 <HiSparkles className="text-orange-500 text-base" /> विशेष सेवाएँ
               </h3>
               <ul className="space-y-3.5 text-sm">
+                <li>
+                  <FooterLink
+                    href="/app"
+                    icon={<FaAndroid size={13} />}
+                    overrideColor="text-orange-400 font-bold"
+                  >
+                    Android ऐप डाउनलोड (APK)
+                  </FooterLink>
+                </li>
                 <li>
                   <FooterLink 
                     href="/letter-from-braj" 
