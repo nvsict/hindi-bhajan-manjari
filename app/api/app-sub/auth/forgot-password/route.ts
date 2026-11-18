@@ -69,7 +69,12 @@ export async function POST(req: Request) {
     }
 
     const supabaseAdmin = getSupabaseAdmin();
-    let profile: { user_id: string; email: string | null; full_name: string | null } | null = null;
+    let profile: {
+      user_id: string;
+      email: string | null;
+      auth_email: string | null;
+      full_name: string | null;
+    } | null = null;
 
     if (rawIdentifier.includes("@")) {
       const email = normalizeEmail(rawIdentifier);
@@ -81,7 +86,7 @@ export async function POST(req: Request) {
       }
       const { data } = await supabaseAdmin
         .from("app_profiles")
-        .select("user_id, email, full_name")
+        .select("user_id, email, auth_email, full_name")
         .ilike("email", email)
         .maybeSingle();
       profile = data;
@@ -95,7 +100,7 @@ export async function POST(req: Request) {
       }
       const { data } = await supabaseAdmin
         .from("app_profiles")
-        .select("user_id, email, full_name")
+        .select("user_id, email, auth_email, full_name")
         .eq("phone", phone)
         .maybeSingle();
       profile = data;
@@ -108,12 +113,19 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!profile.email) {
+    const targetEmail =
+      profile.email ||
+      (profile.auth_email &&
+      !profile.auth_email.endsWith("@phone.hindibhajanmanjari.com")
+        ? profile.auth_email
+        : null);
+
+    if (!targetEmail) {
       return NextResponse.json(
         {
           code: "NO_EMAIL_ON_FILE",
           error:
-            "No email address is linked to this mobile account. Email contact@hindibhajanmanjari.com from your registered number for help.",
+            "No email address is linked to this mobile account. Email contact@hindibhajanmanjari.com with your registered mobile number for free recovery.",
         },
         { status: 422 },
       );
@@ -139,14 +151,15 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         sender: SENDER_INFO,
-        to: [{ email: profile.email, name: displayName }],
+        to: [{ email: targetEmail, name: displayName }],
         subject: `${code} is your Hindi Bhajan Manjari password reset code`,
         htmlContent: `
           <div style="font-family:system-ui,-apple-system,sans-serif;max-width:460px;margin:0 auto;padding:24px;background:#faf8f4;color:#1c1917;border:1px solid #e7e5e4;border-radius:12px;">
-            <p style="margin:0 0 8px;font-size:13px;color:#78716c;">Hindi Bhajan Manjari</p>
+            <p style="margin:0 0 8px;font-size:13px;color:#78716c;">Hindi Bhajan Manjari · हिंदी भजन मंजरी</p>
             <h2 style="margin:0 0 12px;font-size:20px;font-weight:600;">Password reset code</h2>
             <p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#57534e;">
-              Use the 6-digit code below in the app to set a new password. This code expires in 15 minutes.
+              Use the 6-digit code below in the app to set a new password. This code expires in 15 minutes.<br/>
+              ऐप में नया पासवर्ड सेट करने के लिए नीचे दिया गया 6 अंकों का कोड दर्ज करें। यह कोड 15 मिनट तक वैध है।
             </p>
             <div style="font-size:28px;font-weight:700;letter-spacing:6px;padding:14px 18px;background:#ffffff;border:1px solid #d6d3d1;border-radius:8px;text-align:center;color:#c2410c;">
               ${code}
@@ -160,7 +173,8 @@ export async function POST(req: Request) {
     });
 
     if (!mailRes.ok) {
-      console.error("[app-sub/auth/forgot-password] Brevo error:", mailRes.status);
+      const brevoErr = await mailRes.text().catch(() => "");
+      console.error("[app-sub/auth/forgot-password] Brevo error:", mailRes.status, brevoErr);
       return NextResponse.json(
         { error: "Could not send reset email right now. Please try again." },
         { status: 502 },
@@ -169,7 +183,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       ok: true,
-      maskedEmail: maskEmailAddress(profile.email),
+      maskedEmail: maskEmailAddress(targetEmail),
       resetToken,
     });
   } catch (err: any) {
