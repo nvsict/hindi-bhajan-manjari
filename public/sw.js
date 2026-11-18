@@ -37,6 +37,7 @@ self.addEventListener('fetch', (event) => {
   // 🚨 CRITICAL: Never cache these!
   if (
     url.pathname.startsWith('/api/') || 
+    url.pathname.startsWith('/admin') ||
     url.pathname === '/pay.html' ||
     url.hostname.includes('razorpay.com') ||
     url.hostname.includes('supabase.co') ||

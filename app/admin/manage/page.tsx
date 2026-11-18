@@ -122,7 +122,7 @@ export default function MetadataManagePage() {
           </div>
           
           <Link 
-            href={activeTab === 'artists' ? "/admin/artists/new" : "/admin/upload"} 
+            href={activeTab === 'artists' ? "/admin/artists/new" : "/admin/add-bhajan"} 
             className="bg-orange-600 text-white px-8 py-4 rounded-xl font-black flex items-center gap-3 transition-all shadow-[0_4px_14px_0_rgba(234,88,12,0.3)] hover:shadow-[0_6px_20px_rgba(234,88,12,0.4)] hover:-translate-y-0.5 active:scale-95"
           >
             <FaPlus size={16} /> Add New {activeTab === 'artists' ? 'Artist' : 'Record'}

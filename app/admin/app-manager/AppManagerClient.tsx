@@ -552,9 +552,13 @@ export default function AppManagerClient({
       }
     } catch (err: any) {
       setUploadPhase("error");
-      const msg =
-        err?.message ||
-        "APK upload failed. Please check network or Nginx upload size limit.";
+      let msg = err?.message || "APK upload failed.";
+      if (
+        (selectedApkFile && selectedApkFile.size > 50 * 1024 * 1024) ||
+        msg.includes("Failed to fetch")
+      ) {
+        msg = `File is ${computedSizeLabel}. Self-hosted Supabase Storage has a default 50 MB limit (returned 413 / CORS). Please host on GitHub Releases (free, up to 2GB) or increase FILE_SIZE_LIMIT on your VPS.`;
+      }
       setUploadError(msg);
       showToast("error", msg);
     }
@@ -1265,6 +1269,27 @@ export default function AppManagerClient({
                     </div>
                   </div>
                 </div>
+
+                {selectedApkFile.size > 50 * 1024 * 1024 && (
+                  <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900 space-y-1">
+                    <p className="font-bold flex items-center gap-1.5">
+                      <FaExclamationTriangle className="text-amber-600 shrink-0" />
+                      Notice: Universal APK size is {computedSizeLabel} (&gt; 50 MB)
+                    </p>
+                    <p className="text-[11px] leading-relaxed text-amber-800">
+                      Self-hosted Supabase Storage defaults to a 50 MB limit. If bucket upload returns CORS / 413, host on{" "}
+                      <a
+                        href="https://github.com/nvsict/hindi-bhajan-manjari/releases/new"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-bold underline text-amber-950 hover:text-orange-700"
+                      >
+                        GitHub Releases (Recommended, 2GB limit)
+                      </a>{" "}
+                      and paste the release URL below, or increase <code>FILE_SIZE_LIMIT</code> in your VPS Docker config.
+                    </p>
+                  </div>
+                )}
 
                 {/* Live Upload Progress / Status Strip */}
                 {(uploadPhase === "authorizing" ||
