@@ -137,6 +137,17 @@ const UtilityBar = memo(function UtilityBar() {
           className="flex items-center gap-6 text-[11px] font-bold tracking-wider uppercase text-orange-100/90"
         >
           <Link
+            href="/app"
+            title="Download Android App - 100% Ad-Free & Offline"
+            className="flex items-center gap-1.5 text-amber-300 hover:text-white font-extrabold transition-colors py-1"
+          >
+            <FaDownload size={10} aria-hidden="true" />
+            Android App (APK)
+          </Link>
+
+          <span className="w-px h-3.5 bg-orange-800/60" aria-hidden="true" />
+
+          <Link
             href="/saved"
             title="View your saved bhajans"
             className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors py-1"
@@ -915,12 +926,27 @@ export default function Header() {
 
             <div className="hidden xl:flex items-center gap-2 shrink-0 z-10">
 
-              {/* Primary CTA — intentionally remains the only prominent
-                  action in the main header. */}
+              {/* App Promotion CTA */}
+              <Link
+                href="/app"
+                title="Download Android App - 100% Ad-Free & Offline"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-500 via-orange-600 to-red-600 hover:from-amber-600 hover:to-red-700 text-white text-[12px] font-black tracking-wide rounded-full transition-all shadow-md hover:shadow-orange-500/25 active:scale-95 whitespace-nowrap group"
+              >
+                <FaDownload
+                  className="text-[12px] group-hover:translate-y-0.5 transition-transform"
+                  aria-hidden="true"
+                />
+                <span>Android ऐप</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-white/20 text-white tracking-wider">
+                  New
+                </span>
+              </Link>
+
+              {/* Primary CTA */}
               <Link
                 href="/donate"
                 title="Support Hindi Bhajan Manjari"
-                className="mr-2 flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white text-[13px] font-black tracking-wide rounded-full transition-all shadow-md outline-none focus-visible:ring-4 focus-visible:ring-orange-400/50 active:scale-95 whitespace-nowrap"
+                className="mr-2 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white text-[12px] font-black tracking-wide rounded-full transition-all shadow-md outline-none focus-visible:ring-4 focus-visible:ring-orange-400/50 active:scale-95 whitespace-nowrap"
               >
                 <FaHandHoldingHeart
                   className="text-[16px]"
@@ -1120,8 +1146,34 @@ export default function Header() {
         <nav
           data-lenis-prevent="true"
           aria-label="Mobile navigation"
-          className="flex-1 overflow-y-auto px-4 sm:px-5 pt-6 pb-24 flex flex-col gap-3 bg-gray-50/50"
+          className="flex-1 overflow-y-auto px-4 sm:px-5 pt-4 pb-24 flex flex-col gap-3 bg-gray-50/50"
         >
+          {/* Mobile Prominent App Download Card */}
+          <Link
+            href="/app"
+            onClick={closeMenu}
+            className="flex items-center gap-3.5 p-4 rounded-3xl text-white bg-gradient-to-r from-orange-600 via-orange-500 to-amber-600 shadow-md shadow-orange-500/20 active:scale-[0.98] transition-all border border-orange-400/40 text-left"
+          >
+            <span className="w-11 h-11 flex items-center justify-center shrink-0 rounded-2xl bg-white/20 backdrop-blur-md text-white shadow-inner">
+              <FaDownload size={18} aria-hidden="true" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[15px] font-black leading-tight text-white">
+                  हिंदी भजन मंजरी ऐप
+                </span>
+                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-white/30 text-white tracking-wider">
+                  New
+                </span>
+              </div>
+              <span className="text-[11px] text-orange-100 font-bold block truncate mt-0.5">
+                100% विज्ञापन-मुक्त • सम्पूर्ण ऑफ़लाइन
+              </span>
+            </div>
+            <span className="px-3 py-1.5 rounded-full bg-white text-orange-700 text-xs font-black shrink-0 shadow-xs">
+              डाउनलोड
+            </span>
+          </Link>
           {navItems.map((item) => (
             <div key={item.name}>
               {item.megaMenu ? (
@@ -1244,34 +1296,6 @@ export default function Header() {
           ))}
 
           <div className="my-5 border-t border-gray-200/80 mx-3" />
-
-          {/* Install App */}
-          {deferredPrompt && (
-            <button
-              type="button"
-              onClick={handleInstallClick}
-              aria-label="Install App"
-              title="Install App for Offline Access"
-              className="flex items-center gap-4 px-6 py-4 mb-2 rounded-3xl text-white font-black bg-gradient-to-r from-orange-500 to-red-500 shadow-lg shadow-orange-500/25 active:scale-95 transition-all w-full border border-orange-400/50 text-left"
-            >
-              <span className="w-11 h-11 flex items-center justify-center shrink-0 rounded-2xl bg-white/25 backdrop-blur-md text-white">
-                <FaDownload
-                  size={18}
-                  aria-hidden="true"
-                />
-              </span>
-
-              <div className="flex flex-col items-start leading-tight">
-                <span className="text-[17px] mb-0.5">
-                  Install App
-                </span>
-
-                <span className="text-[11px] text-orange-100/90 font-bold tracking-wide">
-                  Fast & Offline Access
-                </span>
-              </div>
-            </button>
-          )}
 
           {/* My Sangrah — required on mobile because UtilityBar is hidden */}
           <Link

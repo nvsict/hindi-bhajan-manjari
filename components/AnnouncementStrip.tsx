@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FaStar, FaBook, FaBullhorn } from 'react-icons/fa6';
+import { FaStar, FaBook, FaBullhorn, FaMobileScreen } from 'react-icons/fa6';
 
 interface Announcement {
   text: string;
@@ -21,6 +21,18 @@ interface Announcement {
  * to be a useEffect dependency) on every render.
  */
 const ANNOUNCEMENTS: Announcement[] = [
+  {
+    text: "नया! 'हिंदी भजन मंजरी' Android ऐप — 100% विज्ञापन-मुक्त व संपूर्ण ऑफ़लाइन!",
+    ctaText: "ऐप डाउनलोड करें",
+    href: "/app",
+    icon: (
+      <FaMobileScreen
+        className="text-orange-100"
+        size={11}
+        aria-hidden="true"
+      />
+    ),
+  },
   {
     text: "अपनी मनपसंद भजनों की कस्टमाइज़्ड ई-पुस्तिका (PDF) तैयार करें",
     ctaText: "बुक बनाएँ",

@@ -237,6 +237,18 @@ export default function Hero() {
             </button>
           </form>
 
+          {/* Quick App Download Pill */}
+          <div className="mt-4 flex items-center justify-center">
+            <Link
+              href="/app"
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md text-white text-xs font-bold border border-white/20 shadow-sm transition-all hover:scale-105 active:scale-95"
+            >
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <span>नया: <strong>हिंदी भजन मंजरी Android ऐप</strong> उपलब्ध (100% Ad-Free)</span>
+              <FaArrowRight size={10} className="text-amber-300" />
+            </Link>
+          </div>
+
           {/* INSTANT SEARCH DROPDOWN */}
           {showDropdown && (
             <div 
