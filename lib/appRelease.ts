@@ -1,7 +1,8 @@
+import { createClient } from "@supabase/supabase-js";
+
 // Single source of truth for Hindi Bhajan Manjari Android APK distribution.
-// Updating this file automatically updates:
-//   1. https://www.hindibhajanmanjari.com/app (App Store landing page + JSON-LD)
-//   2. https://www.hindibhajanmanjari.com/api/app-release (In-app APK update checker)
+// Editable LIVE from /admin/app-manager (stored in `app_release_config` table)
+// with automatic static fallback below if table is not created yet.
 
 export interface AppChangelogEntry {
   version: string;
@@ -96,3 +97,58 @@ export const APP_RELEASE: AppReleaseManifest = {
     },
   ],
 };
+
+/**
+ * Loads the live Android APK release manifest from Supabase `app_release_config`
+ * (managed directly from `/admin/app-manager`), falling back cleanly to `APP_RELEASE`
+ * if the table is not yet created or unreachable.
+ */
+export async function getLiveAppRelease(): Promise<AppReleaseManifest> {
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) return APP_RELEASE;
+
+    const sb = createClient(url, key, { auth: { persistSession: false } });
+    const { data, error } = await sb
+      .from("app_release_config")
+      .select("*")
+      .eq("id", "android_main")
+      .maybeSingle();
+
+    if (error || !data) return APP_RELEASE;
+
+    const parsedChangelog =
+      Array.isArray(data.changelog) && data.changelog.length > 0
+        ? (data.changelog as AppChangelogEntry[])
+        : APP_RELEASE.changelog;
+
+    return {
+      ...APP_RELEASE,
+      latestVersion: data.latest_version || APP_RELEASE.latestVersion,
+      versionCode: Number(data.version_code) || APP_RELEASE.versionCode,
+      releaseChannel:
+        data.release_channel === "beta" ? "beta" : "stable",
+      releaseDate: data.release_date || APP_RELEASE.releaseDate,
+      releaseDateHi: data.release_date_hi || APP_RELEASE.releaseDateHi,
+      apkSizeLabel: data.apk_size_label || APP_RELEASE.apkSizeLabel,
+      minAndroid: data.min_android || APP_RELEASE.minAndroid,
+      minSdk: Number(data.min_sdk) || APP_RELEASE.minSdk,
+      architecture: data.architecture || APP_RELEASE.architecture,
+      apkDownloadUrl:
+        typeof data.apk_download_url === "string" && data.apk_download_url.trim()
+          ? data.apk_download_url.trim()
+          : APP_RELEASE.apkDownloadUrl,
+      sha256:
+        typeof data.sha256 === "string" && data.sha256.trim()
+          ? data.sha256.trim()
+          : APP_RELEASE.sha256,
+      isMandatoryUpdate: Boolean(data.is_mandatory_update),
+      changelog: parsedChangelog,
+    };
+  } catch {
+    return APP_RELEASE;
+  }
+}

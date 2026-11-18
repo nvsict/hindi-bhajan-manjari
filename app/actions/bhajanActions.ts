@@ -1,13 +1,15 @@
 "use server";
 
 import { createClient } from '@supabase/supabase-js';
+import { revalidatePath } from 'next/cache';
 
 // 🌟 एडमिन क्लाइंट (Service Role Key)
 // यह कोड सिर्फ सर्वर पर चलेगा, इसलिए यहाँ Service Role Key का इस्तेमाल 100% सुरक्षित है।
 // यह RLS को बायपास करके मास्टर राइट्स के साथ डेटा सेव करेगा।
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } }
 );
 
 // स्लग जनरेट करने का हेल्पर फंक्शन (सर्वर साइड)
@@ -16,7 +18,7 @@ const generateSlug = (text: string) => {
 };
 
 export async function publishBhajanAction(payload: any) {
-  const { formData, faqs, selectedArtists, categories } = payload;
+  const { formData, faqs, selectedArtists, categories, pendingId } = payload;
   
   let newBhajanId: string | null = null;
 
@@ -137,6 +139,22 @@ export async function publishBhajanAction(payload: any) {
         await supabaseAdmin.from('bhajan_tag_map').insert(tagMapData);
       }
     }
+
+    // ==========================================
+    // STEP 7: Auto-clear approved pending submission (if published from /admin/pending)
+    // ==========================================
+    if (pendingId) {
+      const { error: pendingDeleteError } = await supabaseAdmin
+        .from('pending_bhajans')
+        .delete()
+        .eq('id', String(pendingId).trim());
+      if (pendingDeleteError) {
+        console.error('Published bhajan, but failed to delete pending_bhajans row:', pendingDeleteError);
+      }
+      revalidatePath('/admin/pending');
+    }
+
+    revalidatePath('/admin');
 
     // चूँकि आपने डेटाबेस ट्रिगर पहले ही बना दिया है, 
     // Materialized View (mv_bhajan_details) अपने आप रिफ्रेश हो जाएगा!

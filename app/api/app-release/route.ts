@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { APP_RELEASE } from "@/lib/appRelease";
+import { getLiveAppRelease } from "@/lib/appRelease";
 
-export const revalidate = 300; // 5-minute edge cache
+export const revalidate = 60; // 1-minute edge cache (revalidated immediately on /admin/app-manager save)
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -18,28 +18,29 @@ export async function OPTIONS() {
  * to detect newer signed APK versions distributed via hindibhajanmanjari.com/app.
  */
 export async function GET() {
+  const release = await getLiveAppRelease();
   return NextResponse.json(
     {
-      appName: APP_RELEASE.appName,
-      packageId: APP_RELEASE.packageId,
-      latestVersion: APP_RELEASE.latestVersion,
-      versionCode: APP_RELEASE.versionCode,
-      releaseChannel: APP_RELEASE.releaseChannel,
-      releaseDate: APP_RELEASE.releaseDate,
-      apkSizeLabel: APP_RELEASE.apkSizeLabel,
-      minSdk: APP_RELEASE.minSdk,
-      apkDownloadUrl: APP_RELEASE.apkDownloadUrl || null,
-      downloadPageUrl: APP_RELEASE.downloadPageUrl,
-      sha256: APP_RELEASE.sha256,
-      isMandatoryUpdate: APP_RELEASE.isMandatoryUpdate,
-      latestNotesEn: APP_RELEASE.changelog[0]?.highlightsEn || [],
-      latestNotesHi: APP_RELEASE.changelog[0]?.highlightsHi || [],
+      appName: release.appName,
+      packageId: release.packageId,
+      latestVersion: release.latestVersion,
+      versionCode: release.versionCode,
+      releaseChannel: release.releaseChannel,
+      releaseDate: release.releaseDate,
+      apkSizeLabel: release.apkSizeLabel,
+      minSdk: release.minSdk,
+      apkDownloadUrl: release.apkDownloadUrl || null,
+      downloadPageUrl: release.downloadPageUrl,
+      sha256: release.sha256,
+      isMandatoryUpdate: release.isMandatoryUpdate,
+      latestNotesEn: release.changelog[0]?.highlightsEn || [],
+      latestNotesHi: release.changelog[0]?.highlightsHi || [],
     },
     {
       status: 200,
       headers: {
         ...CORS_HEADERS,
-        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
       },
     },
   );

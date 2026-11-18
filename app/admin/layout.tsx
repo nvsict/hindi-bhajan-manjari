@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
 import { 
-  FaChartBar, FaPlus, FaTags, FaGlobe, FaBars, FaTimes, 
+  FaAndroid, FaChartBar, FaPlus, FaTags, FaGlobe, FaBars, FaTimes, 
   FaSignOutAlt, FaNewspaper, FaUserShield, FaBell, 
   FaExclamationTriangle, FaBookOpen, FaBullhorn, 
-  FaShoppingBag, FaPenNib, FaClock, FaHeart, FaEnvelope
+  FaShoppingBag, FaPenNib, FaClock, FaHeart, FaEnvelope, FaInbox
 } from 'react-icons/fa';
 import { GiLotusFlower } from 'react-icons/gi';
 
@@ -30,6 +30,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // 🌟 UPDATED: Full Navigation reflecting your actual Next.js Routes
   const navItems = [
     { name: 'Dashboard', href: '/admin', icon: FaChartBar },
+    { name: 'Android App Manager', href: '/admin/app-manager', icon: FaAndroid },
+    { name: 'Pending Submissions', href: '/admin/pending', icon: FaInbox },
     { name: 'Add New Bhajan', href: '/admin/add-bhajan', icon: FaPlus },
     { name: 'Site Metadata', href: '/admin/manage', icon: FaTags },
     { name: 'Mere Vichar', href: '/admin/mere-vichar', icon: FaPenNib },

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
-import { APP_RELEASE } from "@/lib/appRelease";
+import { APP_RELEASE, getLiveAppRelease } from "@/lib/appRelease";
 import AppStoreClient from "./AppStoreClient";
+
+export const revalidate = 60; // Auto-refresh within 60s when updated from /admin/app-manager
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://www.hindibhajanmanjari.com";
@@ -40,18 +42,20 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AppDistributionPage() {
+export default async function AppDistributionPage() {
+  const release = await getLiveAppRelease();
+
   const softwareSchema = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: APP_RELEASE.appName,
-    alternateName: APP_RELEASE.appNameHi,
+    name: release.appName,
+    alternateName: release.appNameHi,
     operatingSystem: "Android 8.0+",
     applicationCategory: "LifestyleApplication",
-    softwareVersion: APP_RELEASE.latestVersion,
-    fileSize: APP_RELEASE.apkSizeLabel,
+    softwareVersion: release.latestVersion,
+    fileSize: release.apkSizeLabel,
     url: PAGE_URL,
-    downloadUrl: APP_RELEASE.apkDownloadUrl || PAGE_URL,
+    downloadUrl: release.apkDownloadUrl || PAGE_URL,
     image: `${SITE_URL}/images/app/app-icon.png`,
     publisher: {
       "@type": "Organization",
@@ -64,7 +68,7 @@ export default function AppDistributionPage() {
       priceCurrency: "INR",
       description: "Free download with complimentary trial and affordable devotional passes",
     },
-    featureList: APP_RELEASE.changelog[0]?.highlightsEn.join("; "),
+    featureList: release.changelog[0]?.highlightsEn.join("; "),
   };
 
   return (
@@ -75,7 +79,7 @@ export default function AppDistributionPage() {
           __html: JSON.stringify(softwareSchema).replace(/</g, "\\u003c"),
         }}
       />
-      <AppStoreClient release={APP_RELEASE} />
+      <AppStoreClient release={release} />
     </>
   );
 }

@@ -3,9 +3,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../utils/supabase'; 
 import { publishBhajanAction } from '@/app/actions/bhajanActions';
+import {
+  getPendingSubmissionByIdAction,
+  type PendingSubmission,
+} from '@/app/admin/pending/actions';
 import { 
   FaPlus, FaTrash, FaMusic, FaBookOpen, FaTags, 
-  FaVideo, FaGlobe, FaCheckCircle, FaSpinner, FaLayerGroup 
+  FaVideo, FaGlobe, FaCheckCircle, FaSpinner, FaLayerGroup, FaInbox, FaUser
 } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
 
@@ -22,6 +26,8 @@ export default function AddBhajanPage() {
   const [deities, setDeities] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
+  const [pendingMeta, setPendingMeta] = useState<PendingSubmission | null>(null);
+  const [loadingPending, setLoadingPending] = useState(false);
 
   const [selectedArtists, setSelectedArtists] = useState<{ artist_id: string; role: string }[]>([]);
 
@@ -63,20 +69,55 @@ export default function AddBhajanPage() {
   }, []);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const titleParam = params.get('title');
-      const lyricsParam = params.get('lyrics');
-      
-      if (titleParam || lyricsParam) {
-        setFormData(prev => ({
-          ...prev,
-          title_hindi: titleParam || '',
-          title_hinglish: titleParam || '',
-          slug: generateSlug(titleParam || ''),
-          lyrics_hindi: lyricsParam || '',
-        }));
-      }
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const pendingId = params.get('pending_id');
+
+    const hasDevanagari = (value: string) => /[\u0900-\u097F]/.test(value);
+
+    const applySubmissionToForm = (titleVal: string, lyricsVal: string, tarzVal?: string | null) => {
+      const titleIsHindi = hasDevanagari(titleVal);
+      const lyricsIsHindi = hasDevanagari(lyricsVal);
+      setFormData(prev => ({
+        ...prev,
+        title_hindi: titleIsHindi ? titleVal : prev.title_hindi || titleVal,
+        title_hinglish: !titleIsHindi ? titleVal : prev.title_hinglish,
+        slug: !titleIsHindi ? generateSlug(titleVal) : prev.slug,
+        lyrics_hindi: lyricsIsHindi ? lyricsVal : prev.lyrics_hindi || lyricsVal,
+        lyrics_hinglish: !lyricsIsHindi ? lyricsVal : prev.lyrics_hinglish,
+        tarz: tarzVal || prev.tarz,
+      }));
+    };
+
+    if (pendingId) {
+      let cancelled = false;
+      setLoadingPending(true);
+      getPendingSubmissionByIdAction(pendingId)
+        .then((res) => {
+          if (cancelled) return;
+          if (res.ok) {
+            setPendingMeta(res.data);
+            applySubmissionToForm(res.data.title, res.data.lyrics, res.data.tarz);
+          } else {
+            setMessage(`❌ ${res.error}`);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setMessage('❌ Failed to load pending submission details.');
+        })
+        .finally(() => {
+          if (!cancelled) setLoadingPending(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    // Legacy URL param fallback
+    const titleParam = params.get('title');
+    const lyricsParam = params.get('lyrics');
+    if (titleParam || lyricsParam) {
+      applySubmissionToForm(titleParam || '', lyricsParam || '', params.get('tarz'));
     }
   }, []);
 
@@ -115,7 +156,8 @@ export default function AddBhajanPage() {
         formData: formData,
         faqs: faqs,
         selectedArtists: selectedArtists,
-        categories: formData.selected_categories
+        categories: formData.selected_categories,
+        pendingId: pendingMeta?.id || null,
       };
 
       // 🌟 जादू यहाँ है: ब्राउज़र से सीधा सर्वर को डाटा भेज दिया (No direct Supabase write)
@@ -124,7 +166,7 @@ export default function AddBhajanPage() {
       if (response.success) {
         setMessage("success");
         setTimeout(() => {
-          window.location.href = '/admin'
+          window.location.href = pendingMeta ? '/admin/pending' : '/admin';
           router.refresh(); // डेटा रिफ्रेश करने के लिए
         }, 1500);
       } else {
@@ -153,6 +195,38 @@ export default function AddBhajanPage() {
           <p className="text-sm font-medium text-gray-500 mt-1">Add lyrics, SEO details, and metadata to publish instantly.</p>
         </div>
       </div>
+
+      {/* Pending Submission Context Banner */}
+      {loadingPending && (
+        <div className="p-4 mb-6 rounded-2xl bg-orange-50 border border-orange-200 text-orange-800 font-bold text-sm flex items-center gap-3">
+          <FaSpinner className="animate-spin" />
+          <span>Loading pending submission from queue...</span>
+        </div>
+      )}
+
+      {pendingMeta && (
+        <div className="p-4 md:p-5 mb-6 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <p className="text-xs font-black uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
+              <FaInbox /> Approving Pending Submission
+            </p>
+            <p className="text-sm font-bold flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1">
+                <FaUser className="text-amber-600" size={12} />
+                {pendingMeta.contributor_name?.trim() || 'Anonymous User'}
+              </span>
+              {pendingMeta.contact_info?.trim() && (
+                <span className="text-xs font-semibold bg-white px-2.5 py-0.5 rounded-lg border border-amber-200">
+                  Contact: {pendingMeta.contact_info.trim()}
+                </span>
+              )}
+            </p>
+            <p className="text-xs text-amber-800/80 font-medium">
+              Publishing this bhajan will automatically remove it from the Pending Submissions queue.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Message Alert */}
       {message && (
