@@ -5,7 +5,7 @@ import {
   FaWhatsapp, FaHeart, FaRegHeart,
   FaLightbulb, FaRegLightbulb, FaMusic, FaYoutube, FaLanguage,
   FaChevronDown, FaCheck, FaFont, FaXmark, FaBookOpen, FaSpinner,
-  FaMagnifyingGlass, FaToggleOn, FaToggleOff
+  FaMagnifyingGlass, FaToggleOn, FaToggleOff, FaMobileScreen, FaArrowRight, FaDownload
 } from 'react-icons/fa6';
 import PdfDownloadButton from './PdfDownloadButton';
 import { supabase } from '@/utils/supabase';
@@ -448,7 +448,16 @@ export default function LyricsViewer({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 border-gray-100 pt-2 sm:pt-0">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 border-gray-100 pt-2 sm:pt-0 flex-wrap">
+          <Link
+            href="/app"
+            title="Download Bhajan Manjari App - 100% Ad-Free & Offline"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 hover:text-orange-800 text-xs font-bold border border-orange-200 transition-colors shadow-xs"
+          >
+            <FaMobileScreen className="text-orange-600" size={12} />
+            <span className="hidden sm:inline">ऐप में पढ़ें (ऑफ़लाइन)</span>
+            <span className="sm:hidden">ऐप</span>
+          </Link>
           <PdfDownloadButton 
             slug={slug} 
             titleHindi={title} 
@@ -613,6 +622,38 @@ export default function LyricsViewer({
             <PushPrompt />
           </div>
 
+        </div>
+      </div>
+
+      {/* 🌟 DEVOTIONAL IN-PAGE APP PROMO BANNER */}
+      <div className="mt-8 rounded-3xl bg-gradient-to-br from-amber-500 via-orange-600 to-red-600 p-6 md:p-8 text-white shadow-xl shadow-orange-600/20 relative overflow-hidden group">
+        <div className="absolute -right-8 -bottom-8 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-700" />
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/30 shadow-inner">
+              <FaMobileScreen className="text-2xl text-white drop-shadow-md" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                <h4 className="text-xl md:text-2xl font-black font-hindi text-white tracking-tight">
+                  अपने फ़ोन को बनाएं एक शांत व पावन मंदिर
+                </h4>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/25 text-white border border-white/30">
+                  100% Ad-Free
+                </span>
+              </div>
+              <p className="text-orange-100 text-sm md:text-base font-hindi leading-relaxed max-w-2xl">
+                पूजा व आरती के दौरान कोई विज्ञापन (Ads) नहीं! <strong className="text-white">‘हिंदी भजन मंजरी’ ऐप</strong> में 1000+ प्रामाणिक भजन, चालीसा व आरतियाँ बिना इंटरनेट (पूर्णतः ऑफ़लाइन) पढ़ें।
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/app"
+            className="shrink-0 inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-white text-orange-700 hover:text-orange-800 hover:bg-orange-50 font-black text-sm md:text-base shadow-lg transition-all active:scale-95 whitespace-nowrap"
+          >
+            <span>📲 ऐप डाउनलोड करें</span>
+            <FaArrowRight size={13} />
+          </Link>
         </div>
       </div>
 

@@ -19,6 +19,7 @@ import {
   FaFileArchive,
   FaFolderOpen,
   FaGift,
+  FaGithub,
   FaMobileAlt,
   FaPlus,
   FaReceipt,
@@ -421,6 +422,49 @@ export default function AppManagerClient({
   const [uploadError, setUploadError] = useState<string>("");
   const [lastUploadedUrl, setLastUploadedUrl] = useState<string>("");
   const [copiedUrl, setCopiedUrl] = useState(false);
+
+  // GitHub Releases Distribution State
+  const [githubRepo, setGithubRepo] = useState("nvsict/hindi-bhajan-manjari");
+  const [githubTag, setGithubTag] = useState(`v${relForm.latest_version || "1.0.0"}`);
+  const [activeDistributionTab, setActiveDistributionTab] = useState<"github" | "bucket">("github");
+
+  const githubCleanRepo = useMemo(() => {
+    return (githubRepo || "nvsict/hindi-bhajan-manjari")
+      .trim()
+      .replace(/^https?:\/\/github\.com\//i, "")
+      .replace(/\/$/, "");
+  }, [githubRepo]);
+
+  const githubCleanTag = useMemo(() => {
+    const raw = (githubTag || `v${relForm.latest_version || "1.0.0"}`).trim();
+    return raw.startsWith("v") ? raw : `v${raw}`;
+  }, [githubTag, relForm.latest_version]);
+
+  const githubDownloadUrl = useMemo(() => {
+    const file = (destFilename || `hindi-bhajan-manjari-${githubCleanTag}.apk`).trim();
+    return `https://github.com/${githubCleanRepo}/releases/download/${githubCleanTag}/${file}`;
+  }, [githubCleanRepo, githubCleanTag, destFilename]);
+
+  const handleApplyGitHubRelease = async (autoPublish: boolean) => {
+    const nextOverrides = {
+      apk_download_url: githubDownloadUrl,
+      apk_size_label: computedSizeLabel || relForm.apk_size_label,
+      sha256: computedSha256 || relForm.sha256,
+    };
+
+    setRelForm((prev) => ({ ...prev, ...nextOverrides }));
+
+    if (autoPublish) {
+      const res = await persistReleaseConfig(nextOverrides);
+      if (res.success) {
+        showToast("success", `Live release config published with GitHub Release: ${githubCleanTag}!`);
+      } else {
+        showToast("error", res.error || "Failed to publish live config.");
+      }
+    } else {
+      showToast("success", "GitHub Release download URL, Size & SHA-256 applied to form.");
+    }
+  };
 
   const [showBucketFiles, setShowBucketFiles] = useState(false);
   const [bucketFiles, setBucketFiles] = useState<BucketApkFile[]>([]);
@@ -1151,36 +1195,44 @@ export default function AppManagerClient({
           </div>
 
           {/* ===============================================================
-              DIRECT 1-CLICK APK UPLOADER -> SUPABASE `apks` BUCKET
+              GITHUB RELEASES DISTRIBUTION HUB (RECOMMENDED - 2GB LIMIT)
              =============================================================== */}
-          <div className="rounded-2xl border border-orange-200/80 bg-gradient-to-br from-orange-50/70 via-amber-50/40 to-white p-5 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                  <FaCloudUploadAlt size={18} />
+          <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white p-5 md:p-6 space-y-5 shadow-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+              <div className="flex items-start gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-white/10 text-white flex items-center justify-center shrink-0 border border-white/20 shadow-inner">
+                  <FaGithub size={24} />
                 </div>
                 <div>
-                  <h3 className="text-sm md:text-base font-black text-gray-900">
-                    1-Click Direct APK Upload (<code className="font-mono text-orange-700">apks</code> Bucket)
-                  </h3>
-                  <p className="text-xs text-gray-600 mt-0.5">
-                    Drop your signed <code className="font-mono">.apk</code> here — SHA-256 &amp; file size auto-calculate locally, then upload directly to{" "}
-                    <span className="font-mono text-gray-800">api.hindibhajanmanjari.com</span>.
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base md:text-lg font-black text-white">
+                      GitHub Releases Distribution Hub
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-green-500/20 text-green-400 border border-green-500/30">
+                      Recommended &bull; 2GB Limit &bull; Global CDN
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                    Drop your signed <code className="font-mono text-orange-300">.apk</code> here to auto-calculate file size &amp; SHA-256, auto-generate the permanent GitHub CDN download URL, and publish live in 1 click!
                   </p>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={handleToggleBucketExplorer}
-                className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-orange-50 text-gray-700 hover:text-orange-700 border border-gray-200 hover:border-orange-200 text-xs font-bold transition-colors shrink-0 cursor-pointer"
-              >
-                <FaFolderOpen size={13} />
-                <span>{showBucketFiles ? "Hide Bucket Files" : "Browse apks Bucket"}</span>
-              </button>
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <a
+                  href={`https://github.com/${githubCleanRepo}/releases`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/10 transition-colors"
+                >
+                  <FaGithub size={13} />
+                  <span>View All Releases</span>
+                  <FaExternalLinkAlt size={10} className="text-gray-400" />
+                </a>
+              </div>
             </div>
 
-            {/* Drag & Drop Picker */}
+            {/* Drag & Drop APK File Picker */}
             <div
               onDragOver={(e) => {
                 e.preventDefault();
@@ -1194,10 +1246,12 @@ export default function AppManagerClient({
                 void handleApkFileSelected(dropped);
               }}
               onClick={() => apkInputRef.current?.click()}
-              className={`rounded-2xl border-2 border-dashed p-5 text-center transition-all cursor-pointer ${
+              className={`rounded-2xl border-2 border-dashed p-6 text-center transition-all cursor-pointer ${
                 isDraggingApk
-                  ? "border-orange-500 bg-orange-100/60"
-                  : "border-orange-200 bg-white/80 hover:border-orange-400 hover:bg-white"
+                  ? "border-orange-400 bg-orange-500/10"
+                  : selectedApkFile
+                    ? "border-green-500/50 bg-green-500/5 hover:border-green-400"
+                    : "border-white/15 bg-white/5 hover:border-orange-500/60 hover:bg-white/10"
               }`}
             >
               <input
@@ -1211,185 +1265,144 @@ export default function AppManagerClient({
                   e.target.value = "";
                 }}
               />
-              <div className="flex flex-col items-center gap-1.5">
-                <FaFileArchive className="text-2xl text-orange-500" />
-                <p className="text-sm font-extrabold text-gray-800">
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-12 h-12 rounded-2xl bg-orange-500/20 text-orange-400 flex items-center justify-center border border-orange-500/30">
+                  <FaFileArchive size={22} />
+                </div>
+                <p className="text-sm md:text-base font-black text-white">
                   {selectedApkFile
                     ? `Selected: ${selectedApkFile.name} (${computedSizeLabel})`
-                    : "Click to choose signed .apk or drag & drop here"}
+                    : "Drop built .apk here or click to browse"}
                 </p>
-                <p className="text-[11px] text-gray-500 font-medium">
-                  Uploaded directly to Supabase Storage with MIME{" "}
-                  <code className="font-mono">application/vnd.android.package-archive</code>
+                <p className="text-xs text-gray-400">
+                  Computes SHA-256 and File Size instantly in your browser without uploading to any server
                 </p>
               </div>
             </div>
 
-            {/* Selected APK Inspector + Upload Actions */}
-            {selectedApkFile && (
-              <div className="bg-white rounded-xl border border-orange-100 p-4 space-y-3 shadow-xs">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1">
-                      Target Filename in <code className="font-mono">apks/</code> Bucket
-                    </label>
-                    <input
-                      type="text"
-                      value={destFilename}
-                      onChange={(e) => setDestFilename(e.target.value)}
-                      placeholder="hindi-bhajan-manjari-v1.0.0.apk"
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-xs font-mono font-bold text-gray-800"
-                    />
-                  </div>
-                  <div className="flex flex-col justify-center gap-1 text-xs">
-                    <div className="flex items-center gap-2 text-gray-700 font-bold">
-                      <span>Detected Size:</span>
-                      <span className="px-2 py-0.5 rounded-md bg-orange-50 text-orange-700 font-mono">
-                        {computedSizeLabel}
-                      </span>
-                      <span className="text-[11px] text-gray-400 font-mono">
-                        ({selectedApkFile.size.toLocaleString("en-IN")} bytes)
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-gray-600 font-mono text-[11px] truncate">
-                      <FaShieldAlt className="text-green-600 shrink-0" />
-                      {uploadPhase === "hashing" ? (
-                        <span className="text-orange-600 font-sans font-bold flex items-center gap-1">
-                          <FaSpinner className="animate-spin" /> Computing SHA-256...
-                        </span>
-                      ) : computedSha256 ? (
-                        <span className="truncate" title={computedSha256}>
-                          SHA-256: {computedSha256}
-                        </span>
-                      ) : (
-                        <span className="text-amber-600 font-sans">
-                          SHA-256 auto-hash unavailable in insecure context
-                        </span>
-                      )}
-                    </div>
-                  </div>
+            {/* Config & Action Panel */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-5 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">
+                    GitHub Repository
+                  </label>
+                  <input
+                    type="text"
+                    value={githubRepo}
+                    onChange={(e) => setGithubRepo(e.target.value)}
+                    placeholder="owner/repo"
+                    className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 focus:outline-none focus:ring-2 focus:ring-orange-500 text-xs font-mono font-bold text-white placeholder-gray-600"
+                  />
                 </div>
 
-                {selectedApkFile.size > 50 * 1024 * 1024 && (
-                  <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900 space-y-1">
-                    <p className="font-bold flex items-center gap-1.5">
-                      <FaExclamationTriangle className="text-amber-600 shrink-0" />
-                      Notice: Universal APK size is {computedSizeLabel} (&gt; 50 MB)
-                    </p>
-                    <p className="text-[11px] leading-relaxed text-amber-800">
-                      Self-hosted Supabase Storage defaults to a 50 MB limit. If bucket upload returns CORS / 413, host on{" "}
-                      <a
-                        href="https://github.com/nvsict/hindi-bhajan-manjari/releases/new"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-bold underline text-amber-950 hover:text-orange-700"
-                      >
-                        GitHub Releases (Recommended, 2GB limit)
-                      </a>{" "}
-                      and paste the release URL below, or increase <code>FILE_SIZE_LIMIT</code> in your VPS Docker config.
-                    </p>
-                  </div>
-                )}
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">
+                    Release Tag
+                  </label>
+                  <input
+                    type="text"
+                    value={githubTag}
+                    onChange={(e) => setGithubTag(e.target.value)}
+                    placeholder="v1.0.0"
+                    className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 focus:outline-none focus:ring-2 focus:ring-orange-500 text-xs font-mono font-bold text-white placeholder-gray-600"
+                  />
+                </div>
 
-                {/* Live Upload Progress / Status Strip */}
-                {(uploadPhase === "authorizing" ||
-                  uploadPhase === "uploading" ||
-                  uploadPhase === "publishing") && (
-                  <div className="rounded-xl bg-orange-50 border border-orange-200 px-3.5 py-2.5 space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-bold text-orange-800">
-                      <FaSpinner className="animate-spin text-orange-600" />
-                      <span>
-                        {uploadPhase === "authorizing" &&
-                          "Step 1/3: Generating secure signed upload URL..."}
-                        {uploadPhase === "uploading" &&
-                          `Step 2/3: Uploading ${computedSizeLabel} to api.hindibhajanmanjari.com/apks/${destFilename}...`}
-                        {uploadPhase === "publishing" &&
-                          "Step 3/3: Publishing live release config to /app & /api/app-release..."}
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full bg-orange-200/70 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full bg-gradient-to-r from-orange-500 to-red-500 rounded-full transition-all duration-500 animate-pulse ${
-                          uploadPhase === "authorizing"
-                            ? "w-1/4"
-                            : uploadPhase === "uploading"
-                              ? "w-3/4"
-                              : "w-11/12"
-                        }`}
-                      />
-                    </div>
-                  </div>
-                )}
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1">
+                    Asset Filename
+                  </label>
+                  <input
+                    type="text"
+                    value={destFilename}
+                    onChange={(e) => setDestFilename(e.target.value)}
+                    placeholder="hindi-bhajan-manjari-v1.0.0.apk"
+                    className="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 focus:outline-none focus:ring-2 focus:ring-orange-500 text-xs font-mono font-bold text-white placeholder-gray-600"
+                  />
+                </div>
+              </div>
 
-                {uploadPhase === "error" && uploadError && (
-                  <div className="rounded-xl bg-red-50 border border-red-200 px-3.5 py-2.5 text-xs font-bold text-red-700 flex items-start gap-2">
-                    <FaExclamationTriangle className="mt-0.5 shrink-0" />
-                    <span>{uploadError}</span>
-                  </div>
-                )}
+              {/* Hashes & File Details Strip */}
+              <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-black/40 border border-white/10 text-xs">
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-400 font-medium">Detected Size:</span>
+                  <span className="px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-300 font-mono font-bold border border-orange-500/30">
+                    {computedSizeLabel || relForm.apk_size_label || "101.5 MB"}
+                  </span>
+                </div>
 
-                {uploadPhase === "success" && lastUploadedUrl && (
-                  <div className="rounded-xl bg-green-50 border border-green-200 px-3.5 py-2.5 text-xs text-green-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <span className="font-bold flex items-center gap-1.5 truncate">
-                      <FaCheckCircle className="text-green-600 shrink-0" />
-                      Uploaded &amp; applied: <span className="font-mono truncate">{lastUploadedUrl}</span>
+                <div className="flex items-center gap-2 font-mono text-[11px] max-w-full truncate text-gray-300">
+                  <FaShieldAlt className="text-green-400 shrink-0" />
+                  {uploadPhase === "hashing" ? (
+                    <span className="text-orange-400 font-sans font-bold flex items-center gap-1.5">
+                      <FaSpinner className="animate-spin" /> Calculating SHA-256...
                     </span>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          await navigator.clipboard.writeText(lastUploadedUrl);
-                          setCopiedUrl(true);
-                          setTimeout(() => setCopiedUrl(false), 1800);
-                        }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-green-200 font-bold text-green-700 hover:bg-green-100 cursor-pointer"
-                      >
-                        <FaCopy size={11} />
-                        {copiedUrl ? "Copied!" : "Copy URL"}
-                      </button>
-                      <a
-                        href={lastUploadedUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700"
-                      >
-                        Test <FaExternalLinkAlt size={10} />
-                      </a>
-                    </div>
-                  </div>
-                )}
+                  ) : computedSha256 || relForm.sha256 ? (
+                    <span className="truncate" title={computedSha256 || relForm.sha256}>
+                      SHA-256: {computedSha256 || relForm.sha256}
+                    </span>
+                  ) : (
+                    <span className="text-gray-500 font-sans">Drop APK to auto-calculate SHA-256</span>
+                  )}
+                </div>
+              </div>
 
-                {/* Upload Buttons */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1">
+              {/* Generated Target Release Download URL */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                  <span>Generated Direct Download URL (For /app &amp; /api/app-release)</span>
                   <button
                     type="button"
-                    disabled={
-                      uploadPhase === "hashing" ||
-                      uploadPhase === "authorizing" ||
-                      uploadPhase === "uploading" ||
-                      uploadPhase === "publishing"
-                    }
-                    onClick={() => void handleUploadApkToBucket(true)}
-                    className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white px-4 py-2.5 rounded-xl font-black text-xs md:text-sm flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-60"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(githubDownloadUrl);
+                      setCopiedUrl(true);
+                      setTimeout(() => setCopiedUrl(false), 1800);
+                    }}
+                    className="text-orange-400 hover:text-orange-300 inline-flex items-center gap-1 cursor-pointer"
                   >
-                    <FaCloudUploadAlt size={15} />
-                    <span>Upload APK &amp; Publish Live (1-Click)</span>
+                    <FaCopy size={11} />
+                    <span>{copiedUrl ? "Copied!" : "Copy URL"}</span>
                   </button>
+                </div>
+                <div className="p-2.5 rounded-xl bg-black/70 border border-white/15 text-xs font-mono text-green-400 break-all select-all">
+                  {githubDownloadUrl}
+                </div>
+              </div>
 
-                  <button
-                    type="button"
-                    disabled={
-                      uploadPhase === "hashing" ||
-                      uploadPhase === "authorizing" ||
-                      uploadPhase === "uploading" ||
-                      uploadPhase === "publishing"
-                    }
-                    onClick={() => void handleUploadApkToBucket(false)}
-                    className="px-4 py-2.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-800 border border-orange-200 font-bold text-xs md:text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-                  >
-                    <span>Upload Only (Fill Form)</span>
-                  </button>
+              {/* Action Buttons: 2-Step GitHub Release Workflow */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+                <a
+                  href={`https://github.com/${githubCleanRepo}/releases/new?tag=${githubCleanTag}&title=Release%20${githubCleanTag}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 bg-gradient-to-r from-gray-800 to-gray-700 hover:from-gray-700 hover:to-gray-600 text-white px-4 py-3 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 border border-white/20 shadow-md cursor-pointer transition-all active:scale-[0.98]"
+                >
+                  <FaGithub size={17} />
+                  <span>Step 1: Open GitHub New Release ({githubCleanTag})</span>
+                  <FaExternalLinkAlt size={11} className="text-gray-400 ml-0.5" />
+                </a>
 
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => void handleApplyGitHubRelease(true)}
+                  className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white px-5 py-3 rounded-xl font-black text-xs md:text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-600/30 cursor-pointer transition-all active:scale-[0.98] disabled:opacity-60"
+                >
+                  <FaCheckCircle size={15} />
+                  <span>Step 2: Apply &amp; Publish Live Config (1-Click)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => void handleApplyGitHubRelease(false)}
+                  className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-gray-200 border border-white/15 font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                  title="Copy calculated fields to form without publishing yet"
+                >
+                  <span>Apply Only</span>
+                </button>
+
+                {selectedApkFile && (
                   <button
                     type="button"
                     onClick={() => {
@@ -1397,14 +1410,30 @@ export default function AppManagerClient({
                       setUploadPhase("idle");
                       setUploadError("");
                     }}
-                    className="px-3 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-xs cursor-pointer"
+                    className="px-3 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 font-bold text-xs cursor-pointer"
                     title="Clear selected file"
                   >
                     <FaTimes />
                   </button>
-                </div>
+                )}
               </div>
-            )}
+            </div>
+
+            {/* Optional / Collapsible: Supabase Storage Bucket Explorer */}
+            <div className="pt-2 border-t border-white/10">
+              <button
+                type="button"
+                onClick={handleToggleBucketExplorer}
+                className="text-xs text-gray-400 hover:text-orange-300 inline-flex items-center gap-2 font-medium cursor-pointer transition-colors"
+              >
+                <FaFolderOpen size={12} />
+                <span>
+                  {showBucketFiles
+                    ? "Hide Supabase Storage (apks Bucket)"
+                    : "Need Supabase Storage Bucket instead? Click here to browse"}
+                </span>
+              </button>
+            </div>
 
             {/* Bucket Files Explorer */}
             {showBucketFiles && (

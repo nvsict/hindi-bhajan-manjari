@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { supabase } from '@/utils/supabase';
-import { FaFire, FaWhatsapp, FaStar, FaChevronRight, FaBookOpen } from 'react-icons/fa';
+import { FaFire, FaWhatsapp, FaStar, FaChevronRight, FaBookOpen, FaMobileAlt } from 'react-icons/fa';
 import { FaWandSparkles } from 'react-icons/fa6';
 
 // 🌟 IMPORT SMART AFFILIATE SLOT & LETTER PROMO
@@ -188,6 +188,32 @@ export default async function Sidebar({
       {/* --- 🌟 SECTION 4: LETTER PROMO (A Letter from Braj) --- */}
       <div className="w-full">
         <LetterPromo variant="sidebar" />
+      </div>
+
+      {/* --- 🌟 SECTION 4.5: HINDI BHAJAN MANJARI APP BANNER --- */}
+      <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-amber-500 via-orange-600 to-red-700 p-7 text-white shadow-xl shadow-orange-600/20 group">
+        <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-transform duration-700 pointer-events-none" />
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-4 border border-white/30 shadow-inner">
+            <FaMobileAlt size={28} className="text-white drop-shadow-md" />
+          </div>
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/25 text-white mb-2">
+            100% Ad-Free • Offline
+          </span>
+          <h3 className="text-xl font-black mb-2 tracking-tight text-white drop-shadow-sm">
+            हिंदी भजन मंजरी ऐप
+          </h3>
+          <p className="text-orange-100 text-xs font-medium mb-5 leading-relaxed px-1">
+            बिना किसी विज्ञापन (Ads) के 1000+ भजन, आरती व चालीसा का संपूर्ण पावन संग्रह।
+          </p>
+          <Link 
+            href="/app"
+            className="flex items-center justify-center gap-2 w-full bg-white text-orange-700 hover:bg-orange-50 font-black text-sm py-3.5 rounded-xl shadow-[0_4px_14px_rgba(0,0,0,0.15)] hover:-translate-y-0.5 active:scale-95 transition-all"
+          >
+            <span>📲 ऐप डाउनलोड करें</span>
+            <FaChevronRight size={11} />
+          </Link>
+        </div>
       </div>
 
       {/* --- SECTION 5: PREMIUM COMMUNITY BANNER --- */}
