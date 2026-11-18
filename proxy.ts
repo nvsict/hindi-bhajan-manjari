@@ -4,6 +4,38 @@ import { createServerClient } from '@supabase/ssr';
 
 // 🌟 Function name remains 'proxy' for Next.js 16.x compatibility
 export async function proxy(req: NextRequest) {
+  const path = req.nextUrl.pathname;
+
+  // 🌐 CORS SUPPORT FOR EXPO WEB / APP SUBSCRIPTION APIs (/api/app-sub/*)
+  if (path.startsWith('/api/app-sub/')) {
+    const origin = req.headers.get('origin') || '*';
+    const allowedOrigin =
+      origin === 'http://localhost:8081' ||
+      origin === 'http://127.0.0.1:8081' ||
+      origin === 'http://localhost:19006' ||
+      origin === 'https://www.hindibhajanmanjari.com' ||
+      origin === 'https://hindibhajanmanjari.com'
+        ? origin
+        : '*';
+
+    const corsHeaders: Record<string, string> = {
+      'Access-Control-Allow-Origin': allowedOrigin,
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+      'Access-Control-Max-Age': '86400',
+    };
+
+    if (req.method === 'OPTIONS') {
+      return new NextResponse(null, { status: 204, headers: corsHeaders });
+    }
+
+    const apiResponse = NextResponse.next({
+      request: { headers: req.headers },
+    });
+    Object.entries(corsHeaders).forEach(([k, v]) => apiResponse.headers.set(k, v));
+    return apiResponse;
+  }
+
   // 1. Initial response object
   let response = NextResponse.next({
     request: {
@@ -33,8 +65,6 @@ export async function proxy(req: NextRequest) {
       },
     }
   );
-
-  const path = req.nextUrl.pathname;
 
   // 🔒 ADMIN PANEL SECURITY
   if (path.startsWith('/admin') && path !== '/admin/login') {
