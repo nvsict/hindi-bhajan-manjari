@@ -1042,7 +1042,7 @@ export default function AppManagerClient({
               {
                 label: "Device Free Trials",
                 value: `${activeTrialsCount} live / ${initialTrials.length}`,
-                sub: "Server-anchored 1-hour preview tracker",
+                sub: "Server-anchored 24-hour preview tracker",
                 icon: FaClock,
                 tint: "bg-indigo-50 text-indigo-600",
                 onClick: () => setActiveTab("trials"),
@@ -2392,10 +2392,10 @@ export default function AppManagerClient({
           <div className="p-5 border-b border-gray-100 flex items-center justify-between">
             <div>
               <h2 className="text-lg font-black text-gray-900">
-                1-Hour Device Trials ({initialTrials.length})
+                24-Hour Device Trials ({initialTrials.length})
               </h2>
               <p className="text-xs text-gray-500">
-                Reset any device ID to grant a fresh 1-hour trial for QA testing
+                Reset any device ID to grant a fresh 24-hour trial for QA testing
                 or user support.
               </p>
             </div>
@@ -2455,7 +2455,7 @@ export default function AppManagerClient({
                               if (res.success) {
                                 showToast(
                                   "success",
-                                  "Device trial reset — next app launch gets a fresh 1-hour preview.",
+                                  "Device trial reset — next app launch gets a fresh 24-hour devotional pass.",
                                 );
                                 router.refresh();
                               } else {

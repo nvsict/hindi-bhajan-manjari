@@ -399,8 +399,8 @@ const FAQS = [
   {
     qHi: "सदस्यता भुगतान (Bhakti Pass) कैसे होता है?",
     qEn: "How does Bhakti Pass billing work?",
-    aHi: "ऐप में 1 घंटे का निःशुल्क ट्रायल मिलता है। उसके बाद आप ऐप के अंदर ही सुरक्षित Razorpay द्वारा PhonePe, Google Pay, Paytm, किसी भी UPI या कार्ड से तुरंत पास सक्रिय कर सकते हैं और कभी भी निरस्त कर सकते हैं।",
-    aEn: "You get a complimentary 1-hour preview. Afterwards, you can activate a pass right inside the app via Razorpay using PhonePe, Google Pay, Paytm, any UPI app, or card, with instant activation and anytime cancellation.",
+    aHi: "ऐप में 24 घंटे का निःशुल्क पावन दर्शन (भक्ति पास) मिलता है। उसके बाद आप ऐप के अंदर ही सुरक्षित Razorpay द्वारा PhonePe, Google Pay, Paytm, किसी भी UPI या कार्ड से तुरंत पास सक्रिय कर सकते हैं और कभी भी निरस्त कर सकते हैं।",
+    aEn: "You get a complimentary 24-hour devotional pass. Afterwards, you can activate a pass right inside the app via Razorpay using PhonePe, Google Pay, Paytm, any UPI app, or card, with instant activation and anytime cancellation.",
   },
   {
     qHi: "क्या मेरे सहेजे गए भजन और सब्सक्रिप्शन 2 फ़ोन पर चलेंगे?",
