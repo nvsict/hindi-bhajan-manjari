@@ -320,12 +320,12 @@ const INSTALL_STEPS = [
   {
     id: "download",
     step: "1",
-    titleHi: "Chrome में 'Download anyway' दबाएँ",
-    titleEn: "Tap 'Download anyway' in Chrome",
+    titleHi: "Chrome में 'Download anyway' दबाएँ (फोन के नीचे)",
+    titleEn: "Tap 'Download anyway' in Chrome (screen bottom)",
     bodyHi:
-      "डाउनलोड बटन दबाते ही Chrome एक सामान्य APK संदेश दिखा सकता है। बिना चिंता किए 'Download anyway' पर टैप करें।",
+      "डाउनलोड बटन दबाते ही Chrome आपके फ़ोन के निचले हिस्से में एक सुरक्षा संदेश दिखाएगा। वहाँ बेझिझक नीले 'Download anyway' पर टैप करें।",
     bodyEn:
-      "Chrome shows a routine notice for every direct APK file. Tap 'Download anyway' to start saving the signed file.",
+      "Chrome displays a routine security notice at the bottom of your phone. Tap the blue 'Download anyway' button to save the file.",
   },
   {
     id: "open",
@@ -424,38 +424,56 @@ function InstallStepVisual({
   stepId,
   lang,
   version,
+  onTriggerDownload,
 }: {
   stepId: string;
   lang: Lang;
   version: string;
+  onTriggerDownload?: () => void;
 }) {
   if (stepId === "download") {
     return (
-      <div className="rounded-2xl bg-[#fffcf5] dark:bg-[#1a0d06] border border-orange-200/80 dark:border-orange-900/50 p-3.5 shadow-inner">
-        <div className="flex items-start gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-950 flex items-center justify-center shrink-0 text-orange-600 dark:text-orange-400">
-            <FaDownload size={13} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-xs font-bold text-gray-900 dark:text-orange-50">
-              {lang === "hi"
-                ? "फ़ाइल हानिकारक हो सकती है (सामान्य Chrome संदेश)"
-                : "File might be harmful (standard Chrome prompt)"}
+      <div className="rounded-2xl bg-gray-50/90 dark:bg-[#1a0e08] border border-orange-200/80 dark:border-orange-900/50 p-3.5 shadow-inner">
+        <div className="text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 flex items-center justify-between">
+          <span>{lang === "hi" ? "📱 फ़ोन के निचले हिस्से में ऐसा दिखेगा:" : "📱 Look at bottom of your phone:"}</span>
+          <span className="text-orange-600 dark:text-orange-400 font-bold">{lang === "hi" ? "Chrome सूचना" : "Chrome Prompt"}</span>
+        </div>
+        <div className="rounded-xl bg-white dark:bg-black/50 border border-gray-200 dark:border-gray-800 p-3 shadow-xs">
+          <div className="flex items-start gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-950/70 flex items-center justify-center shrink-0 text-amber-700 dark:text-amber-400">
+              <FaShieldAlt size={14} />
             </div>
-            <div className="text-[11px] font-mono text-gray-500 dark:text-gray-400 truncate mt-0.5">
-              hindi-bhajan-manjari-v{version}.apk
-            </div>
-            <div className="mt-2.5 flex items-center justify-end gap-2">
-              <span className="text-[11px] font-semibold text-gray-400 px-2.5 py-1">
-                Cancel
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold bg-orange-600 text-white px-3 py-1.5 rounded-lg shadow-sm ring-2 ring-orange-300 dark:ring-orange-500/40">
-                Download anyway
-                <FaArrowRight size={9} />
-              </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
+                {lang === "hi"
+                  ? "File might be harmful (फ़ाइल हानिकारक हो सकती है?)"
+                  : "File might be harmful (routine security notice)"}
+              </div>
+              <div className="text-[11px] font-mono text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                hindi-bhajan-manjari-v{version}.apk
+              </div>
+              <div className="mt-2.5 flex items-center justify-end gap-2">
+                <span className="text-[11px] font-medium text-gray-400 px-2 py-1">
+                  Cancel
+                </span>
+                <button
+                  type="button"
+                  onClick={onTriggerDownload}
+                  className="inline-flex items-center gap-1.5 text-xs font-black bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-3.5 py-1.5 rounded-lg shadow-sm transition-all cursor-pointer ring-2 ring-blue-300 dark:ring-blue-500/40"
+                  title={lang === "hi" ? "यहाँ टैप करके भी APK डाउनलोड कर सकते हैं" : "Click here to download APK directly"}
+                >
+                  <span>Download anyway</span>
+                  <FaDownload size={10} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
+        <p className="mt-2 text-[11px] text-gray-600 dark:text-gray-400 text-center font-medium">
+          {lang === "hi"
+            ? "👆 अपने फ़ोन के नीचे आने वाले इस बटन पर टैप करें (या सीधे ऊपर नीले बटन पर भी टैप कर सकते हैं)।"
+            : "👆 Tap this button at the bottom of your phone (or tap the blue button above directly)."}
+        </p>
       </div>
     );
   }
@@ -817,10 +835,9 @@ export default function AppStoreClient({ release }: AppStoreClientProps) {
   const [copiedSha, setCopiedSha] = useState(false);
   const [showStickyBar, setShowStickyBar] = useState(false);
 
-  // Streamlined Post-Download Interactive Installation Sheet (pops right in front of user's eyes!)
-  const [installSheetOpen, setInstallSheetOpen] = useState(false);
-  const [modalStepIndex, setModalStepIndex] = useState(0);
-  const [downloadProgress, setDownloadProgress] = useState(0);
+  // In-page active download state & in-app browser detection
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isInAppBrowser, setIsInAppBrowser] = useState(false);
 
   const heroCtaRef = useRef<HTMLDivElement | null>(null);
   const carouselRef = useRef<HTMLDivElement | null>(null);
@@ -830,6 +847,14 @@ export default function AppStoreClient({ release }: AppStoreClientProps) {
   const isShaPublished =
     Boolean(release.sha256) &&
     !release.sha256.toLowerCase().includes("will be published");
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !navigator) return;
+    const ua =
+      navigator.userAgent || navigator.vendor || (window as any).opera || "";
+    const inApp = /WhatsApp|FBAN|FBAV|Instagram|Telegram|Line/i.test(ua);
+    setIsInAppBrowser(inApp);
+  }, []);
 
   useEffect(() => {
     const el = heroCtaRef.current;
@@ -844,20 +869,9 @@ export default function AppStoreClient({ release }: AppStoreClientProps) {
     return () => obs.disconnect();
   }, []);
 
-  // Gentle progress animation inside post-download sheet so user feels instant visual continuity
-  useEffect(() => {
-    if (!installSheetOpen) return;
-    setDownloadProgress(18);
-    const t1 = setTimeout(() => setDownloadProgress(64), 350);
-    const t2 = setTimeout(() => setDownloadProgress(100), 1100);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [installSheetOpen]);
-
   const triggerApkFileDownload = () => {
     if (!hasLiveApk) return;
+    setIsDownloading(true);
     const a = document.createElement("a");
     a.href = release.apkDownloadUrl;
     a.setAttribute(
@@ -870,10 +884,7 @@ export default function AppStoreClient({ release }: AppStoreClientProps) {
   };
 
   const handleDownloadClick = () => {
-    triggerApkFileDownload();
-    // Immediately bring the visual step-by-step installation guide right in front of the user's eyes!
-    setModalStepIndex(0);
-    setInstallSheetOpen(true);
+    setIsDownloading(true);
   };
 
   const handleCopySha = async () => {
@@ -909,10 +920,21 @@ export default function AppStoreClient({ release }: AppStoreClientProps) {
     }
   };
 
-  const activeModalStep = INSTALL_STEPS[modalStepIndex] || INSTALL_STEPS[0];
-
   return (
     <div className="min-h-screen bg-[#fffcf5] dark:bg-[#0c0804] text-gray-900 dark:text-orange-50 pb-28 sm:pb-20 font-hindi">
+      {/* ⚠️ In-App Browser (WhatsApp / Social Media) Top Alert */}
+      {isInAppBrowser && (
+        <div className="bg-gradient-to-r from-amber-600 to-orange-600 text-white px-4 py-2.5 text-xs sm:text-sm font-bold shadow-md z-40 relative">
+          <div className="flex items-center gap-2.5 max-w-3xl mx-auto w-full">
+            <span className="text-base sm:text-lg shrink-0">⚠️</span>
+            <span>
+              {lang === "hi"
+                ? "आप WhatsApp / सोशल मीडिया ब्राउज़र में हैं। सीधा APK डाउनलोड करने के लिए ऊपर दाएँ 3 डॉट्स (⋮) दबाकर 'Open in Chrome / ब्राउज़र में खोलें' चुनें।"
+                : "You are in an in-app browser. Tap the 3 dots (⋮) top-right and select 'Open in Chrome' for seamless APK download."}
+            </span>
+          </div>
+        </div>
+      )}
       {/* =================================================================
           1. WEBSITE-CONSISTENT SAFFRON HERO BANNER (Mobile-First)
          ================================================================= */}
@@ -1064,14 +1086,27 @@ export default function AppStoreClient({ release }: AppStoreClientProps) {
             ref={heroCtaRef}
             className="mt-5 flex flex-col sm:flex-row gap-3"
           >
-            <button
-              type="button"
+            <a
+              href={hasLiveApk ? release.apkDownloadUrl : "#install-guide"}
+              download={hasLiveApk ? `hindi-bhajan-manjari-v${release.latestVersion}.apk` : undefined}
               onClick={handleDownloadClick}
-              className="w-full sm:flex-1 min-h-[54px] px-5 rounded-2xl bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 active:scale-[0.99] text-white font-extrabold text-[15px] sm:text-base flex items-center justify-center gap-2.5 shadow-lg shadow-orange-600/25 transition-all cursor-pointer"
+              className={`w-full sm:flex-1 min-h-[54px] px-5 rounded-2xl font-extrabold text-[15px] sm:text-base flex items-center justify-center gap-2.5 shadow-lg transition-all cursor-pointer ${
+                isDownloading
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-emerald-600/25"
+                  : "bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 active:scale-[0.99] text-white shadow-orange-600/25"
+              }`}
             >
-              <FaDownload size={16} />
-              <span>{hasLiveApk ? t.downloadBtn : t.downloadPendingBtn}</span>
-            </button>
+              <FaDownload size={16} className={isDownloading ? "animate-bounce" : ""} />
+              <span>
+                {isDownloading
+                  ? lang === "hi"
+                    ? "फ़ाइल डाउनलोड हो रही है... ⏳"
+                    : "Downloading APK file... ⏳"
+                  : hasLiveApk
+                    ? t.downloadBtn
+                    : t.downloadPendingBtn}
+              </span>
+            </a>
 
             <a
               href="#install-guide"
@@ -1080,6 +1115,105 @@ export default function AppStoreClient({ release }: AppStoreClientProps) {
               <FaInfoCircle size={14} />
               <span>{t.installGuideBtn}</span>
             </a>
+          </div>
+
+          {/* Direct Fallback link if download doesn't trigger */}
+          {hasLiveApk && (
+            <div className="mt-2.5 flex items-center justify-between flex-wrap gap-2 text-xs">
+              <span className="text-gray-500 dark:text-gray-400">
+                {lang === "hi"
+                  ? "यदि ऊपर से डाउनलोड शुरू न हो:"
+                  : "If download does not begin above:"}
+              </span>
+              <a
+                href={release.apkDownloadUrl}
+                download={`hindi-bhajan-manjari-v${release.latestVersion}.apk`}
+                onClick={handleDownloadClick}
+                className="font-bold text-orange-600 dark:text-orange-400 hover:underline inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <FaDownload size={11} />
+                <span>{lang === "hi" ? "यहाँ से सीधे APK डाउनलोड करें" : "Direct APK Link"}</span>
+              </a>
+            </div>
+          )}
+
+          {/* Active Download In-Page Assistant Card */}
+          {isDownloading && (
+            <div className="mt-4 rounded-2xl border-2 border-emerald-500/80 bg-gradient-to-br from-emerald-50 via-[#f0fdf4] to-teal-50 dark:from-[#052216] dark:via-[#071d14] dark:to-[#041910] p-4.5 sm:p-5 shadow-lg shadow-emerald-950/5 space-y-3">
+              <div className="flex items-center gap-2.5 text-emerald-800 dark:text-emerald-300 font-black text-sm sm:text-base">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                <span>
+                  {lang === "hi"
+                    ? `⬇️ डाउनलोड प्रारंभ हो गया! (v${release.latestVersion} · ${release.apkSizeLabel})`
+                    : `⬇️ Download started! (v${release.latestVersion} · ${release.apkSizeLabel})`}
+                </span>
+              </div>
+
+              <div className="space-y-2 text-xs sm:text-sm text-gray-700 dark:text-gray-200">
+                <div className="flex items-start gap-2 bg-white/80 dark:bg-black/30 p-2.5 rounded-xl border border-emerald-200/60 dark:border-emerald-900/40">
+                  <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400 shrink-0">1.</span>
+                  <div>
+                    <strong className="block font-bold text-gray-900 dark:text-white">
+                      {lang === "hi" ? "📱 अपने फ़ोन के नीचे देखें:" : "📱 Look at bottom of your phone:"}
+                    </strong>
+                    {lang === "hi"
+                      ? "यदि Chrome पूछे 'File might be harmful?' तो बिना डरे फ़ोन के नीचे नीले रंग के 'Download anyway (फिर भी डाउनलोड करें)' बटन पर टैप करें।"
+                      : "If Chrome asks 'File might be harmful?', tap the blue 'Download anyway' button at the bottom of your phone."}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2 bg-white/80 dark:bg-black/30 p-2.5 rounded-xl border border-emerald-200/60 dark:border-emerald-900/40">
+                  <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400 shrink-0">2.</span>
+                  <div>
+                    <strong className="block font-bold text-gray-900 dark:text-white">
+                      {lang === "hi" ? "📲 प्रोग्रेस कहाँ दिखेगी:" : "📲 Where to see progress:"}
+                    </strong>
+                    {lang === "hi"
+                      ? "अपने फ़ोन का ऊपर वाला पर्दा (Notification Bar) नीचे खींचें। वहाँ डाउनलोड प्रोग्रेस प्रतिशत दिखाई देगा (20-30 सेकंड प्रतीक्षा करें)।"
+                      : "Pull down your phone's notification bar to see the download progress (takes 20-30 seconds)."}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2 bg-white/80 dark:bg-black/30 p-2.5 rounded-xl border border-emerald-200/60 dark:border-emerald-900/40">
+                  <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400 shrink-0">3.</span>
+                  <div>
+                    <strong className="block font-bold text-gray-900 dark:text-white">
+                      {lang === "hi" ? "✅ डाउनलोड पूरा होने के बाद:" : "✅ After download completes:"}
+                    </strong>
+                    {lang === "hi"
+                      ? "नोटिफिकेशन में फ़ाइल पर टैप करें और 'Install' दबाएँ। (यदि 'Allow from this source' पूछे, तो ऑन कर दें)।"
+                      : "Tap the completed notification and tap 'Install' (enable 'Allow from this source' if prompted)."}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-1 flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
+                <span>{lang === "hi" ? "फ़ाइल डाउनलोड नहीं हुई?" : "Did not download?"}</span>
+                <button
+                  type="button"
+                  onClick={triggerApkFileDownload}
+                  className="font-bold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <FaRedo size={10} />
+                  <span>{lang === "hi" ? "दोबारा डाउनलोड करें" : "Download Again"}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Chrome Warning Reassurance Banner */}
+          <div className="mt-4 p-3.5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
+            <FaShieldAlt className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" size={15} />
+            <div className="leading-relaxed">
+              <strong className="font-bold block text-amber-950 dark:text-amber-100">
+                {lang === "hi"
+                  ? "🛡️ 100% सुरक्षित एवं वायरस-मुक्त आधिकारिक ऐप"
+                  : "🛡️ 100% Safe, Virus-Free Official Release"}
+              </strong>
+              {lang === "hi"
+                ? "डाउनलोड दबाने पर Chrome 'File might be harmful?' पूछ सकता है। यह Play Store के बाहर हर APK पर आने वाला सामान्य सुरक्षा संदेश है — बेझिझक 'Download anyway (फिर भी डाउनलोड करें)' चुनें।"
+                : "Chrome may ask 'File might be harmful?'. This is standard for direct APK downloads — tap 'Download anyway' with complete peace of mind."}
+            </div>
           </div>
 
           <p className="mt-4 flex items-start gap-2 text-xs font-medium text-gray-600 dark:text-gray-400 leading-relaxed">
@@ -1175,6 +1309,7 @@ export default function AppStoreClient({ release }: AppStoreClientProps) {
                     stepId={item.id}
                     lang={lang}
                     version={release.latestVersion}
+                    onTriggerDownload={triggerApkFileDownload}
                   />
                 </div>
               </li>
@@ -1569,177 +1704,27 @@ export default function AppStoreClient({ release }: AppStoreClientProps) {
             </div>
           </div>
 
-          <button
-            type="button"
+          <a
+            href={hasLiveApk ? release.apkDownloadUrl : "#install-guide"}
+            download={hasLiveApk ? `hindi-bhajan-manjari-v${release.latestVersion}.apk` : undefined}
             onClick={handleDownloadClick}
-            className="min-h-[44px] px-4 rounded-xl bg-gradient-to-r from-orange-600 to-red-600 text-white text-sm font-extrabold flex items-center gap-2 shrink-0 shadow-md cursor-pointer"
+            className={`min-h-[44px] px-4 rounded-xl text-white text-sm font-extrabold flex items-center gap-2 shrink-0 shadow-md cursor-pointer transition-all ${
+              isDownloading
+                ? "bg-gradient-to-r from-emerald-600 to-teal-600"
+                : "bg-gradient-to-r from-orange-600 to-red-600 active:scale-95"
+            }`}
           >
-            <FaDownload size={12} />
-            <span>{t.stickyBtn}</span>
-          </button>
+            <FaDownload size={12} className={isDownloading ? "animate-bounce" : ""} />
+            <span>
+              {isDownloading
+                ? lang === "hi"
+                  ? "डाउनलोड चालू है..."
+                  : "Downloading..."
+                : t.stickyBtn}
+            </span>
+          </a>
         </div>
       </div>
-
-      {/* =================================================================
-          STREAMLINED POST-DOWNLOAD VISUAL INSTALLATION SHEET
-          Opens IMMEDIATELY right in front of the user's eyes when Download is tapped!
-         ================================================================= */}
-      {installSheetOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="install-sheet-title"
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-0 sm:p-4"
-          onClick={() => setInstallSheetOpen(false)}
-        >
-          <div
-            className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl bg-white dark:bg-[#120804] border-t sm:border border-orange-200 dark:border-orange-900/50 overflow-hidden shadow-2xl max-h-[92vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Top Saffron Status Header */}
-            <div className="bg-gradient-to-r from-orange-600 to-red-600 dark:from-[#2a0c04] dark:to-[#5c1c09] px-5 pt-4 pb-4 text-white">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-9 h-9 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center shrink-0">
-                    {hasLiveApk ? (
-                      <FaCheckCircle size={17} className="text-amber-200" />
-                    ) : (
-                      <FaAndroid size={18} className="text-amber-200" />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <h3
-                      id="install-sheet-title"
-                      className="text-base font-black leading-tight"
-                    >
-                      {hasLiveApk ? t.modalStartedTitle : t.modalPreviewTitle}
-                    </h3>
-                    <p className="text-xs text-orange-100 mt-0.5 leading-snug">
-                      {hasLiveApk ? t.modalStartedSub : t.modalPreviewSub}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setInstallSheetOpen(false)}
-                  aria-label="Close"
-                  className="w-8 h-8 rounded-full bg-black/20 hover:bg-black/35 flex items-center justify-center shrink-0 cursor-pointer"
-                >
-                  <FaTimes size={13} />
-                </button>
-              </div>
-
-              {/* Animated download progress indicator */}
-              {hasLiveApk && (
-                <div className="mt-3">
-                  <div className="h-1.5 w-full rounded-full bg-black/25 overflow-hidden">
-                    <div
-                      className="h-full bg-amber-300 rounded-full transition-all duration-700"
-                      style={{ width: `${downloadProgress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Interactive 4-Step Pills */}
-            <div className="px-5 pt-4 pb-2 flex items-center gap-2">
-              {INSTALL_STEPS.map((st, idx) => {
-                const active = idx === modalStepIndex;
-                const done = idx < modalStepIndex;
-                return (
-                  <button
-                    key={st.id}
-                    type="button"
-                    onClick={() => setModalStepIndex(idx)}
-                    className={`flex-1 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer border ${
-                      active
-                        ? "bg-orange-600 text-white border-orange-600 shadow-sm"
-                        : done
-                          ? "bg-orange-50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-900/50"
-                          : "bg-gray-50 dark:bg-[#1a0d06] text-gray-500 dark:text-gray-400 border-gray-200 dark:border-orange-950"
-                    }`}
-                  >
-                    {lang === "hi" ? `चरण ${st.step}` : `Step ${st.step}`}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Active Step Visual + Clear Explanation */}
-            <div className="px-5 py-3 space-y-3.5 overflow-y-auto">
-              <div>
-                <h4 className="text-base sm:text-lg font-black text-gray-900 dark:text-orange-50 leading-snug">
-                  {activeModalStep.step}.{" "}
-                  {lang === "hi"
-                    ? activeModalStep.titleHi
-                    : activeModalStep.titleEn}
-                </h4>
-                <p className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                  {lang === "hi"
-                    ? activeModalStep.bodyHi
-                    : activeModalStep.bodyEn}
-                </p>
-              </div>
-
-              <InstallStepVisual
-                stepId={activeModalStep.id}
-                lang={lang}
-                version={release.latestVersion}
-              />
-
-              {hasLiveApk && (
-                <button
-                  type="button"
-                  onClick={triggerApkFileDownload}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-600 dark:text-orange-400 hover:underline cursor-pointer"
-                >
-                  <FaRedo size={10} />
-                  <span>{t.modalDownloadAgain}</span>
-                </button>
-              )}
-            </div>
-
-            {/* Bottom Thumb Controls */}
-            <div className="px-5 py-4 border-t border-orange-100 dark:border-orange-900/40 bg-[#fffcf5] dark:bg-[#0c0804] flex items-center justify-between gap-3">
-              <button
-                type="button"
-                disabled={modalStepIndex === 0}
-                onClick={() => setModalStepIndex((i) => Math.max(0, i - 1))}
-                className="min-h-[44px] px-4 rounded-xl border border-orange-200 dark:border-orange-900/50 text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-300 disabled:opacity-35 flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
-              >
-                <FaArrowLeft size={11} />
-                <span>{t.modalPrev}</span>
-              </button>
-
-              {modalStepIndex < INSTALL_STEPS.length - 1 ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setModalStepIndex((i) =>
-                      Math.min(INSTALL_STEPS.length - 1, i + 1),
-                    )
-                  }
-                  className="flex-1 min-h-[44px] px-5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-sm font-extrabold flex items-center justify-center gap-2 shadow-sm cursor-pointer"
-                >
-                  <span>{t.modalNext}</span>
-                  <FaArrowRight size={11} />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setInstallSheetOpen(false)}
-                  className="flex-1 min-h-[44px] px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-extrabold flex items-center justify-center gap-2 shadow-sm cursor-pointer"
-                >
-                  <FaCheck size={12} />
-                  <span>{t.modalDone}</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
