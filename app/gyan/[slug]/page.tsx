@@ -152,7 +152,17 @@ export default async function ArticlePage({ params }: Props) {
     "@id": `${siteUrl}#organization`,
     "name": "Hindi Bhajan Manjari",
     "url": siteUrl,
-    "logo": { "@type": "ImageObject", "url": `${siteUrl}/favicon.ico` }
+    "logo": { 
+      "@type": "ImageObject", 
+      "url": `${siteUrl}/logo.png`,
+      "width": 512,
+      "height": 512
+    },
+    "sameAs": [
+      "https://play.google.com/store/apps/details?id=com.nvsict.hindibhajanmanjari",
+      "https://www.facebook.com/mohit.tarkar.7121/",
+      "https://www.instagram.com/imp.erfecto"
+    ]
   });
 
   graphNodes.push({
