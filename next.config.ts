@@ -31,6 +31,65 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  // 🧭 SEO 301 PERMANENT REDIRECTS (Fix GSC 404s & Slug Changes)
+  async redirects() {
+    return [
+      // 1. Plural /bhajans -> Singular /bhajan (A to Z Directory)
+      {
+        source: '/bhajans',
+        destination: '/bhajan',
+        permanent: true,
+      },
+      // 2. Legacy Payment HTML -> /donate
+      {
+        source: '/pay.html',
+        destination: '/donate',
+        permanent: true,
+      },
+      // 3. Category /mata-ke-bhajan -> Deity /deity/mata-rani
+      {
+        source: '/category/mata-ke-bhajan',
+        destination: '/deity/mata-rani',
+        permanent: true,
+      },
+      // 4. Deleted Dummy Test Bhajan -> /deity/shri-ganesha
+      {
+        source: '/bhajan/shree-ganesha-damee-bhajana',
+        destination: '/deity/shri-ganesha',
+        permanent: true,
+      },
+      // 5. Renamed Bhajan: Shiv Kailasho Ke Vasi
+      {
+        source: '/bhajan/shiv-kailasho-ke-vasi-dhauli-dharon-ke-raj-bhajan',
+        destination: '/bhajan/shiv-kailasho-ke-vasi-lyrics',
+        permanent: true,
+      },
+      // 6. Renamed Bhajan: Morchhadi Lehrayi Re
+      {
+        source: '/bhajan/morchhadi-lehrayi-re-rasiya-o-sanwara-lyrics-khatu-shyam',
+        destination: '/bhajan/morchhadi-lehrayi-re-rasiya-o-sanwara-lyrics-surbhi-chaturvedi',
+        permanent: true,
+      },
+      // 7. Scraping/Typo Suffix: Jai Santoshi Mata Aarti
+      {
+        source: '/bhajan/jai-santoshi-mata-aarti-lyrics-shukravar-specialSame',
+        destination: '/bhajan/jai-santoshi-mata-aarti-lyrics-shukravar-special',
+        permanent: true,
+      },
+      // 8. Shabdkosh Unicode: ghar-घर -> ghar-ghar-घर-घर
+      {
+        source: '/shabdkosh/ghar-घर',
+        destination: '/shabdkosh/ghar-ghar-घर-घर',
+        permanent: true,
+      },
+      {
+        source: '/shabdkosh/ghar-%E0%A4%98%E0%A4%B0',
+        destination: '/shabdkosh/ghar-ghar-%E0%A4%98%E0%A4%B0-%E0%A4%98%E0%A4%B0',
+        permanent: true,
+      },
+    ];
+  },
+
   // 🛡️ SECURITY HEADERS SHIELD 🛡️
   async headers() {
     return [
