@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Sidebar from '../../../components/Sidebar';
 import Breadcrumbs from '../../../components/Breadcrumbs';
 import LyricsViewer from '../../../components/LyricsViewer'; 
-import { FaMicrophoneAlt, FaPhoneAlt, FaQuestionCircle } from 'react-icons/fa';
+import { FaMicrophoneAlt, FaPhoneAlt, FaQuestionCircle, FaPenNib } from 'react-icons/fa';
 import ViewCounter from '../../../components/ViewCounter';
 import CommentsSection from '@/components/CommentsSection';
 import AuthorBox from '@/components/AuthorBox';
@@ -168,14 +168,30 @@ export default async function BhajanDetails({ params }: Props) {
     "@id": `${baseUrl}/#organization`,
     "name": "Hindi Bhajan Manjari",
     "url": baseUrl,
-    "logo": { "@type": "ImageObject", "url": `${baseUrl}/logo.png` }
+    "logo": { 
+      "@type": "ImageObject", 
+      "url": `${baseUrl}/logo.png`,
+      "width": 512,
+      "height": 512
+    },
+    "sameAs": [
+      "https://play.google.com/store/apps/details?id=com.nvsict.hindibhajanmanjari",
+      "https://www.facebook.com/mohit.tarkar.7121/",
+      "https://www.instagram.com/imp.erfecto"
+    ]
   });
 
   graphNodes.push({
     "@type": "Person",
-    "@id": `${baseUrl}/#author`,
+    "@id": `${baseUrl}/author/mohit-tarkar#author`,
     "name": "Mohit Tarkar",
-    "url": baseUrl
+    "jobTitle": "Founder & Chief Editor",
+    "url": `${baseUrl}/author/mohit-tarkar`,
+    "sameAs": [
+      "https://www.facebook.com/mohit.tarkar.7121/",
+      "https://www.instagram.com/imp.erfecto"
+    ],
+    "worksFor": { "@id": `${baseUrl}/#organization` }
   });
 
   graphNodes.push({
@@ -254,7 +270,7 @@ export default async function BhajanDetails({ params }: Props) {
       "headline": `${bhajan.title_hindi} भावार्थ (Meaning)`,
       "description": bhajan.meta_description || bhajan.explanation.substring(0, 150),
       "image": ogImageUrl,
-      "author": { "@id": `${baseUrl}/#author` },
+      "author": { "@id": `${baseUrl}/author/mohit-tarkar#author` },
       "publisher": { "@id": `${baseUrl}/#organization` },
       "mainEntityOfPage": { "@id": pageUrl }
     });
@@ -266,8 +282,11 @@ export default async function BhajanDetails({ params }: Props) {
       "@id": `${pageUrl}#faq`,
       "mainEntity": bhajan.faqs.map((faq: any) => ({
         "@type": "Question",
-        "name": faq.question,
-        "acceptedAnswer": { "@type": "Answer", "text": faq.answer }
+        "name": (faq.question || '').replace(/^Q\d*:\s*/i, '').trim(),
+        "acceptedAnswer": { 
+          "@type": "Answer", 
+          "text": (faq.answer || '').replace(/^A\d*:\s*/i, '').trim() 
+        }
       }))
     });
   }
@@ -288,7 +307,7 @@ export default async function BhajanDetails({ params }: Props) {
     "description": bhajan.meta_description,
     "keywords": schemaKeywords,
     "image": ogImageUrl,
-    "author": { "@id": `${baseUrl}/#author` },
+    "author": { "@id": `${baseUrl}/author/mohit-tarkar#author` },
     "datePublished": bhajan.created_at || new Date().toISOString(),
     "dateModified": bhajan.updated_at || bhajan.created_at || new Date().toISOString(),
     "isPartOf": { "@id": `${baseUrl}/#website` },
@@ -349,10 +368,10 @@ export default async function BhajanDetails({ params }: Props) {
                 <div className="flex flex-wrap gap-4 md:gap-6 bg-white/60 dark:bg-white/5 p-4 md:p-5 rounded-2xl border border-orange-100 dark:border-white/10 shadow-sm">
                   {(singers.length > 0 || bhajan.singer_details?.name) && (
                     <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                      <FaMicrophoneAlt className="text-orange-500" aria-hidden="true" />
+                      <FaMicrophoneAlt className="text-orange-500 shrink-0" aria-hidden="true" />
                       <span className="text-[11px] uppercase tracking-widest font-bold text-gray-500 dark:text-gray-400">Singer: </span>
                       {singers.length > 0 ? (
-                        <div className="flex gap-1 text-sm font-bold">
+                        <div className="flex gap-1 text-sm font-bold flex-wrap">
                           {singers.map((s: any, i: number) => (
                             <span key={s.slug}>
                               <Link href={`/artist/${s.slug}`} className="text-orange-600 hover:text-orange-800 dark:hover:text-orange-400 transition-colors">{s.name_hinglish}</Link>
@@ -362,6 +381,25 @@ export default async function BhajanDetails({ params }: Props) {
                         </div>
                       ) : (
                         <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{bhajan.singer_details?.name}</span>
+                      )}
+                    </div>
+                  )}
+
+                  {(lyricists.length > 0 || bhajan.singer_details?.lyricist) && (
+                    <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                      <FaPenNib className="text-orange-500 shrink-0" aria-hidden="true" />
+                      <span className="text-[11px] uppercase tracking-widest font-bold text-gray-500 dark:text-gray-400">रचयिता / Lyricist: </span>
+                      {lyricists.length > 0 ? (
+                        <div className="flex gap-1 text-sm font-bold flex-wrap">
+                          {lyricists.map((l: any, i: number) => (
+                            <span key={l.slug}>
+                              <Link href={`/artist/${l.slug}`} className="text-orange-600 hover:text-orange-800 dark:hover:text-orange-400 transition-colors">{l.name_hinglish}</Link>
+                              {i < lyricists.length - 1 ? ', ' : ''}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{bhajan.singer_details?.lyricist}</span>
                       )}
                     </div>
                   )}
@@ -398,9 +436,9 @@ export default async function BhajanDetails({ params }: Props) {
               {/* 🌟 ORIGINAL CONTENT FIRST (AdSense Priority) - Moved Bhavarth up right after Lyrics */}
               {bhajan.explanation && (
                 <div className="mt-10 mb-8 bg-gradient-to-br from-orange-50 dark:from-orange-900/10 to-orange-100/50 dark:to-orange-900/5 p-6 md:p-8 rounded-2xl border border-orange-200 dark:border-orange-900/30 shadow-sm">
-                  <h3 className="text-2xl font-black font-hindi text-gray-900 dark:text-orange-50 mb-4 flex items-center gap-2">
+                  <h2 className="text-2xl font-black font-hindi text-gray-900 dark:text-orange-50 mb-4 flex items-center gap-2">
                     <span className="text-orange-600 dark:text-orange-500">अर्थ</span> (Bhavarth)
-                  </h3>
+                  </h2>
                   <div className="text-gray-700 dark:text-gray-300 text-lg md:text-xl leading-[1.8] font-hindi whitespace-pre-wrap">
                     {bhajan.explanation}
                   </div>
@@ -421,21 +459,25 @@ export default async function BhajanDetails({ params }: Props) {
               
               {bhajan.faqs && Array.isArray(bhajan.faqs) && bhajan.faqs.length > 0 && (
                 <div className="mt-12">
-                  <h3 className="text-2xl font-black text-gray-900 dark:text-orange-50 tracking-tighter mb-6 flex items-center gap-2">
+                  <h2 className="text-2xl font-black text-gray-900 dark:text-orange-50 tracking-tighter mb-6 flex items-center gap-2">
                     <FaQuestionCircle className="text-orange-500" aria-hidden="true" />
                     Frequently Asked Questions
-                  </h3>
+                  </h2>
                   <div className="space-y-4">
-                    {bhajan.faqs.map((faq: any, idx: number) => (
-                      <div key={idx} className="bg-white dark:bg-[#1a120b] border border-gray-100 dark:border-white/5 p-5 md:p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                        <h4 className="text-lg md:text-xl font-black font-hindi text-gray-900 dark:text-gray-100 mb-2 leading-tight">
-                          {faq.question}
-                        </h4>
-                        <p className="text-gray-600 dark:text-gray-400 leading-[1.8] font-hindi text-base md:text-lg">
-                          {faq.answer}
-                        </p>
-                      </div>
-                    ))}
+                    {bhajan.faqs.map((faq: any, idx: number) => {
+                      const cleanQuestion = (faq.question || '').replace(/^Q\d*:\s*/i, '');
+                      const cleanAnswer = (faq.answer || '').replace(/^A\d*:\s*/i, '');
+                      return (
+                        <div key={idx} className="bg-white dark:bg-[#1a120b] border border-gray-100 dark:border-white/5 p-5 md:p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                          <h3 className="text-lg md:text-xl font-black font-hindi text-gray-900 dark:text-gray-100 mb-2 leading-tight">
+                            {cleanQuestion}
+                          </h3>
+                          <p className="text-gray-600 dark:text-gray-400 leading-[1.8] font-hindi text-base md:text-lg">
+                            {cleanAnswer}
+                          </p>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

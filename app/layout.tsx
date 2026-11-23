@@ -88,7 +88,7 @@ export const metadata: Metadata = {
     icon: '/favicon.ico',
     apple: '/logo.png', 
   },
-  manifest: '/manifest.json', 
+  manifest: '/manifest.webmanifest', 
   openGraph: {
     type: 'website',
     locale: 'hi_IN',

@@ -9,9 +9,8 @@ import { GiLotusFlower } from 'react-icons/gi';
 // 🌟 IMPORT THE NEW CLIENT COMPONENT
 import WordActionButtons from '@/components/WordActionButtons';
 
-// 🌟 FIX 1: Bypass ALL Caching so new words appear instantly
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// 🌟 Cache dictionary words for 24 hours (super-fast ISR & edge caching)
+export const revalidate = 86400;
 
 interface Props {
   params: Promise<{ slug: string }>;
